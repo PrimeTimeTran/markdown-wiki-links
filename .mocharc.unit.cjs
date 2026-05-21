@@ -1,0 +1,1 @@
+module.exports = { spec: 'out/test/unit/**/*.test.js', timeout: 5000 };
