@@ -1,22 +1,34 @@
 import { defineConfig } from '@vscode/test-cli';
 
+const launchArgs = ['--disable-workspace-trust'];
+
 export default defineConfig([
   {
     label: 'unique',
     files: 'out/test/e2e/{smoke,documentLinks,hover}.test.js',
     workspaceFolder: 'test/fixtures/unique-names',
+    launchArgs,
     mocha: { ui: 'tdd', timeout: 20000 },
   },
   {
     label: 'ambiguous',
     files: 'out/test/e2e/ambiguous.test.js',
     workspaceFolder: 'test/fixtures/ambiguous-names',
+    launchArgs,
     mocha: { ui: 'tdd', timeout: 20000 },
   },
   {
     label: 'boundary',
     files: 'out/test/e2e/boundary.test.js',
     workspaceFolder: 'test/fixtures/boundary',
+    launchArgs,
+    mocha: { ui: 'tdd', timeout: 20000 },
+  },
+  {
+    label: 'renames',
+    files: 'out/test/e2e/rename.test.js',
+    workspaceFolder: 'test/fixtures/renames',
+    launchArgs,
     mocha: { ui: 'tdd', timeout: 20000 },
   },
 ]);

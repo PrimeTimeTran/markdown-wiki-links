@@ -1,0 +1,77 @@
+import * as path from 'path';
+
+import { ParsedRef, IndexEntry } from '../types';
+import { parseLinks } from '../parser/linkParser';
+import { parseEmbeds } from '../parser/embedParser';
+import { resolveTarget, IndexSnapshot } from '../resolver/resolveTarget';
+
+export type RenamePair = { oldFsPath: string; newFsPath: string };
+export type Replacement = { start: number; end: number; newText: string };
+
+// Chars that would break out of [[target|display]] / [[target#fragment]] grammar.
+const UNSAFE_RE = /[[\]|#\r\n]/;
+
+export function rewriteWikiRefs(
+  sourceText: string,
+  fromFsPath: string,
+  renames: RenamePair[],
+  snap: IndexSnapshot,
+): Replacement[] {
+  if (renames.length === 0) return [];
+  const out: Replacement[] = [];
+  const refs: ParsedRef[] = [...parseLinks(sourceText), ...parseEmbeds(sourceText)];
+  for (const r of refs) {
+    const resolved = resolveTarget(r, fromFsPath, snap);
+    if (!resolved) continue;
+    const hit = renames.find((p) => p.oldFsPath === resolved.fsPath);
+    if (!hit) continue;
+    const newTarget = chooseTargetForm(r.target, hit.newFsPath, fromFsPath, snap, renames);
+    if (newTarget === null) continue;
+    out.push({ start: r.range.start, end: r.range.end, newText: rebuildWiki(r, newTarget) });
+  }
+  return out;
+}
+
+// Returns null when the new name cannot be safely inserted as wiki-link text.
+function chooseTargetForm(
+  oldTarget: string,
+  newFsPath: string,
+  fromFsPath: string,
+  snap: IndexSnapshot,
+  renames: RenamePair[],
+): string | null {
+  const oldHadSlash = oldTarget.includes('/');
+  const newBase = path.basename(newFsPath).replace(/\.(md|markdown)$/i, '');
+  if (UNSAFE_RE.test(newBase)) return null;
+
+  const effective: IndexEntry[] = snap.entries
+    .filter((e) => !renames.some((r) => r.oldFsPath === e.fsPath))
+    .concat(
+      renames.map((r) => ({
+        fsPath: r.newFsPath,
+        relPath: path.relative(snap.workspaceRoot, r.newFsPath),
+        baseNoExt: path.basename(r.newFsPath).replace(/\.(md|markdown)$/i, ''),
+      })),
+    );
+  if (!oldHadSlash) {
+    const collision = effective.some(
+      (e) => e.fsPath !== newFsPath && e.baseNoExt.toLowerCase() === newBase.toLowerCase(),
+    );
+    if (!collision) return newBase;
+  }
+  const rel = path
+    .relative(path.dirname(fromFsPath), newFsPath)
+    .replace(/\\/g, '/')
+    .replace(/\.(md|markdown)$/i, '');
+  if (UNSAFE_RE.test(rel)) return null;
+  return rel;
+}
+
+function rebuildWiki(r: ParsedRef, newTarget: string): string {
+  const prefix = r.kind === 'embed' ? '![[' : '[[';
+  let body = newTarget;
+  if (r.fragment) body += '#' + r.fragment;
+  if (r.kind === 'link' && r.display) body += '|' + r.display;
+  if (r.kind === 'embed' && r.sizeHint) body += '|' + r.sizeHint;
+  return prefix + body + ']]';
+}

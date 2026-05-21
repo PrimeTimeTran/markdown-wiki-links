@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { IndexService } from './adapters/indexService';
 import { WikiDocumentLinkProvider } from './adapters/documentLinkProvider';
 import { WikiHoverProvider } from './adapters/hoverProvider';
+import { RenameHandler } from './adapters/renameHandler';
 
 let indexService: IndexService | undefined;
 
@@ -21,6 +22,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       new WikiHoverProvider(indexService),
     ),
   );
+  new RenameHandler().register(context);
 }
 
 export function deactivate(): void {}
