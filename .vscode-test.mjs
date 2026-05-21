@@ -31,4 +31,11 @@ export default defineConfig([
     launchArgs,
     mocha: { ui: 'tdd', timeout: 20000 },
   },
+  {
+    label: 'fragments',
+    files: 'out/test/e2e/fragments.test.js',
+    workspaceFolder: 'test/fixtures/headings-and-blocks',
+    launchArgs,
+    mocha: { ui: 'tdd', timeout: 20000 },
+  },
 ]);
