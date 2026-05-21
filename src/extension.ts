@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 
 import { IndexService } from './adapters/indexService';
 import { WikiDocumentLinkProvider } from './adapters/documentLinkProvider';
+import { WikiHoverProvider } from './adapters/hoverProvider';
 
 let indexService: IndexService | undefined;
 
@@ -14,6 +15,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.languages.registerDocumentLinkProvider(
       { language: 'markdown' },
       new WikiDocumentLinkProvider(indexService),
+    ),
+    vscode.languages.registerHoverProvider(
+      { language: 'markdown' },
+      new WikiHoverProvider(indexService),
     ),
   );
 }
