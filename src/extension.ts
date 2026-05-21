@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 
 import { IndexService } from './adapters/indexService';
+import { WikiDocumentLinkProvider } from './adapters/documentLinkProvider';
 
 let indexService: IndexService | undefined;
 
@@ -10,6 +11,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(indexService);
   context.subscriptions.push(
     vscode.commands.registerCommand('wikiLinks.rebuildIndex', () => indexService?.refresh()),
+    vscode.languages.registerDocumentLinkProvider(
+      { language: 'markdown' },
+      new WikiDocumentLinkProvider(indexService),
+    ),
   );
 }
 

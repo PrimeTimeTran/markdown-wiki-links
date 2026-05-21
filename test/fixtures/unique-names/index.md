@@ -1,3 +1,8 @@
 # Index
 
-See [[alpha]].
+- See [[alpha]].
+- [[beta|Bravo]]
+- [[alpha#Intro]]
+- [[#Local]]
+
+## Local
