@@ -6,6 +6,7 @@ import { parseLinks } from '../core/parser/linkParser';
 import { parseEmbeds } from '../core/parser/embedParser';
 import { resolveTarget } from '../core/resolver/resolveTarget';
 import { sliceSection } from '../core/blocks/sectionSlice';
+import { stripFrontmatter } from '../core/frontmatter';
 
 import { IndexService } from './indexService';
 import { isInsideWorkspaceReal } from './workspaceBoundary';
@@ -50,7 +51,7 @@ export class WikiHoverProvider implements vscode.HoverProvider {
         : await fs.readFile(resolved.fsPath, 'utf8').catch(() => '');
     const snippet = ref.fragment
       ? sliceSection(ref.fragment, targetText)
-      : firstLines(targetText, 40);
+      : firstLines(stripFrontmatter(targetText), 40);
     return new vscode.Hover(new vscode.MarkdownString(snippet));
   }
 
@@ -71,7 +72,9 @@ export class WikiHoverProvider implements vscode.HoverProvider {
       return imageHover(vscode.Uri.file(resolved.fsPath), ref.target, ref.sizeHint);
     }
     const targetText = await fs.readFile(resolved.fsPath, 'utf8').catch(() => '');
-    const body = ref.fragment ? sliceSection(ref.fragment, targetText) : targetText;
+    const body = ref.fragment
+      ? sliceSection(ref.fragment, targetText)
+      : stripFrontmatter(targetText);
     return new vscode.Hover(new vscode.MarkdownString(body));
   }
 }

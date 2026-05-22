@@ -27,7 +27,7 @@ Hexagonal layering, enforced by ESLint `no-restricted-imports`:
 
 - `src/core/**` — pure logic, **no `vscode` imports**: parsers (`linkParser`, `embedParser`), `fenceMask`, extractors (`headingExtractor`, `blockIdExtractor`, `sectionSlice`), `resolver/resolveTarget`, `rename/rewriteWikiRefs`, `completion/rankCompletions`. Unit-tested in plain Node.
 - `src/adapters/**` — VSCode glue: `indexService`, `workspaceBoundary`, the providers (`documentLinkProvider`, `hoverProvider`, `completionProvider`), `renameHandler`, `diagnostics`, `previewEmbedResolver`. May import `vscode` and `src/core/**`.
-- `src/markdownItPlugin/**` — the embed plugin contributed to the Markdown preview via `contributes["markdown.markdownItPlugins"]`. **No `vscode` imports** (runs in the preview process).
+- `src/markdownItPlugin/**` — the wiki plugin contributed to the Markdown preview via `contributes["markdown.markdownItPlugins"]`. Rewrites `[[...]]` into navigable links and expands `![[...]]` embeds; reads the source document from `env.currentDocument`. **No `vscode` imports** (runs in the preview process).
 - `src/extension.ts` — composition root: activates, builds `IndexService`, wires providers.
 
 Tests: `test/unit/` (pure-core, fast) and `test/e2e/` (real Extension Development Host). E2e tests must not import `src/**` internals — they drive features through VSCode's public command surface (`vscode.executeLinkProvider`, `executeHoverProvider`, `executeCompletionItemProvider`, `applyEdit` with `RenameFile`).

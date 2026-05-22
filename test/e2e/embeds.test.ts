@@ -43,9 +43,10 @@ suite('Embeds (click-to-follow + hover preview)', () => {
     assert.ok(!(png!.target?.fsPath ?? '').includes('300'));
   });
 
-  test('hover over ![[note]] shows the embedded markdown', async () => {
+  test('hover over ![[note]] shows the embedded markdown without YAML frontmatter', async () => {
     const txt = await hoverAt(vscode.Uri.joinPath(ws(), 'index.md'), '![[note]]', 3);
     assert.ok(txt.includes('Section body.') || txt.includes('# Note'), `hover was: ${txt}`);
+    assert.ok(!txt.includes('title: The Note'), 'frontmatter must not appear in the preview');
   });
 
   test('hover over ![[note#Section]] shows just the section body', async () => {

@@ -1,13 +1,23 @@
 import type MarkdownIt from 'markdown-it';
 
-import { embedPlugin, ResolveFn } from './embedRule';
+import { wikiPlugin, WikiResolver } from './wikiRule';
 
-let activeResolve: ResolveFn = () => null;
+const NULL_RESOLVER: WikiResolver = {
+  resolveEmbed: () => null,
+  resolveLink: () => null,
+};
 
-export function setResolver(r: ResolveFn): void {
-  activeResolve = r;
+let activeResolver: WikiResolver = NULL_RESOLVER;
+
+export function setResolver(r: WikiResolver): void {
+  activeResolver = r;
 }
 
 export function extendMarkdownIt(md: MarkdownIt): MarkdownIt {
-  return md.use(embedPlugin, { resolve: (k: string, h?: string) => activeResolve(k, h) });
+  // Delegate through a stable indirection so setResolver can swap the active resolver later.
+  const resolver: WikiResolver = {
+    resolveEmbed: (from, key, hint) => activeResolver.resolveEmbed(from, key, hint),
+    resolveLink: (from, target, frag) => activeResolver.resolveLink(from, target, frag),
+  };
+  return md.use(wikiPlugin, { resolver });
 }
