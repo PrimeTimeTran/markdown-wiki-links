@@ -15,9 +15,13 @@ export class WikiCompletionProvider implements vscode.CompletionItemProvider {
     const snap = this.idx.snapshotFor(doc.uri.fsPath);
     const ranked = rankCompletions(query, doc.uri.fsPath, snap);
     return ranked.map((c) => {
-      const item = new vscode.CompletionItem(c.label, vscode.CompletionItemKind.File);
+      // A CompletionItemLabel.description renders dimmed beside the label for every row
+      // (not only the selected one), so duplicated names stay disambiguated in the list.
+      const label: string | vscode.CompletionItemLabel = c.description
+        ? { label: c.label, description: c.description }
+        : c.label;
+      const item = new vscode.CompletionItem(label, vscode.CompletionItemKind.File);
       item.insertText = c.insertText;
-      item.detail = c.detail;
       item.range = new vscode.Range(pos.translate(0, -query.length), pos);
       return item;
     });

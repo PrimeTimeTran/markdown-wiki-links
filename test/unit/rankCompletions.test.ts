@@ -82,9 +82,33 @@ suite('rankCompletions (logic paths)', () => {
     );
   });
 
-  test('detail field carries the full relative path for disambiguation in the UI', () => {
-    const s = snap(['/root/notes/alpha.md']);
+  test('an unambiguous name carries no description', () => {
+    const s = snap(['/root/notes/alpha.md', '/root/beta.md']);
     const [item] = rankCompletions('alpha', '/root/home.md', s);
-    assert.strictEqual(item.detail, 'notes/alpha.md');
+    assert.strictEqual(item.description, undefined);
+  });
+
+  test('duplicated names carry a folder description, file name omitted', () => {
+    const s = snap(['/root/Inbox/README.md', '/root/Notes/README.md']);
+    const items = rankCompletions('readme', '/root/home.md', s);
+    const byFs = new Map(items.map((i) => [i.fsPath, i.description]));
+    assert.strictEqual(byFs.get('/root/Inbox/README.md'), 'Inbox/');
+    assert.strictEqual(byFs.get('/root/Notes/README.md'), 'Notes/');
+  });
+
+  test('a workspace-root duplicate gets "/" as its folder description', () => {
+    const s = snap(['/root/README.md', '/root/Inbox/README.md']);
+    const items = rankCompletions('readme', '/root/home.md', s);
+    const byFs = new Map(items.map((i) => [i.fsPath, i.description]));
+    assert.strictEqual(byFs.get('/root/README.md'), '/');
+    assert.strictEqual(byFs.get('/root/Inbox/README.md'), 'Inbox/');
+  });
+
+  test('a name duplicated in the workspace but unique among results stays plain', () => {
+    // Two READMEs exist, but the query "inbox" matches only one via its path segment.
+    const s = snap(['/root/Inbox/README.md', '/root/Notes/README.md']);
+    const items = rankCompletions('inbox', '/root/home.md', s);
+    assert.strictEqual(items.length, 1);
+    assert.strictEqual(items[0].description, undefined);
   });
 });
