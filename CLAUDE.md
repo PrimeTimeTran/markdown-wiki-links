@@ -25,8 +25,8 @@ E2e suites are split per fixture workspace in `.vscode-test.mjs` (labels: `uniqu
 
 Hexagonal layering, enforced by ESLint `no-restricted-imports`:
 
-- `src/core/**` — pure logic, **no `vscode` imports**: parsers (`linkParser`, `embedParser`), `fenceMask`, extractors (`headingExtractor`, `blockIdExtractor`, `sectionSlice`), `resolver/resolveTarget`, `rename/rewriteWikiRefs`, `completion/rankCompletions`. Unit-tested in plain Node.
-- `src/adapters/**` — VSCode glue: `indexService`, `workspaceBoundary`, the providers (`documentLinkProvider`, `hoverProvider`, `completionProvider`), `renameHandler`, `diagnostics`, `previewEmbedResolver`. May import `vscode` and `src/core/**`.
+- `src/core/**` — pure logic, **no `vscode` imports**: parsers (`linkParser`, `embedParser`), `fenceMask`, `frontmatter`, extractors (`headingExtractor`, `blockIdExtractor`, `sectionSlice`), `resolver/resolveTarget`, `rename/rewriteWikiRefs`, `completion/rankCompletions`, `imageSize` (intrinsic dimensions from image headers), `pathFilter` (excluded-folder matching). Unit-tested in plain Node.
+- `src/adapters/**` — VSCode glue: `indexService`, `workspaceBoundary`, the providers (`documentLinkProvider`, `hoverProvider`, `completionProvider`), `renameHandler`, `diagnostics`, `previewResolver`. May import `vscode` and `src/core/**`.
 - `src/markdownItPlugin/**` — the wiki plugin contributed to the Markdown preview via `contributes["markdown.markdownItPlugins"]`. Rewrites `[[...]]` into navigable links and expands `![[...]]` embeds; reads the source document from `env.currentDocument`. **No `vscode` imports** (runs in the preview process).
 - `src/extension.ts` — composition root: activates, builds `IndexService`, wires providers.
 
@@ -47,7 +47,9 @@ Resolution rules that aren't obvious from the syntax alone:
 
 - **Bare vs slashed targets resolve differently.** A bare `[[foo]]` uses unique base-name match; on ambiguity it prefers a single workspace-root-level match, else does a closest-parent ancestor walk (bounded to the workspace root). A slashed `[[a/b]]` uses unique global suffix match — **no walk**; ambiguous suffix → unresolved.
 - **`..` segments and absolute paths are rejected** by the resolver.
-- **Supported file extensions for link targets:** `.md` and `.markdown`. Image media (png/jpg/jpeg/gif/webp/svg) is valid only as embed targets.
+- **Supported file extensions:** `.md` and `.markdown` for Markdown targets. Image media (png/jpg/jpeg/gif/webp/svg) resolves as both link and embed targets — a plain `[[image.png]]` link hover-previews the image, `![[image.png]]` embeds it.
+- **YAML frontmatter is excluded.** Wiki-links inside a leading `---` block are not rewritten on rename, and frontmatter is stripped from embed/hover previews (`core/frontmatter.ts`).
+- **Index excludes vendor/VCS folders.** `core/pathFilter.ts` keeps files in `.git`, `node_modules`, etc. out of the index; the folder list is configurable via `wikiLinks.index.excludeFolders`.
 - **Block IDs** (`^block-id`) are defined by suffixing a paragraph (`text ^id`) or, for lists/quotes, placing `^id` on a line _after_ the block. Both forms are recognized.
 - **Same-file fragment**: `[[#Heading]]` (empty target) links within the current file.
 - **Embed-only modifier**: `![[image.png|300]]` — for embeds the `|...` segment is a width/size hint, not display text. The link and embed parsers are deliberately separate (`linkParser.ts` vs `embedParser.ts`) — do not unify them.

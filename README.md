@@ -47,13 +47,23 @@ Prefix any wikilink with `!` to embed its content inline:
 - Click to follow the link (headings and block IDs jump to the right line).
 - Hover to preview the linked file or section; hovering an image embed previews the image.
 - Autocomplete file names while typing `[[` or `![[`, ranked by closest folder.
-- Auto update links when renaming files.
-- Inline embeds (`![[...]]`) rendered in the Markdown preview, with cycle protection.
+- Auto update links when renaming files (Markdown and media targets alike).
+- Both `[[...]]` links and `![[...]]` embeds rendered in the Markdown preview — links are navigable, embeds expand inline with cycle protection.
 - Diagnostics flag broken or ambiguous wiki-links.
 - Support both unique file name and relative file name resolution:
   - A bare `[[file name]]` resolves by unique base name across the workspace. If the name is ambiguous, a file directly under the workspace root wins; otherwise resolution walks up from the current file to the closest parent folder containing a match.
   - A relative `[[folder1/folder2/file name]]` resolves to the unique file whose path ends with `folder1/folder2/file name.md` (or `.markdown`). If more than one file matches, the link is left unresolved.
   - `..` segments and absolute paths are not allowed — links never resolve outside the workspace.
+
+## Configuration
+
+| Setting                           | Default                                                           | Purpose                                                                                                                 |
+| --------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `wikiLinks.embed.maxDepth`        | `3`                                                               | Maximum recursion depth when expanding nested `![[...]]` embeds.                                                        |
+| `wikiLinks.preview.imageMaxWidth` | `800`                                                             | Maximum width (px) for embedded images in the Markdown preview.                                                         |
+| `wikiLinks.hover.imageMaxHeight`  | `240`                                                             | Maximum height (px) for image previews in hover popups.                                                                 |
+| `wikiLinks.indexMaxFiles`         | `50000`                                                           | Soft cap on indexed files; larger workspaces surface an information diagnostic.                                         |
+| `wikiLinks.index.excludeFolders`  | `.git`, `node_modules`, `.hg`, `.svn`, `.bzr`, `bower_components` | Folder names excluded from the index, matched at any depth, so wiki-links never resolve into vendor or VCS directories. |
 
 ## Development
 
