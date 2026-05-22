@@ -54,18 +54,19 @@ suite('Embeds (click-to-follow + hover preview)', () => {
     assert.ok(txt.includes('Section body.'));
   });
 
-  test('hover over ![[diagram.png]] returns markdown containing the image reference', async () => {
+  test('hover over ![[diagram.png]] returns an image reference to the file', async () => {
     const txt = await hoverAt(vscode.Uri.joinPath(ws(), 'index.md'), '![[diagram.png]]', 3);
     assert.ok(txt.includes('diagram.png'), `hover was: ${txt}`);
     assert.ok(
-      /!\[[^\]]*\]\(file:\/\//.test(txt),
-      'expected an image markdown reference to a file URI',
+      /<img\s[^>]*src="file:\/\//.test(txt),
+      `expected an <img> referencing a file URI, got: ${txt}`,
     );
   });
 
-  test('hover over ![[diagram.png|300]] preserves the 300-width size hint', async () => {
+  test('hover over ![[diagram.png|300]] ignores the inline size hint', async () => {
     const txt = await hoverAt(vscode.Uri.joinPath(ws(), 'index.md'), '![[diagram.png|300]]', 3);
-    assert.ok(/=300x/.test(txt), `expected width hint in hover markdown, got: ${txt}`);
+    assert.ok(/<img\s[^>]*src="file:\/\//.test(txt), `expected an <img>, got: ${txt}`);
+    assert.ok(!/width="300"/.test(txt), `inline size hint must be ignored, got: ${txt}`);
   });
 
   test('hover over a plain [[diagram.png]] link previews the image, not raw bytes', async () => {
@@ -83,7 +84,10 @@ suite('Embeds (click-to-follow + hover preview)', () => {
         h.contents.map((c) => (typeof c === 'string' ? c : (c as vscode.MarkdownString).value)),
       )
       .join('\n');
-    assert.ok(/!\[[^\]]*\]\(file:\/\//.test(txt), `expected an image reference, got: ${txt}`);
+    assert.ok(
+      /<img\s[^>]*src="file:\/\//.test(txt),
+      `expected an <img> reference, got: ${txt}`,
+    );
     assert.ok(!/IDAT|IHDR/.test(txt), 'raw PNG bytes must not appear in the hover');
   });
 });
