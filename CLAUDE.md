@@ -61,3 +61,20 @@ Resolution rules that aren't obvious from the syntax alone:
 - E2e tests assert user-observable behavior only (active editor, document text, hover content, link targets) — no internal imports, no regex/AST inspection, no preview-HTML scraping.
 - Security: hot paths use `isInsideWorkspaceReal`/`RealSync` (realpath-based) for the workspace-boundary check; embed output is HTML/markdown-escaped; rename refuses filenames that would break `[[...]]` syntax; rename is gated on workspace trust.
 - TDD: write the failing test, implement, commit per task.
+- **Docs stay in sync with code.** Any code change must update the docs that describe it in the same commit: `README.md` (user-facing features + the Configuration table), this file (architecture, module list, spec/resolution rules), and `package.json` `contributes` descriptions. A setting declared in `package.json` that no code reads is a doc/code mismatch — wire it or remove it.
+
+## Review step
+
+Before completing a task or committing, **dispatch a subagent** to review the change against **every** convention above. Use a fresh subagent (e.g. the `Explore`/general-purpose agent) rather than reviewing inline — it reads the diff without the author's assumptions and is less likely to wave through a convention it never considered. Give it the diff (or the list of changed files) and this checklist; have it report pass/fail per item with specifics. Address what it flags before committing.
+
+The subagent confirms:
+
+- `src/core/**` stayed pure; layering (`no-restricted-imports`) is intact.
+- New/changed pure modules have contract-field unit tests; branching logic has logic-path tests.
+- E2e additions assert only user-observable behavior.
+- Security invariants hold for any new path-, embed-, or rename-related code.
+- **SOLID:** each module/class has one responsibility; design modules to be extensible — loose coupling, high cohesion; adapters depend on `src/core/**` abstractions, never the reverse; interfaces stay small and consumer-shaped (unit tests pin only contract fields); the link and embed parsers stay separate.
+- **Performance:** providers run on the editing hot path — no work that scales worse than linear in document size per keystroke; build the fence mask once and share it; debounce change-driven work; read file headers, not whole files, when only a prefix is needed; bound caches and the index; do not block on I/O the user is not waiting for.
+- Each task was TDD'd and committed on its own.
+- Docs (README, CLAUDE.md, `package.json`) match the new behavior.
+- `pnpm test` passes (format, lint, build, compile, unit, e2e).
