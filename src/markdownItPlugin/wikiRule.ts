@@ -1,5 +1,7 @@
 import type MarkdownIt from 'markdown-it';
 
+import { splitFrontmatter } from '../core/frontmatter';
+
 export type EmbedResolved =
   | { kind: 'markdown'; text: string; sourcePath: string }
   | { kind: 'image'; src: string };
@@ -25,7 +27,10 @@ export function wikiPlugin(
     // (leading slash) rather than document-relative. The read is kept for forward compatibility.
     const env = state.env as { currentDocument?: { fsPath?: string } } | undefined;
     const from = env?.currentDocument?.fsPath ?? '';
-    state.src = expand(state.src, opts.resolver, from, maxDepth, new Set<string>());
+    // Leave a leading YAML frontmatter block untouched — rewriting a [[...]] value there would
+    // corrupt the metadata (escaped markdown is not valid YAML).
+    const { frontmatter, body } = splitFrontmatter(state.src);
+    state.src = frontmatter + expand(body, opts.resolver, from, maxDepth, new Set<string>());
   });
   // Embed size hints are carried as a `wl-size:` image title (no markdown syntax expresses image
   // dimensions); this rule turns that title into real width/height attributes after tokenization.

@@ -117,6 +117,12 @@ suite('wikiPlugin — links', () => {
     assert.ok(out.includes('Note body.'));
     assert.ok(!out.includes('[[note]]'));
   });
+  test('wiki-links inside YAML frontmatter are left verbatim', () => {
+    const src = '---\ncover: "[[my_image.svg]]"\n---\n\nBody [[foo]].';
+    const out = mk(resolver()).render(src);
+    assert.ok(out.includes('[[my_image.svg]]'), `frontmatter must stay verbatim, got: ${out}`);
+    assert.ok(/<a [^>]*href="foo\.md"/.test(out), `body link should be rewritten, got: ${out}`);
+  });
   test('links inside embedded content are also rewritten', () => {
     const res: WikiResolver = {
       resolveEmbed: (_f, key) =>
