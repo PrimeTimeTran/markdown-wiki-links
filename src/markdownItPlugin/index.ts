@@ -18,11 +18,11 @@ export function resetResolver(): void {
   activeResolver = NULL_RESOLVER;
 }
 
-export function extendMarkdownIt(md: MarkdownIt): MarkdownIt {
+export function extendMarkdownIt(md: MarkdownIt, maxDepth?: number): MarkdownIt {
   // Delegate through a stable indirection so setResolver can swap the active resolver later.
   const resolver: WikiResolver = {
     resolveEmbed: (from, key, hint) => activeResolver.resolveEmbed(from, key, hint),
     resolveLink: (from, target, frag) => activeResolver.resolveLink(from, target, frag),
   };
-  return md.use(wikiPlugin, { resolver });
+  return md.use(wikiPlugin, { resolver, maxDepth });
 }

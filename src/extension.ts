@@ -47,7 +47,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     extendMarkdownIt(md: any): any {
       if (indexService) setResolver(createPreviewResolver(indexService));
-      return wireMarkdownIt(md);
+      return wireMarkdownIt(md, embedMaxDepth());
     },
   };
 }
@@ -56,4 +56,13 @@ export function deactivate(): void {
   // Release the markdown-it resolver closure so it stops pinning the IndexService.
   resetResolver();
   indexService = undefined;
+}
+
+const DEFAULT_EMBED_MAX_DEPTH = 3;
+
+function embedMaxDepth(): number {
+  const configured = vscode.workspace
+    .getConfiguration('wikiLinks')
+    .get<number>('embed.maxDepth', DEFAULT_EMBED_MAX_DEPTH);
+  return typeof configured === 'number' && configured >= 1 ? configured : DEFAULT_EMBED_MAX_DEPTH;
 }

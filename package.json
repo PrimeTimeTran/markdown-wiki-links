@@ -44,11 +44,8 @@
       "properties": {
         "wikiLinks.embed.maxDepth": {
           "type": "number",
-          "default": 3
-        },
-        "wikiLinks.preview.imageMaxWidth": {
-          "type": "number",
-          "default": 800
+          "default": 3,
+          "description": "Maximum recursion depth when expanding nested ![[...]] embeds in the Markdown preview. Beyond this depth an embed renders a depth-exceeded notice instead of expanding."
         },
         "wikiLinks.indexMaxFiles": {
           "type": "number",

@@ -57,13 +57,12 @@ Prefix any wikilink with `!` to embed its content inline:
 
 ## Configuration
 
-| Setting                           | Default                                                           | Purpose                                                                                                                 |
-| --------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `wikiLinks.embed.maxDepth`        | `3`                                                               | Maximum recursion depth when expanding nested `![[...]]` embeds.                                                        |
-| `wikiLinks.preview.imageMaxWidth` | `800`                                                             | Maximum width (px) for embedded images in the Markdown preview.                                                         |
-| `wikiLinks.hover.imageMaxHeight`  | `240`                                                             | Maximum height (px) for image previews in hover popups.                                                                 |
-| `wikiLinks.indexMaxFiles`         | `50000`                                                           | Soft cap on indexed files; a workspace above the cap shows a notification and indexes only the first N files.           |
-| `wikiLinks.index.excludeFolders`  | `.git`, `node_modules`, `.hg`, `.svn`, `.bzr`, `bower_components` | Folder names excluded from the index, matched at any depth, so wiki-links never resolve into vendor or VCS directories. |
+| Setting                          | Default                                                           | Purpose                                                                                                                 |
+| -------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `wikiLinks.embed.maxDepth`       | `3`                                                               | Maximum recursion depth when expanding nested `![[...]]` embeds in the Markdown preview.                                |
+| `wikiLinks.hover.imageMaxHeight` | `240`                                                             | Maximum height (px) for image previews in hover popups.                                                                 |
+| `wikiLinks.indexMaxFiles`        | `50000`                                                           | Soft cap on indexed files; a workspace above the cap shows a notification and indexes only the first N files.           |
+| `wikiLinks.index.excludeFolders` | `.git`, `node_modules`, `.hg`, `.svn`, `.bzr`, `bower_components` | Folder names excluded from the index, matched at any depth, so wiki-links never resolve into vendor or VCS directories. |
 
 ## Development
 
