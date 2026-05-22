@@ -66,4 +66,23 @@ suite('Embeds (click-to-follow + hover preview)', () => {
     const txt = await hoverAt(vscode.Uri.joinPath(ws(), 'index.md'), '![[diagram.png|300]]', 3);
     assert.ok(/=300x/.test(txt), `expected width hint in hover markdown, got: ${txt}`);
   });
+
+  test('hover over a plain [[diagram.png]] link previews the image, not raw bytes', async () => {
+    // The needle "[[diagram.png]]" also appears inside "![[diagram.png]]"; the last
+    // occurrence in the fixture is the plain link on its own line.
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.joinPath(ws(), 'index.md'));
+    const offset = doc.getText().lastIndexOf('[[diagram.png]]') + 2;
+    const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
+      'vscode.executeHoverProvider',
+      doc.uri,
+      doc.positionAt(offset),
+    );
+    const txt = hovers
+      .flatMap((h) =>
+        h.contents.map((c) => (typeof c === 'string' ? c : (c as vscode.MarkdownString).value)),
+      )
+      .join('\n');
+    assert.ok(/!\[[^\]]*\]\(file:\/\//.test(txt), `expected an image reference, got: ${txt}`);
+    assert.ok(!/IDAT|IHDR/.test(txt), 'raw PNG bytes must not appear in the hover');
+  });
 });

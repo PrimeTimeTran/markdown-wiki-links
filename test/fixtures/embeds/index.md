@@ -2,3 +2,4 @@
 - ![[note#Section]]
 - ![[diagram.png]]
 - ![[diagram.png|300]]
+- [[diagram.png]]

@@ -40,6 +40,10 @@ export class WikiHoverProvider implements vscode.HoverProvider {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const resolved = resolveTarget(ref as any, doc.uri.fsPath, snap);
     if (!resolved) return;
+    // A plain [[image.png]] link still points at a binary file — preview it, don't dump bytes.
+    if (IMAGE_RE.test(resolved.fsPath)) {
+      return imageHover(vscode.Uri.file(resolved.fsPath), ref.target);
+    }
     const targetText =
       resolved.fsPath === doc.uri.fsPath
         ? doc.getText()
@@ -60,28 +64,31 @@ export class WikiHoverProvider implements vscode.HoverProvider {
     doc: vscode.TextDocument,
     snap: ReturnType<IndexService['snapshotFor']>,
   ): Promise<vscode.Hover | undefined> {
-    if (IMAGE_RE.test(ref.target)) {
-      const hit = snap.entries.find((e) =>
-        e.relPath.toLowerCase().endsWith(ref.target.toLowerCase()),
-      );
-      if (!hit) return;
-      const uri = vscode.Uri.file(hit.fsPath);
-      if (!(await isInsideWorkspaceReal(uri))) return;
-      const md = new vscode.MarkdownString();
-      md.isTrusted = false;
-      md.baseUri = uri.with({ path: uri.path.replace(/[^/]+$/, '') });
-      const w = ref.sizeHint && /^\d+$/.test(ref.sizeHint) ? ` =${ref.sizeHint}x` : '';
-      const altEscaped = ref.target.replace(/([\\`*_{}[\]()#+\-.!|>])/g, '\\$1');
-      md.appendMarkdown(`![${altEscaped}](${uri.toString()}${w})`);
-      return new vscode.Hover(md);
-    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const resolved = resolveTarget({ ...ref, kind: 'embed' } as any, doc.uri.fsPath, snap);
     if (!resolved) return;
+    if (IMAGE_RE.test(resolved.fsPath)) {
+      return imageHover(vscode.Uri.file(resolved.fsPath), ref.target, ref.sizeHint);
+    }
     const targetText = await fs.readFile(resolved.fsPath, 'utf8').catch(() => '');
     const body = ref.fragment ? sliceSection(ref.fragment, targetText) : targetText;
     return new vscode.Hover(new vscode.MarkdownString(body));
   }
+}
+
+async function imageHover(
+  uri: vscode.Uri,
+  displayName: string,
+  sizeHint?: string,
+): Promise<vscode.Hover | undefined> {
+  if (!(await isInsideWorkspaceReal(uri))) return;
+  const md = new vscode.MarkdownString();
+  md.isTrusted = false;
+  md.baseUri = uri.with({ path: uri.path.replace(/[^/]+$/, '') });
+  const w = sizeHint && /^\d+$/.test(sizeHint) ? ` =${sizeHint}x` : '';
+  const altEscaped = displayName.replace(/([\\`*_{}[\]()#+\-.!|>])/g, '\\$1');
+  md.appendMarkdown(`![${altEscaped}](${uri.toString()}${w})`);
+  return new vscode.Hover(md);
 }
 
 function firstLines(text: string, n: number): string {
