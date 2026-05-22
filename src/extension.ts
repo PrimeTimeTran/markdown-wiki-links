@@ -5,6 +5,7 @@ import { WikiDocumentLinkProvider } from './adapters/documentLinkProvider';
 import { WikiHoverProvider } from './adapters/hoverProvider';
 import { RenameHandler } from './adapters/renameHandler';
 import { createPreviewEmbedResolver } from './adapters/previewEmbedResolver';
+import { WikiDiagnostics } from './adapters/diagnostics';
 import { extendMarkdownIt as wireMarkdownIt, setResolver } from './markdownItPlugin/index';
 
 let indexService: IndexService | undefined;
@@ -25,6 +26,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ),
   );
   new RenameHandler().register(context);
+  new WikiDiagnostics(indexService).register(context);
 }
 
 export function deactivate(): void {}
