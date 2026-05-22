@@ -1,0 +1,69 @@
+import * as assert from 'assert';
+
+import * as vscode from 'vscode';
+
+async function hoverAt(uri: vscode.Uri, needle: string, offsetInside = 2): Promise<string> {
+  const doc = await vscode.workspace.openTextDocument(uri);
+  const offset = doc.getText().indexOf(needle) + offsetInside;
+  const pos = doc.positionAt(offset);
+  const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
+    'vscode.executeHoverProvider',
+    uri,
+    pos,
+  );
+  return hovers
+    .flatMap((h) =>
+      h.contents.map((c) => (typeof c === 'string' ? c : (c as vscode.MarkdownString).value)),
+    )
+    .join('\n');
+}
+
+suite('Embeds (click-to-follow + hover preview)', () => {
+  const ws = (): vscode.Uri => vscode.workspace.workspaceFolders![0].uri;
+
+  test('![[note]] produces a document link to note.md', async () => {
+    const uri = vscode.Uri.joinPath(ws(), 'index.md');
+    await vscode.workspace.openTextDocument(uri);
+    const links = await vscode.commands.executeCommand<vscode.DocumentLink[]>(
+      'vscode.executeLinkProvider',
+      uri,
+    );
+    assert.ok(links.some((l) => (l.target?.fsPath ?? '').endsWith('note.md')));
+  });
+
+  test('![[diagram.png|300]] target is the PNG (size is not part of path)', async () => {
+    const uri = vscode.Uri.joinPath(ws(), 'index.md');
+    await vscode.workspace.openTextDocument(uri);
+    const links = await vscode.commands.executeCommand<vscode.DocumentLink[]>(
+      'vscode.executeLinkProvider',
+      uri,
+    );
+    const png = links.find((l) => (l.target?.fsPath ?? '').endsWith('diagram.png'));
+    assert.ok(png, 'expected png link');
+    assert.ok(!(png!.target?.fsPath ?? '').includes('300'));
+  });
+
+  test('hover over ![[note]] shows the embedded markdown', async () => {
+    const txt = await hoverAt(vscode.Uri.joinPath(ws(), 'index.md'), '![[note]]', 3);
+    assert.ok(txt.includes('Section body.') || txt.includes('# Note'), `hover was: ${txt}`);
+  });
+
+  test('hover over ![[note#Section]] shows just the section body', async () => {
+    const txt = await hoverAt(vscode.Uri.joinPath(ws(), 'index.md'), '![[note#Section]]', 3);
+    assert.ok(txt.includes('Section body.'));
+  });
+
+  test('hover over ![[diagram.png]] returns markdown containing the image reference', async () => {
+    const txt = await hoverAt(vscode.Uri.joinPath(ws(), 'index.md'), '![[diagram.png]]', 3);
+    assert.ok(txt.includes('diagram.png'), `hover was: ${txt}`);
+    assert.ok(
+      /!\[[^\]]*\]\(file:\/\//.test(txt),
+      'expected an image markdown reference to a file URI',
+    );
+  });
+
+  test('hover over ![[diagram.png|300]] preserves the 300-width size hint', async () => {
+    const txt = await hoverAt(vscode.Uri.joinPath(ws(), 'index.md'), '![[diagram.png|300]]', 3);
+    assert.ok(/=300x/.test(txt), `expected width hint in hover markdown, got: ${txt}`);
+  });
+});

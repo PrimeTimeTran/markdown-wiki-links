@@ -5,15 +5,17 @@ import * as vscode from 'vscode';
 import { IndexEntry } from '../core/types';
 import { IndexSnapshot } from '../core/resolver/resolveTarget';
 
+const GLOB = '**/*.{md,markdown,png,jpg,jpeg,gif,webp,svg}';
+
 export class IndexService {
   private entries = new Map<string, IndexEntry>();
   private watcher?: vscode.FileSystemWatcher;
   private listeners: vscode.Disposable[] = [];
 
   async initialize(): Promise<void> {
-    const found = await vscode.workspace.findFiles('**/*.{md,markdown}', '**/node_modules/**');
+    const found = await vscode.workspace.findFiles(GLOB, '**/node_modules/**');
     for (const u of found) this.add(u);
-    this.watcher = vscode.workspace.createFileSystemWatcher('**/*.{md,markdown}');
+    this.watcher = vscode.workspace.createFileSystemWatcher(GLOB);
     this.listeners.push(
       this.watcher.onDidCreate((u) => this.add(u)),
       this.watcher.onDidDelete((u) => this.entries.delete(u.fsPath)),
@@ -38,7 +40,7 @@ export class IndexService {
 
   async refresh(): Promise<void> {
     this.entries.clear();
-    const found = await vscode.workspace.findFiles('**/*.{md,markdown}', '**/node_modules/**');
+    const found = await vscode.workspace.findFiles(GLOB, '**/node_modules/**');
     for (const u of found) this.add(u);
   }
 

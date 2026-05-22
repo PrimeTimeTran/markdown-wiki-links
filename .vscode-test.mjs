@@ -38,4 +38,11 @@ export default defineConfig([
     launchArgs,
     mocha: { ui: 'tdd', timeout: 20000 },
   },
+  {
+    label: 'embeds',
+    files: 'out/test/e2e/embeds.test.js',
+    workspaceFolder: 'test/fixtures/embeds',
+    launchArgs,
+    mocha: { ui: 'tdd', timeout: 20000 },
+  },
 ]);

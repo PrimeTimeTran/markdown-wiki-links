@@ -1,0 +1,4 @@
+- ![[note]]
+- ![[note#Section]]
+- ![[diagram.png]]
+- ![[diagram.png|300]]
