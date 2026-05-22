@@ -6,6 +6,7 @@ import { WikiHoverProvider } from './adapters/hoverProvider';
 import { RenameHandler } from './adapters/renameHandler';
 import { createPreviewEmbedResolver } from './adapters/previewEmbedResolver';
 import { WikiDiagnostics } from './adapters/diagnostics';
+import { WikiCompletionProvider } from './adapters/completionProvider';
 import { extendMarkdownIt as wireMarkdownIt, setResolver } from './markdownItPlugin/index';
 
 let indexService: IndexService | undefined;
@@ -23,6 +24,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.languages.registerHoverProvider(
       { language: 'markdown' },
       new WikiHoverProvider(indexService),
+    ),
+    vscode.languages.registerCompletionItemProvider(
+      { language: 'markdown' },
+      new WikiCompletionProvider(indexService),
+      '[',
+      '/',
     ),
   );
   new RenameHandler().register(context);

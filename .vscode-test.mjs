@@ -5,7 +5,7 @@ const launchArgs = ['--disable-workspace-trust'];
 export default defineConfig([
   {
     label: 'unique',
-    files: 'out/test/e2e/{smoke,documentLinks,hover,contribution}.test.js',
+    files: 'out/test/e2e/{smoke,documentLinks,hover,contribution,completion}.test.js',
     workspaceFolder: 'test/fixtures/unique-names',
     launchArgs,
     mocha: { ui: 'tdd', timeout: 20000 },
