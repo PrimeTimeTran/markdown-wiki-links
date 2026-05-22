@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Product
 
-A VSCode extension that enables Obsidian-style `[[wiki-links]]` between Markdown files in the workspace, with click-to-follow, hover preview, autocomplete, rename-aware link updates, diagnostics for broken links, and inline embeds via `![[...]]`.
+A VSCode extension that enables Obsidian-style `[[wiki-links]]` between Markdown files in the workspace, with click-to-follow, hover preview, autocomplete, rename-aware link updates, diagnostics for broken links, resolution-based editor coloring, and inline embeds via `![[...]]`.
 
 Scope is **workspace-local Markdown/media only** — wiki-links must not resolve to anything outside the current workspace.
 
@@ -25,8 +25,8 @@ E2e suites are split per fixture workspace in `.vscode-test.mjs` (labels: `uniqu
 
 Hexagonal layering, enforced by ESLint `no-restricted-imports`:
 
-- `src/core/**` — pure logic, **no `vscode` imports**: parsers (`linkParser`, `embedParser`), `fenceMask`, `frontmatter`, extractors (`headingExtractor`, `blockIdExtractor`, `sectionSlice`), `resolver/resolveTarget`, `rename/rewriteWikiRefs`, `completion/rankCompletions`, `imageSize` (intrinsic dimensions from image headers), `pathFilter` (excluded-folder matching). Unit-tested in plain Node.
-- `src/adapters/**` — VSCode glue: `indexService`, `workspaceBoundary`, the providers (`documentLinkProvider`, `hoverProvider`, `completionProvider`), `renameHandler`, `diagnostics`, `previewResolver`. May import `vscode` and `src/core/**`.
+- `src/core/**` — pure logic, **no `vscode` imports**: parsers (`linkParser`, `embedParser`, `refRange`), `fenceMask`, `frontmatter`, extractors (`headingExtractor`, `blockIdExtractor`, `sectionSlice`), `resolver/resolveTarget`, `rename/rewriteWikiRefs`, `completion/rankCompletions`, `imageSize` (intrinsic dimensions from image headers), `pathFilter` (excluded-folder matching). Unit-tested in plain Node.
+- `src/adapters/**` — VSCode glue: `indexService`, `workspaceBoundary`, the providers (`documentLinkProvider`, `hoverProvider`, `completionProvider`), `renameHandler`, `diagnostics`, `decorations` (resolution-based editor coloring), `previewResolver`. May import `vscode` and `src/core/**`.
 - `src/markdownItPlugin/**` — the wiki plugin contributed to the Markdown preview via `contributes["markdown.markdownItPlugins"]`. Rewrites `[[...]]` into navigable links and expands `![[...]]` embeds; reads the source document from `env.currentDocument`. **No `vscode` imports** (runs in the preview process).
 - `src/extension.ts` — composition root: activates, builds `IndexService`, wires providers.
 

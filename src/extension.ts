@@ -7,6 +7,7 @@ import { RenameHandler } from './adapters/renameHandler';
 import { createPreviewResolver } from './adapters/previewResolver';
 import { WikiDiagnostics } from './adapters/diagnostics';
 import { WikiCompletionProvider } from './adapters/completionProvider';
+import { WikiDecorations } from './adapters/decorations';
 import {
   extendMarkdownIt as wireMarkdownIt,
   setResolver,
@@ -41,6 +42,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   );
   new RenameHandler().register(context);
   new WikiDiagnostics(indexService).register(context);
+  new WikiDecorations(indexService).register(context);
 
   // VSCode reads `extendMarkdownIt` off the extension's exports — i.e. activate's return value.
   return {

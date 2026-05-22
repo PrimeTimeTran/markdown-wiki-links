@@ -49,6 +49,7 @@ Prefix any wikilink with `!` to embed its content inline:
 - Autocomplete file names while typing `[[` or `![[`, ranked by closest folder.
 - Auto update links when renaming files (Markdown and media targets alike).
 - Both `[[...]]` links and `![[...]]` embeds rendered in the Markdown preview — links are navigable, embeds expand inline with cycle protection.
+- Resolved wiki-links are colored in the editor; unresolved ones are dimmed — based on real resolution, so spaces and Unicode in names color correctly.
 - Diagnostics flag broken or ambiguous wiki-links.
 - Support both unique file name and relative file name resolution:
   - A bare `[[file name]]` resolves by unique base name across the workspace. If the name is ambiguous, a file directly under the workspace root wins; otherwise resolution walks up from the current file to the closest parent folder containing a match.
