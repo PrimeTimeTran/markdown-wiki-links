@@ -4,6 +4,8 @@ import { IndexService } from './adapters/indexService';
 import { WikiDocumentLinkProvider } from './adapters/documentLinkProvider';
 import { WikiHoverProvider } from './adapters/hoverProvider';
 import { RenameHandler } from './adapters/renameHandler';
+import { createPreviewEmbedResolver } from './adapters/previewEmbedResolver';
+import { extendMarkdownIt as wireMarkdownIt, setResolver } from './markdownItPlugin/index';
 
 let indexService: IndexService | undefined;
 
@@ -27,6 +29,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
 export function deactivate(): void {}
 
-export function extendMarkdownIt(md: unknown): unknown {
-  return md;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function extendMarkdownIt(md: any): any {
+  if (indexService) setResolver(createPreviewEmbedResolver(indexService));
+  return wireMarkdownIt(md);
 }
