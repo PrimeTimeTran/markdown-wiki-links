@@ -24,10 +24,19 @@ function gif(width: number, height: number): Uint8Array {
 function jpeg(width: number, height: number): Uint8Array {
   // SOI then a SOF0 segment carrying precision, height and width.
   return new Uint8Array([
-    0xff, 0xd8, 0xff, 0xc0, 0x00, 0x11, 0x08,
-    (height >>> 8) & 255, height & 255,
-    (width >>> 8) & 255, width & 255,
-    0x03, 0x00,
+    0xff,
+    0xd8,
+    0xff,
+    0xc0,
+    0x00,
+    0x11,
+    0x08,
+    (height >>> 8) & 255,
+    height & 255,
+    (width >>> 8) & 255,
+    width & 255,
+    0x03,
+    0x00,
   ]);
 }
 

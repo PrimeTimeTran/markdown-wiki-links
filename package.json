@@ -59,6 +59,21 @@
           "type": "number",
           "default": 240,
           "description": "Maximum height (px) for image previews in hover popups. VSCode does not expose its hover height limit to extensions: lower this if previews are clipped, raise it if there is empty space below the image."
+        },
+        "wikiLinks.index.excludeFolders": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            ".git",
+            "node_modules",
+            ".hg",
+            ".svn",
+            ".bzr",
+            "bower_components"
+          ],
+          "description": "Folder names excluded from the wiki-link index. Any file inside a folder with one of these names is not indexed, so wiki-links never resolve into vendor or VCS directories. Match is on the folder name, at any depth."
         }
       }
     }

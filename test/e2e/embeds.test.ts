@@ -84,10 +84,7 @@ suite('Embeds (click-to-follow + hover preview)', () => {
         h.contents.map((c) => (typeof c === 'string' ? c : (c as vscode.MarkdownString).value)),
       )
       .join('\n');
-    assert.ok(
-      /<img\s[^>]*src="file:\/\//.test(txt),
-      `expected an <img> reference, got: ${txt}`,
-    );
+    assert.ok(/<img\s[^>]*src="file:\/\//.test(txt), `expected an <img> reference, got: ${txt}`);
     assert.ok(!/IDAT|IHDR/.test(txt), 'raw PNG bytes must not appear in the hover');
   });
 });

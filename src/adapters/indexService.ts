@@ -4,8 +4,18 @@ import * as vscode from 'vscode';
 
 import { IndexEntry } from '../core/types';
 import { IndexSnapshot } from '../core/resolver/resolveTarget';
+import { isExcludedPath, buildExcludeGlob } from '../core/pathFilter';
 
 const GLOB = '**/*.{md,markdown,png,jpg,jpeg,gif,webp,svg}';
+
+const DEFAULT_EXCLUDED_FOLDERS = [
+  '.git',
+  'node_modules',
+  '.hg',
+  '.svn',
+  '.bzr',
+  'bower_components',
+];
 
 export class IndexService {
   private entries = new Map<string, IndexEntry>();
@@ -13,8 +23,7 @@ export class IndexService {
   private listeners: vscode.Disposable[] = [];
 
   async initialize(): Promise<void> {
-    const found = await vscode.workspace.findFiles(GLOB, '**/node_modules/**');
-    for (const u of found) this.add(u);
+    await this.scan();
     this.watcher = vscode.workspace.createFileSystemWatcher(GLOB);
     this.listeners.push(
       this.watcher.onDidCreate((u) => this.add(u)),
@@ -26,6 +35,9 @@ export class IndexService {
         }
       }),
       vscode.workspace.onDidChangeWorkspaceFolders(() => this.refresh()),
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration('wikiLinks.index.excludeFolders')) this.refresh();
+      }),
     );
   }
 
@@ -40,8 +52,7 @@ export class IndexService {
 
   async refresh(): Promise<void> {
     this.entries.clear();
-    const found = await vscode.workspace.findFiles(GLOB, '**/node_modules/**');
-    for (const u of found) this.add(u);
+    await this.scan();
   }
 
   dispose(): void {
@@ -49,11 +60,26 @@ export class IndexService {
     for (const l of this.listeners) l.dispose();
   }
 
+  private async scan(): Promise<void> {
+    const exclude = buildExcludeGlob(excludedFolders());
+    const found = await vscode.workspace.findFiles(GLOB, exclude);
+    for (const u of found) this.add(u);
+  }
+
   private add(u: vscode.Uri): void {
     const folder = vscode.workspace.getWorkspaceFolder(u);
     if (!folder) return;
     const rel = path.relative(folder.uri.fsPath, u.fsPath);
+    // The FileSystemWatcher glob cannot carry an exclude, so filter vendor folders here too.
+    if (isExcludedPath(rel, excludedFolders())) return;
     const base = path.basename(u.fsPath).replace(/\.(md|markdown)$/i, '');
     this.entries.set(u.fsPath, { fsPath: u.fsPath, relPath: rel, baseNoExt: base });
   }
+}
+
+function excludedFolders(): string[] {
+  const configured = vscode.workspace
+    .getConfiguration('wikiLinks')
+    .get<string[]>('index.excludeFolders');
+  return Array.isArray(configured) ? configured : DEFAULT_EXCLUDED_FOLDERS;
 }
