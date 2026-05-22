@@ -39,14 +39,49 @@ suite('rankCompletions (logic paths)', () => {
     assert.strictEqual(item.insertText, 'unique');
   });
 
-  test('ambiguous base-name candidates use uniquely-resolving suffix insertText', () => {
+  test('ambiguous base-name candidates use the shortest uniquely-resolving suffix', () => {
     const s = snap(['/root/a/1/note.md', '/root/a/2/note.md', '/root/b/1/note.md']);
     const items = rankCompletions('note', '/root/home.md', s);
+    // `2/note` already resolves uniquely (only one file ends with it) so it stays short;
+    // `1/note` is shared by two files, so those need the full `a/1/note` / `b/1/note`.
     assert.deepStrictEqual(items.map((i) => i.insertText).sort(), [
+      '2/note',
       'a/1/note',
-      'a/2/note',
       'b/1/note',
     ]);
+  });
+
+  test('insertText is the closest parent, not the full path from the workspace root', () => {
+    // Two files share the deep prefix "Inbox/wiki-links tests/"; `subN/dup-topic` resolves
+    // uniquely, so the prefix must not appear in the inserted text.
+    const s = snap([
+      '/root/Inbox/wiki-links tests/sub1/dup-topic.md',
+      '/root/Inbox/wiki-links tests/sub2/dup-topic.md',
+    ]);
+    const items = rankCompletions('dup', '/root/home.md', s);
+    const byFs = new Map(items.map((i) => [i.fsPath, i.insertText]));
+    assert.strictEqual(
+      byFs.get('/root/Inbox/wiki-links tests/sub1/dup-topic.md'),
+      'sub1/dup-topic',
+    );
+    assert.strictEqual(
+      byFs.get('/root/Inbox/wiki-links tests/sub2/dup-topic.md'),
+      'sub2/dup-topic',
+    );
+  });
+
+  test('insertText falls back to the full path when no suffix can resolve uniquely', () => {
+    // dup.md and dup.markdown in the same folder share every path suffix (`dup`, `x/dup`),
+    // so no candidate resolves uniquely — chooseInsertText returns the full relative path.
+    const s = snap(['/root/x/dup.md', '/root/x/dup.markdown']);
+    const items = rankCompletions('dup', '/root/home.md', s);
+    for (const item of items) {
+      assert.strictEqual(
+        item.insertText,
+        'x/dup',
+        `expected full-path fallback, got ${item.insertText}`,
+      );
+    }
   });
 
   test('workspace-root candidate gets bare insertText even when its base is otherwise ambiguous', () => {
@@ -110,5 +145,27 @@ suite('rankCompletions (logic paths)', () => {
     const items = rankCompletions('inbox', '/root/home.md', s);
     assert.strictEqual(items.length, 1);
     assert.strictEqual(items[0].description, undefined);
+  });
+
+  test('description shows only the closest distinguishing parent, not the shared prefix', () => {
+    // Both files sit under "Inbox/wiki-links tests/" — that shared prefix must be dropped,
+    // leaving just sub1/ and sub2/.
+    const s = snap([
+      '/root/Inbox/wiki-links tests/sub1/dup-topic.md',
+      '/root/Inbox/wiki-links tests/sub2/dup-topic.md',
+    ]);
+    const items = rankCompletions('dup', '/root/home.md', s);
+    const byFs = new Map(items.map((i) => [i.fsPath, i.description]));
+    assert.strictEqual(byFs.get('/root/Inbox/wiki-links tests/sub1/dup-topic.md'), 'sub1/');
+    assert.strictEqual(byFs.get('/root/Inbox/wiki-links tests/sub2/dup-topic.md'), 'sub2/');
+  });
+
+  test('description deepens to two segments when the immediate parents also collide', () => {
+    // Immediate parent "x" is shared, so one segment is not enough — show a/x and b/x.
+    const s = snap(['/root/a/x/note.md', '/root/b/x/note.md']);
+    const items = rankCompletions('note', '/root/home.md', s);
+    const byFs = new Map(items.map((i) => [i.fsPath, i.description]));
+    assert.strictEqual(byFs.get('/root/a/x/note.md'), 'a/x/');
+    assert.strictEqual(byFs.get('/root/b/x/note.md'), 'b/x/');
   });
 });
