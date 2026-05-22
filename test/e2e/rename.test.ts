@@ -65,3 +65,40 @@ suite('Rename propagation', () => {
     assert.strictEqual(oldCount, 1, `expected exactly 1 old reference (fenced), got ${oldCount}`);
   });
 });
+
+suite('Rename propagation across sibling folders', () => {
+  const ws = (): vscode.Uri => vscode.workspace.workspaceFolders![0].uri;
+  const inboxHome = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'Inbox', 'home.md');
+  const draftsReadme = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'Drafts', 'README.md');
+  const draftsRenamed = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'Drafts', 'README3.md');
+
+  suiteSetup(async () => {
+    const ext = vscode.extensions.getExtension('local.vscode-wiki-links');
+    await ext!.activate();
+    await tryDelete(draftsRenamed());
+    await writeText(inboxHome(), 'A draft link: ![[Drafts/README]].\n');
+    await writeText(draftsReadme(), '# Readme\n');
+  });
+
+  suiteTeardown(async () => {
+    await tryDelete(draftsRenamed());
+    await tryDelete(inboxHome());
+    await tryDelete(draftsReadme());
+  });
+
+  test('a slashed link is rewritten root-relative, never with ".." segments', async () => {
+    await vscode.workspace.openTextDocument(inboxHome());
+
+    const edit = new vscode.WorkspaceEdit();
+    edit.renameFile(draftsReadme(), draftsRenamed(), { overwrite: false });
+    assert.strictEqual(await vscode.workspace.applyEdit(edit), true);
+
+    await waitFor(async () => {
+      const d = await vscode.workspace.openTextDocument(inboxHome());
+      return d.getText().includes('README3');
+    });
+    const text = (await vscode.workspace.openTextDocument(inboxHome())).getText();
+    assert.ok(text.includes('![[Drafts/README3]]'), `expected root-relative link, got: ${text}`);
+    assert.ok(!text.includes('..'), `rewritten link must not contain "..": ${text}`);
+  });
+});

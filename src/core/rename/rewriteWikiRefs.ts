@@ -25,7 +25,7 @@ export function rewriteWikiRefs(
     if (!resolved) continue;
     const hit = renames.find((p) => p.oldFsPath === resolved.fsPath);
     if (!hit) continue;
-    const newTarget = chooseTargetForm(r.target, hit.newFsPath, fromFsPath, snap, renames);
+    const newTarget = chooseTargetForm(r.target, hit.newFsPath, snap, renames);
     if (newTarget === null) continue;
     out.push({ start: r.range.start, end: r.range.end, newText: rebuildWiki(r, newTarget) });
   }
@@ -36,7 +36,6 @@ export function rewriteWikiRefs(
 function chooseTargetForm(
   oldTarget: string,
   newFsPath: string,
-  fromFsPath: string,
   snap: IndexSnapshot,
   renames: RenamePair[],
 ): string | null {
@@ -59,11 +58,16 @@ function chooseTargetForm(
     );
     if (!collision) return newBase;
   }
+  // Slashed wiki-link targets are workspace-root-relative (the resolver suffix-matches them
+  // against each file's relPath), NOT relative to the source file. Computing the path from
+  // the source dir would emit `../` segments, which the resolver rejects.
   const rel = path
-    .relative(path.dirname(fromFsPath), newFsPath)
+    .relative(snap.workspaceRoot, newFsPath)
     .replace(/\\/g, '/')
     .replace(/\.(md|markdown)$/i, '');
-  if (UNSAFE_RE.test(rel)) return null;
+  // A `..` segment means the target is outside this file's workspace folder (e.g. a multi-root
+  // workspace): there is no wiki-link form that can reach it, so skip the rewrite.
+  if (UNSAFE_RE.test(rel) || rel.split('/').includes('..')) return null;
   return rel;
 }
 

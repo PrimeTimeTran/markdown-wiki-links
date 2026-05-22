@@ -137,6 +137,34 @@ suite('rewriteWikiRefs (logic paths)', () => {
     assert.deepStrictEqual(edits, [], 'no edits emitted for unsafe filename');
   });
 
+  test('slashed rewrite is workspace-root-relative, never source-relative with ".."', () => {
+    // Referring file in Inbox/, renamed target in the sibling Drafts/. A source-relative path
+    // would be "../Drafts/README3", which the resolver rejects. It must be root-relative.
+    const src = '![[Drafts/README]]';
+    const s = snap(['/root/Drafts/README.md', '/root/Inbox/note.md']);
+    const edits = rewriteWikiRefs(
+      src,
+      '/root/Inbox/home.md',
+      [{ oldFsPath: '/root/Drafts/README.md', newFsPath: '/root/Drafts/README3.md' }],
+      s,
+    );
+    const result = applyReplacements(src, edits);
+    assert.strictEqual(result, '![[Drafts/README3]]');
+    assert.ok(!result.includes('..'), `rewritten link must not contain "..": ${result}`);
+  });
+
+  test('renamed slashed target stays root-relative when source is deeply nested', () => {
+    const src = '[[Drafts/README]]';
+    const s = snap(['/root/Drafts/README.md', '/root/a/b/c/note.md']);
+    const edits = rewriteWikiRefs(
+      src,
+      '/root/a/b/c/home.md',
+      [{ oldFsPath: '/root/Drafts/README.md', newFsPath: '/root/Drafts/README3.md' }],
+      s,
+    );
+    assert.strictEqual(applyReplacements(src, edits), '[[Drafts/README3]]');
+  });
+
   test('occurrences inside fenced code are not rewritten', () => {
     const src = 'normal [[old]]\n\n```\nsee [[old]] in fence\n```';
     const s = snap(['/root/old.md']);
