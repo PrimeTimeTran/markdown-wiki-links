@@ -53,7 +53,7 @@
         "wikiLinks.indexMaxFiles": {
           "type": "number",
           "default": 50000,
-          "description": "Soft cap on indexed files. Workspaces exceeding this surface an Information diagnostic."
+          "description": "Soft cap on indexed files. A workspace above the cap shows a notification and only the first N files are indexed."
         },
         "wikiLinks.hover.imageMaxHeight": {
           "type": "number",

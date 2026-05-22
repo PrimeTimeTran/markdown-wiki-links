@@ -17,6 +17,10 @@ const DEFAULT_EXCLUDED_FOLDERS = [
   'bower_components',
 ];
 
+// Soft cap on indexed files. Each entry is three short strings plus object/Map overhead —
+// roughly 350-450 bytes — so the 50,000 default costs on the order of 20 MB of heap.
+const DEFAULT_INDEX_MAX_FILES = 50000;
+
 export class IndexService {
   private entries = new Map<string, IndexEntry>();
   private watcher?: vscode.FileSystemWatcher;
@@ -62,8 +66,16 @@ export class IndexService {
 
   private async scan(): Promise<void> {
     const exclude = buildExcludeGlob(excludedFolders());
+    const cap = indexMaxFiles();
     const found = await vscode.workspace.findFiles(GLOB, exclude);
-    for (const u of found) this.add(u);
+    for (const u of found.slice(0, cap)) this.add(u);
+    if (found.length > cap) {
+      vscode.window.showInformationMessage(
+        `Wiki Links: this workspace has ${found.length} indexable files, above the ` +
+          `${cap}-file limit. Only the first ${cap} are indexed, so some wiki-links may not ` +
+          `resolve. Raise "wikiLinks.indexMaxFiles" to index more.`,
+      );
+    }
   }
 
   private add(u: vscode.Uri): void {
@@ -72,9 +84,19 @@ export class IndexService {
     const rel = path.relative(folder.uri.fsPath, u.fsPath);
     // The FileSystemWatcher glob cannot carry an exclude, so filter vendor folders here too.
     if (isExcludedPath(rel, excludedFolders())) return;
+    // Hard-stop at the cap so watcher-driven creates cannot grow the index past it.
+    // Known paths are still allowed through so an in-place update (e.g. rename) is not blocked.
+    if (!this.entries.has(u.fsPath) && this.entries.size >= indexMaxFiles()) return;
     const base = path.basename(u.fsPath).replace(/\.(md|markdown)$/i, '');
     this.entries.set(u.fsPath, { fsPath: u.fsPath, relPath: rel, baseNoExt: base });
   }
+}
+
+function indexMaxFiles(): number {
+  const configured = vscode.workspace
+    .getConfiguration('wikiLinks')
+    .get<number>('indexMaxFiles', DEFAULT_INDEX_MAX_FILES);
+  return typeof configured === 'number' && configured > 0 ? configured : DEFAULT_INDEX_MAX_FILES;
 }
 
 function excludedFolders(): string[] {

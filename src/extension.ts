@@ -7,7 +7,11 @@ import { RenameHandler } from './adapters/renameHandler';
 import { createPreviewResolver } from './adapters/previewResolver';
 import { WikiDiagnostics } from './adapters/diagnostics';
 import { WikiCompletionProvider } from './adapters/completionProvider';
-import { extendMarkdownIt as wireMarkdownIt, setResolver } from './markdownItPlugin/index';
+import {
+  extendMarkdownIt as wireMarkdownIt,
+  setResolver,
+  resetResolver,
+} from './markdownItPlugin/index';
 
 let indexService: IndexService | undefined;
 
@@ -48,4 +52,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   };
 }
 
-export function deactivate(): void {}
+export function deactivate(): void {
+  // Release the markdown-it resolver closure so it stops pinning the IndexService.
+  resetResolver();
+  indexService = undefined;
+}

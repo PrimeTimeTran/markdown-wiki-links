@@ -1,11 +1,12 @@
-import { buildFenceMask, isMasked } from '../fenceMask';
+import { buildFenceMask, isMasked, FenceMask } from '../fenceMask';
 import { ParsedRef } from '../types';
 
 const EMBED_RE =
   /!\[\[(?<target>[^[\]|#\r\n]+)(?:#(?<fragment>[^[\]|\r\n]+))?(?:\|(?<sizeHint>[^[\]\r\n]+))?\]\]/g;
 
-export function parseEmbeds(text: string): ParsedRef[] {
-  const mask = buildFenceMask(text);
+// `mask` may be supplied by callers that also run parseLinks on the same text, so the fence
+// mask is built once per document rather than once per parser.
+export function parseEmbeds(text: string, mask: FenceMask = buildFenceMask(text)): ParsedRef[] {
   const refs: ParsedRef[] = [];
   for (const m of text.matchAll(EMBED_RE)) {
     const start = m.index ?? 0;

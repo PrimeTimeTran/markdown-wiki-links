@@ -38,10 +38,17 @@ export class RenameHandler {
     // only Markdown files are scanned for occurrences to rewrite.
     const allFiles = await vscode.workspace.findFiles(INDEX_GLOB, '**/node_modules/**');
     const referrers = allFiles.filter((u) => MARKDOWN_RE.test(u.fsPath));
+    // Referrers in the same workspace folder share one snapshot — build it once per root.
+    const snapByRoot = new Map<string, IndexSnapshot>();
     for (const ref of referrers) {
+      const root = vscode.workspace.getWorkspaceFolder(ref)?.uri.fsPath ?? '';
+      let snap = snapByRoot.get(root);
+      if (!snap) {
+        snap = buildSnapshot(root, allFiles);
+        snapByRoot.set(root, snap);
+      }
       const doc = await vscode.workspace.openTextDocument(ref);
       const text = doc.getText();
-      const snap = buildSnapshot(ref, allFiles);
       const replacements = rewriteWikiRefs(text, ref.fsPath, renames, snap);
       for (const r of replacements) {
         edit.replace(
@@ -55,9 +62,7 @@ export class RenameHandler {
   }
 }
 
-function buildSnapshot(forUri: vscode.Uri, allFiles: readonly vscode.Uri[]): IndexSnapshot {
-  const folder = vscode.workspace.getWorkspaceFolder(forUri);
-  const root = folder?.uri.fsPath ?? '';
+function buildSnapshot(root: string, allFiles: readonly vscode.Uri[]): IndexSnapshot {
   const entries: IndexEntry[] = allFiles
     .filter((u) => u.fsPath.startsWith(root))
     .map((u) => ({

@@ -6,6 +6,7 @@ import { parseLinks } from '../core/parser/linkParser';
 import { parseEmbeds } from '../core/parser/embedParser';
 import { resolveTarget } from '../core/resolver/resolveTarget';
 import { lineForFragment } from '../core/blocks/sectionSlice';
+import { buildFenceMask } from '../core/fenceMask';
 
 import { IndexService } from './indexService';
 import { isInsideWorkspaceReal } from './workspaceBoundary';
@@ -15,7 +16,8 @@ export class WikiDocumentLinkProvider implements vscode.DocumentLinkProvider {
 
   async provideDocumentLinks(doc: vscode.TextDocument): Promise<vscode.DocumentLink[]> {
     const text = doc.getText();
-    const refs = [...parseLinks(text), ...parseEmbeds(text)];
+    const mask = buildFenceMask(text);
+    const refs = [...parseLinks(text, mask), ...parseEmbeds(text, mask)];
     const snap = this.idx.snapshotFor(doc.uri.fsPath);
     const out: vscode.DocumentLink[] = [];
     for (const r of refs) {

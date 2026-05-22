@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 
 import { parseLinks } from '../core/parser/linkParser';
 import { parseEmbeds } from '../core/parser/embedParser';
+import { buildFenceMask } from '../core/fenceMask';
 import { resolveTarget } from '../core/resolver/resolveTarget';
 import { sliceSection } from '../core/blocks/sectionSlice';
 import { stripFrontmatter } from '../core/frontmatter';
@@ -24,11 +25,16 @@ export class WikiHoverProvider implements vscode.HoverProvider {
     const text = doc.getText();
     const offset = doc.offsetAt(pos);
     const snap = this.idx.snapshotFor(doc.uri.fsPath);
+    const mask = buildFenceMask(text);
 
-    const embed = parseEmbeds(text).find((r) => offset >= r.range.start && offset <= r.range.end);
+    const embed = parseEmbeds(text, mask).find(
+      (r) => offset >= r.range.start && offset <= r.range.end,
+    );
     if (embed) return this.hoverForEmbed(embed, doc, snap);
 
-    const link = parseLinks(text).find((r) => offset >= r.range.start && offset <= r.range.end);
+    const link = parseLinks(text, mask).find(
+      (r) => offset >= r.range.start && offset <= r.range.end,
+    );
     if (link) return this.hoverForLink(link, doc, snap);
 
     return undefined;
@@ -119,14 +125,31 @@ function escapeHtmlAttr(s: string): string {
     .replace(/>/g, '&gt;');
 }
 
+// Only the leading bytes are needed for dimensions: PNG/GIF headers are tiny and a JPEG's
+// Start-Of-Frame segment sits within the first segments. 128 KiB covers real-world files
+// without pulling a multi-megabyte image fully into memory just to read its size.
+const IMAGE_HEADER_BYTES = 128 * 1024;
+
+async function readImageHeader(fsPath: string): Promise<Uint8Array | undefined> {
+  let handle: fs.FileHandle | undefined;
+  try {
+    handle = await fs.open(fsPath, 'r');
+    const buf = Buffer.alloc(IMAGE_HEADER_BYTES);
+    const { bytesRead } = await handle.read(buf, 0, IMAGE_HEADER_BYTES, 0);
+    return buf.subarray(0, bytesRead);
+  } catch {
+    return undefined;
+  } finally {
+    await handle?.close();
+  }
+}
+
 // Inline ![[image|size]] hints are intentionally ignored — the hover always fits the image to
 // the popup. Scale to fit both bounds (aspect ratio preserved, never upscaled); if that drops
 // below the minimum width, clamp the width so the over-tall result scrolls within the hover.
 async function hoverImageWidth(uri: vscode.Uri): Promise<number> {
-  const dims = await fs
-    .readFile(uri.fsPath)
-    .then((bytes) => imageSize(bytes))
-    .catch(() => undefined);
+  const header = await readImageHeader(uri.fsPath);
+  const dims = header ? imageSize(header) : undefined;
   if (!dims || dims.width < 1 || dims.height < 1) return HOVER_IMAGE_MAX_WIDTH;
   const scale = Math.min(
     1,
