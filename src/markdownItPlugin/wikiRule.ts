@@ -18,19 +18,26 @@ const LINK_RE = /(?<!!)\[\[([^[\]|#\r\n]*)(?:#([^[\]|\r\n]+))?(?:\|([^[\]\r\n]+)
 
 export function wikiPlugin(
   md: MarkdownIt,
-  opts: { resolver: WikiResolver; maxDepth?: number },
+  opts: {
+    resolver: WikiResolver;
+    maxDepth?: number;
+    // The fsPath of the file the preview is rendering. VSCode tokenizes the preview by string,
+    // so a core rule cannot discover this itself (env.currentDocument is undefined at tokenize
+    // time); the extension supplies it. Used to seed the embed-cycle ancestor set.
+    getDocumentPath?: () => string | undefined;
+  },
 ): void {
   const maxDepth = opts.maxDepth ?? 3;
   md.core.ruler.before('normalize', 'wiki-links', (state) => {
-    // VSCode does not expose the source document at tokenization time — env.currentDocument is
-    // undefined for core rules. Resolved output paths are therefore workspace-root-absolute
-    // (leading slash) rather than document-relative. The read is kept for forward compatibility.
-    const env = state.env as { currentDocument?: { fsPath?: string } } | undefined;
-    const from = env?.currentDocument?.fsPath ?? '';
     // Leave a leading YAML frontmatter block untouched — rewriting a [[...]] value there would
     // corrupt the metadata (escaped markdown is not valid YAML).
     const { frontmatter, body } = splitFrontmatter(state.src);
-    state.src = frontmatter + expand(body, opts.resolver, from, maxDepth, new Set<string>());
+    // Seed the ancestor set with the file being previewed so a file that embeds itself is
+    // flagged cyclic at its first reference, instead of after one redundant self-expansion.
+    const ancestors = new Set<string>();
+    const self = opts.getDocumentPath?.();
+    if (self) ancestors.add(self);
+    state.src = frontmatter + expand(body, opts.resolver, '', maxDepth, ancestors);
   });
   // Embed size hints are carried as a `wl-size:` image title (no markdown syntax expresses image
   // dimensions); this rule turns that title into real width/height attributes after tokenization.

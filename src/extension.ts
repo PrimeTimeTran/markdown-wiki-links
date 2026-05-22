@@ -49,7 +49,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     extendMarkdownIt(md: any): any {
       if (indexService) setResolver(createPreviewResolver(indexService));
-      return wireMarkdownIt(md, embedMaxDepth());
+      // VSCode never tells a contributed markdown-it plugin which file a preview is rendering,
+      // so supply it here: the previewed file is the active text editor (the preview opens
+      // beside its source). Lets the embed-cycle guard catch a file that embeds itself.
+      return wireMarkdownIt(
+        md,
+        embedMaxDepth(),
+        () => vscode.window.activeTextEditor?.document.uri.fsPath,
+      );
     },
   };
 }

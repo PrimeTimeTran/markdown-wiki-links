@@ -24,7 +24,10 @@ function resolver(over: Partial<WikiResolver> = {}): WikiResolver {
   };
 }
 
-function mk(res: WikiResolver, opts: { maxDepth?: number } = {}): MarkdownIt {
+function mk(
+  res: WikiResolver,
+  opts: { maxDepth?: number; getDocumentPath?: () => string | undefined } = {},
+): MarkdownIt {
   return new MarkdownIt({ html: true }).use(wikiPlugin, { resolver: res, ...opts });
 }
 
@@ -89,6 +92,20 @@ suite('wikiPlugin — embeds', () => {
     const out = mk(res, { maxDepth: 10 }).render('![[a]]');
     assert.ok(out.includes('A body.') && out.includes('B body.'));
     assert.ok(/Cyclic embed/i.test(out));
+  });
+  test('a file that embeds itself is caught at the first reference', () => {
+    const res: WikiResolver = {
+      resolveEmbed: (_f, key) =>
+        key === 'self'
+          ? { kind: 'markdown', text: 'Self body. ![[self]]', sourcePath: '/abs/self.md' }
+          : null,
+      resolveLink: () => null,
+    };
+    const out = mk(res, { maxDepth: 10, getDocumentPath: () => '/abs/self.md' }).render(
+      'Doc body. ![[self]]',
+    );
+    assert.ok(/Cyclic embed/i.test(out), `expected cyclic marker, got: ${out}`);
+    assert.ok(!out.includes('Self body.'), `self content must not expand even once, got: ${out}`);
   });
   test('image target with quote is HTML-attribute-escaped', () => {
     const res = resolver({ resolveEmbed: () => ({ kind: 'image', src: 'x.png' }) });
