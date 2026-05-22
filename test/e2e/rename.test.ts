@@ -102,3 +102,42 @@ suite('Rename propagation across sibling folders', () => {
     assert.ok(!text.includes('..'), `rewritten link must not contain "..": ${text}`);
   });
 });
+
+suite('Rename propagation for media files', () => {
+  const ws = (): vscode.Uri => vscode.workspace.workspaceFolders![0].uri;
+  const note = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'note-with-image.md');
+  const imageOld = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'diagram.png');
+  const imageNew = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'chart.png');
+
+  suiteSetup(async () => {
+    const ext = vscode.extensions.getExtension('local.vscode-wiki-links');
+    await ext!.activate();
+    await tryDelete(imageNew());
+    await writeText(note(), 'See ![[diagram.png]] and the link [[diagram.png]].\n');
+    // The bytes are irrelevant to rename rewriting; the file just has to exist.
+    await vscode.workspace.fs.writeFile(imageOld(), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+  });
+
+  suiteTeardown(async () => {
+    await tryDelete(imageNew());
+    await tryDelete(imageOld());
+    await tryDelete(note());
+  });
+
+  test('renaming an image rewrites the ![[...]] embed and the [[...]] link to it', async () => {
+    await vscode.workspace.openTextDocument(note());
+
+    const edit = new vscode.WorkspaceEdit();
+    edit.renameFile(imageOld(), imageNew(), { overwrite: false });
+    assert.strictEqual(await vscode.workspace.applyEdit(edit), true);
+
+    await waitFor(async () => {
+      const d = await vscode.workspace.openTextDocument(note());
+      return d.getText().includes('chart.png');
+    });
+    const text = (await vscode.workspace.openTextDocument(note())).getText();
+    assert.ok(text.includes('![[chart.png]]'), `embed not rewritten: ${text}`);
+    assert.ok(text.includes('[[chart.png]]'), `link not rewritten: ${text}`);
+    assert.ok(!text.includes('diagram.png'), `stale image reference remains: ${text}`);
+  });
+});

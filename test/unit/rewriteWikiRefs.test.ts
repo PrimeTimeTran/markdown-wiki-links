@@ -165,6 +165,33 @@ suite('rewriteWikiRefs (logic paths)', () => {
     assert.strictEqual(applyReplacements(src, edits), '[[Drafts/README3]]');
   });
 
+  test('renaming an image file rewrites both ![[...]] embeds and [[...]] links to it', () => {
+    const src = 'Diagram: ![[diagram.png]] and a link [[diagram.png]].';
+    const s = snap(['/root/diagram.png']);
+    const edits = rewriteWikiRefs(
+      src,
+      '/root/home.md',
+      [{ oldFsPath: '/root/diagram.png', newFsPath: '/root/chart.png' }],
+      s,
+    );
+    assert.strictEqual(
+      applyReplacements(src, edits),
+      'Diagram: ![[chart.png]] and a link [[chart.png]].',
+    );
+  });
+
+  test('image rename preserves the embed size hint', () => {
+    const src = '![[diagram.png|300]]';
+    const s = snap(['/root/diagram.png']);
+    const edits = rewriteWikiRefs(
+      src,
+      '/root/home.md',
+      [{ oldFsPath: '/root/diagram.png', newFsPath: '/root/chart.png' }],
+      s,
+    );
+    assert.strictEqual(applyReplacements(src, edits), '![[chart.png|300]]');
+  });
+
   test('occurrences inside fenced code are not rewritten', () => {
     const src = 'normal [[old]]\n\n```\nsee [[old]] in fence\n```';
     const s = snap(['/root/old.md']);

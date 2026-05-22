@@ -6,6 +6,12 @@ import { rewriteWikiRefs } from '../core/rename/rewriteWikiRefs';
 import { IndexSnapshot } from '../core/resolver/resolveTarget';
 import { IndexEntry } from '../core/types';
 
+// Files a wiki-link can target: Markdown documents plus embeddable media.
+const LINKABLE_RE = /\.(md|markdown|png|jpe?g|gif|webp|svg)$/i;
+// Files that can *contain* wiki-links — only these are scanned and rewritten.
+const MARKDOWN_RE = /\.(md|markdown)$/i;
+const INDEX_GLOB = '**/*.{md,markdown,png,jpg,jpeg,gif,webp,svg}';
+
 export class RenameHandler {
   register(ctx: vscode.ExtensionContext): void {
     ctx.subscriptions.push(
@@ -22,17 +28,20 @@ export class RenameHandler {
   ): Promise<vscode.WorkspaceEdit> {
     const edit = new vscode.WorkspaceEdit();
     const renames = files
-      .filter((f) => /\.(md|markdown)$/i.test(f.oldUri.fsPath))
+      .filter((f) => LINKABLE_RE.test(f.oldUri.fsPath))
       .map((f) => ({ oldFsPath: f.oldUri.fsPath, newFsPath: f.newUri.fsPath }));
     if (renames.length === 0) return edit;
 
     // Build the snapshot from a fresh scan rather than the cached index: rename is rare,
     // correctness matters more than the cache, and the cache can lag fixture/file creation.
-    const referrers = await vscode.workspace.findFiles('**/*.{md,markdown}', '**/node_modules/**');
+    // The scan must include media so embeds like ![[image.png]] resolve to the renamed file;
+    // only Markdown files are scanned for occurrences to rewrite.
+    const allFiles = await vscode.workspace.findFiles(INDEX_GLOB, '**/node_modules/**');
+    const referrers = allFiles.filter((u) => MARKDOWN_RE.test(u.fsPath));
     for (const ref of referrers) {
       const doc = await vscode.workspace.openTextDocument(ref);
       const text = doc.getText();
-      const snap = buildSnapshot(ref, referrers);
+      const snap = buildSnapshot(ref, allFiles);
       const replacements = rewriteWikiRefs(text, ref.fsPath, renames, snap);
       for (const r of replacements) {
         edit.replace(
@@ -46,10 +55,10 @@ export class RenameHandler {
   }
 }
 
-function buildSnapshot(forUri: vscode.Uri, allMd: readonly vscode.Uri[]): IndexSnapshot {
+function buildSnapshot(forUri: vscode.Uri, allFiles: readonly vscode.Uri[]): IndexSnapshot {
   const folder = vscode.workspace.getWorkspaceFolder(forUri);
   const root = folder?.uri.fsPath ?? '';
-  const entries: IndexEntry[] = allMd
+  const entries: IndexEntry[] = allFiles
     .filter((u) => u.fsPath.startsWith(root))
     .map((u) => ({
       fsPath: u.fsPath,
