@@ -17,11 +17,12 @@ const IMAGE_RE = /\.(png|jpe?g|gif|webp|svg)$/i;
 export function createPreviewResolver(idx: IndexService): WikiResolver {
   // markdown-it is synchronous, so every resolver method is sync.
   return {
-    resolveEmbed: (fromFsPath, key, sizeHint) => {
+    resolveEmbed: (fromFsPath, key) => {
       const [target, fragment] = key.split('#');
       const snap = snapshotFrom(idx, fromFsPath);
-      if (IMAGE_RE.test(target)) return resolveImage(target, snap, sizeHint);
-      return resolveMarkdownEmbed(target, fragment, snap, basePath(fromFsPath, snap));
+      const base = basePath(fromFsPath, snap);
+      if (IMAGE_RE.test(target)) return resolveImage(target, snap);
+      return resolveMarkdownEmbed(target, fragment, snap, base);
     },
     resolveLink: (fromFsPath, target, fragment) => {
       const snap = snapshotFrom(idx, fromFsPath);
@@ -37,7 +38,8 @@ export function createPreviewResolver(idx: IndexService): WikiResolver {
         snap,
       );
       if (!resolved || !isInsideWorkspaceRealSync(vscode.Uri.file(resolved.fsPath))) return null;
-      let href = path.relative(path.dirname(from), resolved.fsPath).split(path.sep).join('/');
+      // Workspace-root-absolute href: document-independent (see resolveImage for why).
+      let href = '/' + path.relative(snap.workspaceRoot, resolved.fsPath).split(path.sep).join('/');
       // Heading fragments map to preview anchors; block-id fragments have no preview anchor.
       if (fragment && !fragment.startsWith('^')) href += '#' + slugify(fragment);
       return href;
@@ -53,17 +55,16 @@ function basePath(fromFsPath: string, snap: IndexSnapshot): string {
   return fromFsPath || path.join(snap.workspaceRoot, '_.md');
 }
 
-function resolveImage(
-  target: string,
-  snap: IndexSnapshot,
-  sizeHint?: string,
-): EmbedResolved | null {
+function resolveImage(target: string, snap: IndexSnapshot): EmbedResolved | null {
   const hit = snap.entries.find((e) => e.relPath.toLowerCase().endsWith(target.toLowerCase()));
   if (!hit) return null;
   const uri = vscode.Uri.file(hit.fsPath);
   if (!isInsideWorkspaceRealSync(uri)) return null;
-  void sizeHint;
-  return { kind: 'image', src: uri.toString() };
+  // The markdown-it plugin runs at tokenization time, where VSCode does not expose the source
+  // document — so a document-relative path is impossible. A workspace-root-absolute path (leading
+  // slash) is document-independent: VSCode's preview resolves it against the workspace folder root.
+  const src = '/' + path.relative(snap.workspaceRoot, hit.fsPath).split(path.sep).join('/');
+  return { kind: 'image', src };
 }
 
 function resolveMarkdownEmbed(

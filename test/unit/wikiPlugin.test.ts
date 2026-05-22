@@ -16,7 +16,7 @@ function resolver(over: Partial<WikiResolver> = {}): WikiResolver {
           text: '## Section\nSection body.',
           sourcePath: '/abs/note.md',
         };
-      if (key === 'diagram.png') return { kind: 'image', src: 'file:///fake/diagram.png' };
+      if (key === 'diagram.png') return { kind: 'image', src: 'media/diagram.png' };
       return null;
     },
     resolveLink: (_from, target) => (target === 'ghost' ? null : `${target}.md`),
@@ -35,16 +35,17 @@ suite('wikiPlugin — embeds', () => {
   test('embeds heading section', () => {
     assert.ok(mk(resolver()).render('![[note#Section]]').includes('Section body.'));
   });
-  test('image embed produces img tag', () => {
+  test('image embed produces an image referencing the resolved src', () => {
     const out = mk(resolver()).render('![[diagram.png]]');
-    assert.ok(/<img\s[^>]*src="file:\/\/\/fake\/diagram\.png"/.test(out));
+    assert.ok(/<img\s[^>]*src="media\/diagram\.png"/.test(out), `got: ${out}`);
   });
-  test('image with size hint adds width attribute', () => {
+  test('image embed with a size hint still renders the image', () => {
     const res = resolver({
       resolveEmbed: (_f, key) =>
-        key.startsWith('diagram.png') ? { kind: 'image', src: 'file:///fake/diagram.png' } : null,
+        key.startsWith('diagram.png') ? { kind: 'image', src: 'media/diagram.png' } : null,
     });
-    assert.ok(/width="300"/.test(mk(res).render('![[diagram.png|300]]')));
+    const out = mk(res).render('![[diagram.png|300]]');
+    assert.ok(/<img\s[^>]*src="media\/diagram\.png"/.test(out), `got: ${out}`);
   });
   test('unresolved embed leaves a placeholder, no crash', () => {
     const res = resolver({ resolveEmbed: () => null });
@@ -80,7 +81,7 @@ suite('wikiPlugin — embeds', () => {
     assert.ok(/Cyclic embed/i.test(out));
   });
   test('image target with quote is HTML-attribute-escaped', () => {
-    const res = resolver({ resolveEmbed: () => ({ kind: 'image', src: 'file:///x.png' }) });
+    const res = resolver({ resolveEmbed: () => ({ kind: 'image', src: 'x.png' }) });
     const out = mk(res).render('![[evil".png]]');
     assert.ok(out.includes('&quot;'), `expected escaped quote, got: ${out}`);
   });

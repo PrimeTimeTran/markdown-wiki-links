@@ -20,7 +20,9 @@ export function wikiPlugin(
 ): void {
   const maxDepth = opts.maxDepth ?? 3;
   md.core.ruler.before('normalize', 'wiki-links', (state) => {
-    // VSCode's preview puts the source document on env.currentDocument.
+    // VSCode does not expose the source document at tokenization time — env.currentDocument is
+    // undefined for core rules. Resolved output paths are therefore workspace-root-absolute
+    // (leading slash) rather than document-relative. The read is kept for forward compatibility.
     const env = state.env as { currentDocument?: { fsPath?: string } } | undefined;
     const from = env?.currentDocument?.fsPath ?? '';
     state.src = expand(state.src, opts.resolver, from, maxDepth, new Set<string>());
@@ -54,8 +56,9 @@ function expandEmbeds(
     const r = resolver.resolveEmbed(fromFsPath, key, sizeHint);
     if (!r) return `*Unresolved embed: ${mdEscape(target)}*`;
     if (r.kind === 'image') {
-      const w = sizeHint && /^\d+$/.test(sizeHint) ? ` width="${sizeHint}"` : '';
-      return `<img src="${escapeAttr(r.src)}"${w} alt="${escapeAttr(target)}">`;
+      // Emit a markdown image token (not raw <img>) so VSCode's preview rewrites the src
+      // to a webview-loadable resource URI. Raw HTML img srcs are not rewritten.
+      return `![${mdEscape(target)}](${r.src})`;
     }
     if (ancestors.has(r.sourcePath)) return `> ⚠️ Cyclic embed: ${mdEscape(target)}`;
     const nextAncestors = new Set(ancestors);
@@ -79,15 +82,6 @@ function rewriteLinks(src: string, resolver: WikiResolver, fromFsPath: string): 
 function labelFor(target: string, fragment?: string): string {
   if (target === '') return fragment ?? '';
   return fragment ? `${target} › ${fragment}` : target;
-}
-
-// Escape characters that have special meaning in HTML attribute values.
-function escapeAttr(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
 }
 
 // Escape characters that have special meaning in markdown inline-text positions.
