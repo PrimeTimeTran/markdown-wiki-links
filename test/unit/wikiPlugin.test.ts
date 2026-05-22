@@ -39,13 +39,23 @@ suite('wikiPlugin — embeds', () => {
     const out = mk(resolver()).render('![[diagram.png]]');
     assert.ok(/<img\s[^>]*src="media\/diagram\.png"/.test(out), `got: ${out}`);
   });
-  test('image embed with a size hint still renders the image', () => {
+  test('image embed with a width hint renders the image at that width', () => {
     const res = resolver({
       resolveEmbed: (_f, key) =>
         key.startsWith('diagram.png') ? { kind: 'image', src: 'media/diagram.png' } : null,
     });
     const out = mk(res).render('![[diagram.png|300]]');
     assert.ok(/<img\s[^>]*src="media\/diagram\.png"/.test(out), `got: ${out}`);
+    assert.ok(/width="300"/.test(out), `expected width attribute, got: ${out}`);
+    assert.ok(!out.includes('wl-size'), `size title must be stripped, got: ${out}`);
+  });
+  test('image embed with a width x height hint sets both dimensions', () => {
+    const res = resolver({
+      resolveEmbed: (_f, key) =>
+        key.startsWith('diagram.png') ? { kind: 'image', src: 'media/diagram.png' } : null,
+    });
+    const out = mk(res).render('![[diagram.png|300x150]]');
+    assert.ok(/width="300"/.test(out) && /height="150"/.test(out), `got: ${out}`);
   });
   test('unresolved embed leaves a placeholder, no crash', () => {
     const res = resolver({ resolveEmbed: () => null });

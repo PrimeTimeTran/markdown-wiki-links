@@ -27,6 +27,34 @@ export function wikiPlugin(
     const from = env?.currentDocument?.fsPath ?? '';
     state.src = expand(state.src, opts.resolver, from, maxDepth, new Set<string>());
   });
+  // Embed size hints are carried as a `wl-size:` image title (no markdown syntax expresses image
+  // dimensions); this rule turns that title into real width/height attributes after tokenization.
+  md.core.ruler.push('wiki-image-size', applyImageSizes);
+}
+
+type AttrToken = {
+  type: string;
+  children?: AttrToken[] | null;
+  attrGet(name: string): string | null;
+  attrSet(name: string, value: string): void;
+  attrIndex(name: string): number;
+  attrs: [string, string][] | null;
+};
+
+const SIZE_TITLE_RE = /^wl-size:(\d+)(?:x(\d+))?$/;
+
+function applyImageSizes(state: { tokens: AttrToken[] }): void {
+  for (const block of state.tokens) {
+    for (const tok of block.children ?? []) {
+      if (tok.type !== 'image') continue;
+      const m = (tok.attrGet('title') ?? '').match(SIZE_TITLE_RE);
+      if (!m) continue;
+      tok.attrSet('width', m[1]);
+      if (m[2]) tok.attrSet('height', m[2]);
+      const titleIndex = tok.attrIndex('title');
+      if (titleIndex >= 0 && tok.attrs) tok.attrs.splice(titleIndex, 1);
+    }
+  }
 }
 
 function expand(
@@ -56,9 +84,11 @@ function expandEmbeds(
     const r = resolver.resolveEmbed(fromFsPath, key, sizeHint);
     if (!r) return `*Unresolved embed: ${mdEscape(target)}*`;
     if (r.kind === 'image') {
-      // Emit a markdown image token (not raw <img>) so VSCode's preview rewrites the src
-      // to a webview-loadable resource URI. Raw HTML img srcs are not rewritten.
-      return `![${mdEscape(target)}](${r.src})`;
+      // Emit a markdown image token (not raw <img>) so VSCode's preview rewrites the src to a
+      // webview-loadable resource URI. The <> destination form tolerates spaces in the path; the
+      // size hint rides along as a title that the wiki-image-size rule converts to width/height.
+      const size = sizeHint && /^\d+(?:x\d+)?$/.test(sizeHint) ? ` "wl-size:${sizeHint}"` : '';
+      return `![${mdEscape(target)}](<${r.src}>${size})`;
     }
     if (ancestors.has(r.sourcePath)) return `> ⚠️ Cyclic embed: ${mdEscape(target)}`;
     const nextAncestors = new Set(ancestors);
