@@ -38,6 +38,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
       new WikiCompletionProvider(indexService),
       '[',
       '/',
+      '#',
+      '^',
     ),
   );
   new RenameHandler().register(context);

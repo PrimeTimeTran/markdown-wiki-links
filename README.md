@@ -46,7 +46,7 @@ Prefix any wikilink with `!` to embed its content inline:
 - Support `.md` and `.markdown` file extensions.
 - Click to follow the link (headings and block IDs jump to the right line).
 - Hover to preview the linked file or section; hovering an image embed previews the image.
-- Autocomplete file names while typing `[[` or `![[`, ranked by closest folder.
+- Autocomplete file names while typing `[[` or `![[`, ranked by closest folder. After `#`, autocomplete switches to the target file's headings and block IDs (and the current file's, for `[[#`).
 - Auto update links when renaming files (Markdown and media targets alike).
 - Both `[[...]]` links and `![[...]]` embeds rendered in the Markdown preview — links are navigable, embeds expand inline with cycle protection.
 - Resolved wiki-links are colored in the editor; unresolved ones are dimmed — based on real resolution, so spaces and Unicode in names color correctly.
