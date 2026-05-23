@@ -24,11 +24,21 @@ function resolver(over: Partial<WikiResolver> = {}): WikiResolver {
   };
 }
 
+// Preview-shaped env (mirrors what VSCode's preview path passes). Non-preview render calls
+// omit these fields so the wikiPlugin must no-op for them.
+const previewEnv = (): Record<string, unknown> => ({ containingImages: new Set<string>() });
+
 function mk(
   res: WikiResolver,
   opts: { maxDepth?: number; getDocumentPath?: () => string | undefined } = {},
 ): MarkdownIt {
-  return new MarkdownIt({ html: true }).use(wikiPlugin, { resolver: res, ...opts });
+  const md = new MarkdownIt({ html: true }).use(wikiPlugin, { resolver: res, ...opts });
+  // Default every render to preview env so existing tests need no call-site change. Tests that
+  // need to assert non-preview behaviour call md.render(src, {}) explicitly.
+  const original = md.render.bind(md);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  md.render = (src: string, env?: any) => original(src, env ?? previewEnv());
+  return md;
 }
 
 suite('wikiPlugin — embeds', () => {
@@ -191,6 +201,26 @@ suite('wikiPlugin — links', () => {
     const out = mk(resolver()).render('```\nuse [[foo]] like this\n```');
     assert.ok(out.includes('[[foo]]'), `expected literal text in fence, got: ${out}`);
     assert.ok(!/<a [^>]*href="foo\.md"/.test(out), `must not become a link, got: ${out}`);
+  });
+  test('does NOT rewrite when env lacks preview markers (source-mode analyses stay intact)', () => {
+    // Reproduces the failure mode where VSCode reuses the contributed markdown-it instance for
+    // source-editor analyses (document highlights, smart-select, symbol mapping). Those calls
+    // do not pass `containingImages` / `currentDocument`; for them we must leave state.src as-is
+    // so positions reported back to the source editor still line up.
+    const md = new MarkdownIt({ html: true }).use(wikiPlugin, { resolver: resolver() });
+    const src = 'see [[foo]] and ![[note]] here';
+    const outNoEnv = md.render(src, {});
+    // No link rewriting, no embed expansion — the literal source survives untouched.
+    assert.ok(outNoEnv.includes('[[foo]]'), `expected literal [[foo]], got: ${outNoEnv}`);
+    assert.ok(outNoEnv.includes('![[note]]'), `expected literal ![[note]], got: ${outNoEnv}`);
+    assert.ok(!outNoEnv.includes('Note body.'), `embed must not expand, got: ${outNoEnv}`);
+    // With preview env present, both should be processed (sanity check against the same instance).
+    const outPreview = md.render(src, previewEnv());
+    assert.ok(
+      /<a [^>]*href="foo\.md"/.test(outPreview),
+      `preview should rewrite, got: ${outPreview}`,
+    );
+    assert.ok(outPreview.includes('Note body.'), `preview should embed, got: ${outPreview}`);
   });
   test('links inside embedded content are also rewritten', () => {
     const res: WikiResolver = {

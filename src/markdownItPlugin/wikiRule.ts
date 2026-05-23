@@ -30,6 +30,13 @@ export function wikiPlugin(
 ): void {
   const maxDepth = opts.maxDepth ?? 3;
   md.core.ruler.before('normalize', 'wiki-links', (state) => {
+    // Only rewrite for preview rendering. VSCode's built-in markdown extension reuses the
+    // contributed markdown-it instance for source-editor analyses too (document highlights,
+    // smart-select, symbol mapping, link tracking). Those calls do not set the preview env
+    // fields; mutating state.src for them leaks rewritten ranges back to the source editor
+    // as bogus decorations (e.g. a "highlight" running from start of file to the next
+    // backtick because the rewritten content's positions no longer align with source).
+    if (!isPreviewRender(state.env)) return;
     // Leave a leading YAML frontmatter block untouched — rewriting a [[...]] value there would
     // corrupt the metadata (escaped markdown is not valid YAML).
     const { frontmatter, body } = splitFrontmatter(state.src);
@@ -149,4 +156,14 @@ function labelFor(target: string, fragment?: string): string {
 // Escape characters that have special meaning in markdown inline-text positions.
 function mdEscape(s: string): string {
   return s.replace(/([\\`*_{}[\]()#+\-.!|>])/g, '\\$1');
+}
+
+// VSCode's preview path passes an env object carrying preview-specific fields; non-preview
+// calls (TOC, document-links, smart-select, symbol mapping) call the engine without them.
+// Treat the presence of any of these fields as a positive signal of preview rendering.
+// `unknown` here because markdown-it's State type is loose and these are extension-set.
+function isPreviewRender(env: unknown): boolean {
+  if (!env || typeof env !== 'object') return false;
+  const e = env as Record<string, unknown>;
+  return e.containingImages != null || e.currentDocument != null || e.resourceProvider != null;
 }
