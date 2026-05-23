@@ -107,6 +107,45 @@ suite('wikiPlugin — embeds', () => {
     assert.ok(/Cyclic embed/i.test(out), `expected cyclic marker, got: ${out}`);
     assert.ok(!out.includes('Self body.'), `self content must not expand even once, got: ${out}`);
   });
+  test('an ![[note]] inside an inline code span is left as code, not expanded', () => {
+    // Reproduces a Markdown file like: write `![[note]]` to embed the file.
+    // Without fence-masking the wikiPlugin replaces the source BEFORE markdown-it sees the code
+    // span, so "Note body." appears in the rendered output instead of a literal code span.
+    const out = mk(resolver()).render('write `![[note]]` in your file');
+    assert.ok(/<code>!\[\[note\]\]<\/code>/.test(out), `expected literal code span, got: ${out}`);
+    assert.ok(!out.includes('Note body.'), `embed must not expand inside code, got: ${out}`);
+  });
+  test('an ![[note]] inside a fenced code block is left as code, not expanded', () => {
+    const out = mk(resolver()).render('```\n![[note]]\n```');
+    assert.ok(out.includes('![[note]]'), `expected literal text in fence, got: ${out}`);
+    assert.ok(!out.includes('Note body.'), `embed must not expand inside fence, got: ${out}`);
+  });
+  test('depth-cap "Embed depth exceeded" marker is not written inside a fenced code block', () => {
+    // Combines depth=0 + a masked occurrence: the cap branch also gates on the mask, so the
+    // literal text in the fenced block must survive even when the recursion budget is gone.
+    const res: WikiResolver = {
+      resolveEmbed: () => null,
+      resolveLink: () => null,
+    };
+    const out = mk(res, { maxDepth: 0 }).render('```\n![[note]]\n```');
+    assert.ok(out.includes('![[note]]'), `expected literal in fence at depth=0, got: ${out}`);
+    assert.ok(
+      !out.includes('Embed depth exceeded'),
+      `cap marker must not be inserted inside fence, got: ${out}`,
+    );
+  });
+  test('indented (4-space) code blocks are NOT masked — current limitation', () => {
+    // Pins today's behaviour: src/core/fenceMask.ts only recognises ``` / ~~~ fences and inline
+    // backticks. Indented code blocks fall through, so [[foo]] is rewritten before markdown-it
+    // wraps the line in <pre><code>; the rendered output contains the markdown link syntax
+    // verbatim instead of the literal [[foo]] the user typed. If fenceMask gains indented-block
+    // support, flip this assertion to expect the literal `[[foo]]` to survive.
+    const out = mk(resolver()).render('    [[foo]]\n');
+    assert.ok(
+      out.includes('<pre><code>') && !out.includes('[[foo]]'),
+      `today indented code blocks are not masked; got: ${out}`,
+    );
+  });
   test('image target with quote is HTML-attribute-escaped', () => {
     const res = resolver({ resolveEmbed: () => ({ kind: 'image', src: 'x.png' }) });
     const out = mk(res).render('![[evil".png]]');
@@ -139,6 +178,19 @@ suite('wikiPlugin — links', () => {
     const out = mk(resolver()).render(src);
     assert.ok(out.includes('[[my_image.svg]]'), `frontmatter must stay verbatim, got: ${out}`);
     assert.ok(/<a [^>]*href="foo\.md"/.test(out), `body link should be rewritten, got: ${out}`);
+  });
+  test('a [[foo]] inside an inline code span is left as code, not rewritten', () => {
+    // markdown-it tokenizes inline code AFTER our preprocessor ran, so the wikiPlugin must
+    // pre-skip ranges that are inside ``...``. Without fence-masking, the link expands inside
+    // <code> and breaks the span.
+    const out = mk(resolver()).render('write `[[foo]]` in your file');
+    assert.ok(/<code>\[\[foo\]\]<\/code>/.test(out), `expected literal code span, got: ${out}`);
+    assert.ok(!/<a [^>]*href="foo\.md"/.test(out), `must not become a link, got: ${out}`);
+  });
+  test('a [[foo]] inside a fenced code block is left as code, not rewritten', () => {
+    const out = mk(resolver()).render('```\nuse [[foo]] like this\n```');
+    assert.ok(out.includes('[[foo]]'), `expected literal text in fence, got: ${out}`);
+    assert.ok(!/<a [^>]*href="foo\.md"/.test(out), `must not become a link, got: ${out}`);
   });
   test('links inside embedded content are also rewritten', () => {
     const res: WikiResolver = {

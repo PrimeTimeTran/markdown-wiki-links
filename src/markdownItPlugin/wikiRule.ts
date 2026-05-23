@@ -1,6 +1,7 @@
 import type MarkdownIt from 'markdown-it';
 
 import { splitFrontmatter } from '../core/frontmatter';
+import { buildFenceMask, isMasked, FenceMask } from '../core/fenceMask';
 
 export type EmbedResolved =
   | { kind: 'markdown'; text: string; sourcePath: string }
@@ -76,10 +77,15 @@ function expand(
   depth: number,
   ancestors: Set<string>,
 ): string {
+  // wikiPlugin runs as a preprocessor, before markdown-it tokenizes fenced/inline code spans.
+  // Build a fence mask up front and skip matches inside ``...`` / ```...``` / ~~~...~~~ so
+  // syntax shown literally in code stays literal in the preview.
+  const mask = buildFenceMask(src);
   return rewriteLinks(
-    expandEmbeds(src, resolver, fromFsPath, depth, ancestors),
+    expandEmbeds(src, resolver, fromFsPath, depth, ancestors, mask),
     resolver,
     fromFsPath,
+    mask,
   );
 }
 
@@ -89,9 +95,17 @@ function expandEmbeds(
   fromFsPath: string,
   depth: number,
   ancestors: Set<string>,
+  mask: FenceMask,
 ): string {
-  if (depth <= 0) return src.replace(EMBED_RE, '> ⚠️ Embed depth exceeded');
-  return src.replace(EMBED_RE, (_full, target, fragment, sizeHint) => {
+  // String.prototype.replace passes (match, ...groups, offset, fullString) to the callback —
+  // the offset lets us check whether the match starts inside a fenced/inline code span.
+  if (depth <= 0) {
+    return src.replace(EMBED_RE, (_full, _t, _f, _s, offset: number) =>
+      isMasked(mask, offset) ? _full : '> ⚠️ Embed depth exceeded',
+    );
+  }
+  return src.replace(EMBED_RE, (_full, target, fragment, sizeHint, offset: number) => {
+    if (isMasked(mask, offset)) return _full;
     const key = fragment ? `${target}#${fragment}` : target;
     const r = resolver.resolveEmbed(fromFsPath, key, sizeHint);
     if (!r) return `*Unresolved embed: ${mdEscape(target)}*`;
@@ -110,8 +124,14 @@ function expandEmbeds(
   });
 }
 
-function rewriteLinks(src: string, resolver: WikiResolver, fromFsPath: string): string {
-  return src.replace(LINK_RE, (_full, target, fragment, display) => {
+function rewriteLinks(
+  src: string,
+  resolver: WikiResolver,
+  fromFsPath: string,
+  mask: FenceMask,
+): string {
+  return src.replace(LINK_RE, (_full, target, fragment, display, offset: number) => {
+    if (isMasked(mask, offset)) return _full;
     const t = (target as string).trim();
     const frag = (fragment as string | undefined)?.trim();
     const label = (display as string | undefined)?.trim() ?? labelFor(t, frag);
