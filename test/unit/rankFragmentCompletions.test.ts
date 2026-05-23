@@ -31,6 +31,22 @@ suite('rankFragmentCompletions (contract)', () => {
     assert.strictEqual(intro?.line, 3, `expected line 3, got ${intro?.line}`);
   });
 
+  test('heading candidates carry the heading level; block-ids do not', () => {
+    const text = '# One\n## Two\n### Three\n\npara. ^marker';
+    const cands = rankFragmentCompletions(text);
+    const byLabel = new Map(cands.map((c) => [c.label, c]));
+    assert.strictEqual(byLabel.get('One')?.level, 1);
+    assert.strictEqual(byLabel.get('Two')?.level, 2);
+    assert.strictEqual(byLabel.get('Three')?.level, 3);
+    assert.strictEqual(byLabel.get('^marker')?.level, undefined);
+  });
+
+  test('candidates appear in document order (headings and block-ids interleaved)', () => {
+    const text = '# One\npara A. ^a\n## Two\npara B. ^b\n### Three';
+    const labels = rankFragmentCompletions(text).map((c) => c.label);
+    assert.deepStrictEqual(labels, ['One', '^a', 'Two', '^b', 'Three']);
+  });
+
   test('headings inside fenced code are excluded', () => {
     const text = '# Real\n\n```\n# Fake\n```\n';
     const labels = rankFragmentCompletions(text).map((c) => c.label);

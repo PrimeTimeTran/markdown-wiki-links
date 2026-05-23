@@ -15,6 +15,18 @@ suite('headingExtractor', () => {
       ],
     );
   });
+  test('captures heading level from the number of leading # characters', () => {
+    const text = '# One\n## Two\n### Three\n###### Six';
+    assert.deepStrictEqual(
+      extractHeadings(text).map((h) => [h.text, h.level]),
+      [
+        ['One', 1],
+        ['Two', 2],
+        ['Three', 3],
+        ['Six', 6],
+      ],
+    );
+  });
   test('skips headings inside fences', () => {
     const text = '# real\n```\n# fake\n```';
     assert.strictEqual(extractHeadings(text).length, 1);

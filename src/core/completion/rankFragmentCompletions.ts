@@ -7,20 +7,25 @@ export type FragmentCandidate = {
   kind: 'heading' | 'block-id';
   // 1-indexed line number — exposed for human-facing display ("line 12").
   line: number;
+  // 1..6 for headings; undefined for block-ids.
+  level?: number;
 };
 
+// Returns headings and block IDs interleaved in document order — the order they appear in
+// the target file is what the user is scanning when they pick a fragment.
 export function rankFragmentCompletions(targetText: string): FragmentCandidate[] {
-  const out: FragmentCandidate[] = [];
-  for (const h of extractHeadings(targetText)) {
-    out.push({ label: h.text, insertText: h.text, kind: 'heading', line: h.line + 1 });
-  }
-  for (const [id, info] of extractBlockIds(targetText)) {
-    out.push({
-      label: `^${id}`,
-      insertText: `^${id}`,
-      kind: 'block-id',
-      line: info.line + 1,
-    });
-  }
-  return out;
+  const headings: FragmentCandidate[] = extractHeadings(targetText).map((h) => ({
+    label: h.text,
+    insertText: h.text,
+    kind: 'heading',
+    line: h.line + 1,
+    level: h.level,
+  }));
+  const blocks: FragmentCandidate[] = [...extractBlockIds(targetText)].map(([id, info]) => ({
+    label: `^${id}`,
+    insertText: `^${id}`,
+    kind: 'block-id',
+    line: info.line + 1,
+  }));
+  return [...headings, ...blocks].sort((a, b) => a.line - b.line);
 }

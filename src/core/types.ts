@@ -7,7 +7,7 @@ export type ParsedRef = {
   range: { start: number; end: number };
 };
 
-export type Heading = { text: string; slug: string; line: number };
+export type Heading = { text: string; slug: string; line: number; level: number };
 export type BlockId = { id: string; line: number; kind: 'suffix' | 'standalone' };
 export type IndexEntry = { fsPath: string; relPath: string; baseNoExt: string };
 export type ResolvedTarget = { fsPath: string; line?: number };

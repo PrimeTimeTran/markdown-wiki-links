@@ -53,15 +53,24 @@ export class WikiCompletionProvider implements vscode.CompletionItemProvider {
     const targetText = await this.loadTargetText(doc, target);
     if (targetText === null) return [];
     const replaceRange = new vscode.Range(pos.translate(0, -query.length), pos);
-    return rankFragmentCompletions(targetText).map((c) => {
+    const candidates = rankFragmentCompletions(targetText);
+    return candidates.map((c, index) => {
       const kind =
         c.kind === 'heading'
           ? vscode.CompletionItemKind.Field
           : vscode.CompletionItemKind.Reference;
-      const item = new vscode.CompletionItem(c.label, kind);
+      // Description shows "H2" for headings (dimmed beside the label); block-ids show no level.
+      const description = c.kind === 'heading' && c.level ? `H${c.level}` : undefined;
+      const label: string | vscode.CompletionItemLabel = description
+        ? { label: c.label, description }
+        : c.label;
+      const item = new vscode.CompletionItem(label, kind);
       item.insertText = c.insertText;
       item.detail = `line ${c.line}`;
       item.range = replaceRange;
+      // Preserve document order — VSCode sorts by sortText (label is the fallback).
+      // Zero-pad so lexicographic sort matches numeric order up to ~10k candidates.
+      item.sortText = index.toString().padStart(5, '0');
       return item;
     });
   }

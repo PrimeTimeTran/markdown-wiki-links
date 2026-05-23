@@ -9,7 +9,7 @@ export function extractHeadings(text: string): Heading[] {
   for (let i = 0; i < lines.length; i++) {
     if (!isMasked(mask, offset)) {
       const m = lines[i].match(/^(#{1,6})\s+(.+?)\s*#*\s*$/);
-      if (m) out.push({ text: m[2].trim(), slug: slugify(m[2]), line: i });
+      if (m) out.push({ text: m[2].trim(), slug: slugify(m[2]), line: i, level: m[1].length });
     }
     offset += lines[i].length + 1;
   }
