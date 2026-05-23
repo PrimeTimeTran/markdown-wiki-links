@@ -1,10 +1,32 @@
 {
-  "name": "vscode-wiki-links",
-  "displayName": "Wiki Links",
-  "publisher": "local",
+  "name": "markdown-wiki-links",
+  "displayName": "Markdown Wiki Links",
+  "publisher": "ltvan",
   "version": "0.1.0",
   "description": "Obsidian-style [[wiki-links]] between Markdown files in the workspace.",
   "license": "MIT",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ltvan/markdown-wiki-links.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ltvan/markdown-wiki-links/issues"
+  },
+  "homepage": "https://github.com/ltvan/markdown-wiki-links#readme",
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "keywords": [
+    "wiki",
+    "wikilinks",
+    "obsidian",
+    "markdown",
+    "links",
+    "notes",
+    "zettelkasten"
+  ],
   "engines": {
     "vscode": "^1.90.0"
   },
@@ -19,7 +41,9 @@
     "pretest": "pnpm format:check && pnpm lint && pnpm build && pnpm compile:tests",
     "test": "pnpm test:unit && pnpm test:e2e",
     "test:unit": "mocha --config .mocharc.unit.cjs",
-    "test:e2e": "vscode-test"
+    "test:e2e": "vscode-test",
+    "package": "vsce package --no-dependencies",
+    "publish": "vsce publish --no-dependencies"
   },
   "activationEvents": [
     "onLanguage:markdown",
@@ -80,9 +104,10 @@
     "@types/markdown-it": "^14.1.2",
     "@types/mocha": "^10.0.10",
     "@types/node": "^25.9.1",
-    "@types/vscode": "^1.120.0",
+    "@types/vscode": "^1.90.0",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.9.1",
     "esbuild": "^0.28.0",
     "eslint": "^10.4.0",
     "eslint-plugin-import": "^2.32.0",

@@ -28,7 +28,7 @@ suite('Rename propagation', () => {
   const neu = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'new.md');
 
   suiteSetup(async () => {
-    const ext = vscode.extensions.getExtension('local.vscode-wiki-links');
+    const ext = vscode.extensions.getExtension('ltvan.markdown-wiki-links');
     await ext!.activate();
     await tryDelete(neu());
     await writeText(home(), HOME_BODY);
@@ -73,7 +73,7 @@ suite('Rename propagation across sibling folders', () => {
   const draftsRenamed = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'Drafts', 'README3.md');
 
   suiteSetup(async () => {
-    const ext = vscode.extensions.getExtension('local.vscode-wiki-links');
+    const ext = vscode.extensions.getExtension('ltvan.markdown-wiki-links');
     await ext!.activate();
     await tryDelete(draftsRenamed());
     await writeText(inboxHome(), 'A draft link: ![[Drafts/README]].\n');
@@ -110,7 +110,7 @@ suite('Rename propagation for media files', () => {
   const imageNew = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'chart.png');
 
   suiteSetup(async () => {
-    const ext = vscode.extensions.getExtension('local.vscode-wiki-links');
+    const ext = vscode.extensions.getExtension('ltvan.markdown-wiki-links');
     await ext!.activate();
     await tryDelete(imageNew());
     await writeText(note(), 'See ![[diagram.png]] and the link [[diagram.png]].\n');

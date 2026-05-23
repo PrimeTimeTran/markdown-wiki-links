@@ -1,4 +1,4 @@
-# VSCode extension for enabling Wiki-links in Markdown files
+# VSCode Wiki-Links Extension
 
 This extension brings Obsidian-style wiki-links to VSCode. Create links between Markdown files with a simple `[[file name]]` syntax, follow them with a click, preview them on hover, embed content inline with `![[...]]`, and keep links correct automatically when files are renamed.
 
