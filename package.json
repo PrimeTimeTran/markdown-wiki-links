@@ -4,7 +4,7 @@
   "publisher": "local",
   "version": "0.1.0",
   "description": "Obsidian-style [[wiki-links]] between Markdown files in the workspace.",
-  "license": "ISC",
+  "license": "MIT",
   "engines": {
     "vscode": "^1.90.0"
   },
