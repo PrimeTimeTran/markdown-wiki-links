@@ -85,15 +85,23 @@ function expand(
   ancestors: Set<string>,
 ): string {
   // wikiPlugin runs as a preprocessor, before markdown-it tokenizes fenced/inline code spans.
-  // Build a fence mask up front and skip matches inside ``...`` / ```...``` / ~~~...~~~ so
-  // syntax shown literally in code stays literal in the preview.
-  const mask = buildFenceMask(src);
-  return rewriteLinks(
-    expandEmbeds(src, resolver, fromFsPath, depth, ancestors, mask),
+  // Skip matches inside ``...`` / ```...``` / ~~~...~~~ so syntax shown literally in code stays
+  // literal in the preview.
+  //
+  // Two passes, two masks: expandEmbeds rewrites the source (embed bodies may be longer or
+  // shorter than `![[...]]`), so offsets in the post-embed text are not in the same coordinate
+  // space as the pre-embed mask. Sharing one mask across both passes causes random links after
+  // an embed to land in stale mask intervals and be wrongly skipped. Build a fresh mask for
+  // rewriteLinks from the post-embed text.
+  const afterEmbeds = expandEmbeds(
+    src,
     resolver,
     fromFsPath,
-    mask,
+    depth,
+    ancestors,
+    buildFenceMask(src),
   );
+  return rewriteLinks(afterEmbeds, resolver, fromFsPath, buildFenceMask(afterEmbeds));
 }
 
 function expandEmbeds(

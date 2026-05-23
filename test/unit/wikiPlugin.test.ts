@@ -233,4 +233,28 @@ suite('wikiPlugin — links', () => {
     const out = mk(res).render('![[note]]');
     assert.ok(/<a [^>]*href="other\.md"/.test(out), `got: ${out}`);
   });
+  test('a link AFTER an expanding embed is not wrongly skipped because of a code span elsewhere', () => {
+    // Regression for the "random [[README]] stays plain text" bug. The fence mask used by
+    // rewriteLinks must reflect the POST-embed source: embed bodies shift the offsets of every
+    // [[link]] that follows, so a pre-embed mask interval (e.g. an inline code span far below)
+    // can end up covering the new position of a perfectly fine link in the middle of the file.
+    //
+    // We make the trigger deterministic. ![[note]] is 9 chars; we expand it to a 100-char body
+    // (shift = +91). [[Link]] starts at original offset 10 → post-embed offset 101. The original
+    // source ends with `code`, whose backtick span sits at pre-embed offsets [99, 105). Pre-fix:
+    // rewriteLinks would check isMasked(staleMask, 101) and skip the link. Post-fix: the mask is
+    // rebuilt from the post-embed text, where the backticks live at a different offset.
+    const noteBody = 'X'.repeat(100);
+    const res: WikiResolver = {
+      resolveEmbed: (_f, key) =>
+        key === 'note' ? { kind: 'markdown', text: noteBody, sourcePath: '/abs/note.md' } : null,
+      resolveLink: (_f, target) => `${target}.md`,
+    };
+    const src = '![[note]]\n[[Link]]\n' + '.'.repeat(80) + '`code`';
+    const out = mk(res).render(src);
+    assert.ok(
+      /<a [^>]*href="Link\.md"/.test(out),
+      `[[Link]] after an embed must still be rewritten; got: ${out}`,
+    );
+  });
 });
