@@ -65,15 +65,21 @@ export class RenameHandler {
     // the old paths of files inside a moved folder.
     const filePairs: RenamePair[] = [];
     const dirPairs: RenamePair[] = [];
-    for (const f of files) {
-      const pair = { oldFsPath: f.oldUri.fsPath, newFsPath: f.newUri.fsPath };
-      let isDirectory = false;
-      try {
-        const st = await vscode.workspace.fs.stat(f.oldUri);
-        isDirectory = (st.type & vscode.FileType.Directory) !== 0;
-      } catch {
-        // gone already — fall back to the extension check below
-      }
+    // The stats are independent — run them concurrently so a large multi-select rename
+    // (500 .ts files on a remote filesystem) doesn't serialize round trips in waitUntil.
+    const classified = await Promise.all(
+      files.map(async (f) => {
+        const pair = { oldFsPath: f.oldUri.fsPath, newFsPath: f.newUri.fsPath };
+        try {
+          const st = await vscode.workspace.fs.stat(f.oldUri);
+          return { pair, isDirectory: (st.type & vscode.FileType.Directory) !== 0 };
+        } catch {
+          // gone already — fall back to the extension check below
+          return { pair, isDirectory: false };
+        }
+      }),
+    );
+    for (const { pair, isDirectory } of classified) {
       if (isDirectory) dirPairs.push(pair);
       else if (LINKABLE_RE.test(pair.oldFsPath)) filePairs.push(pair);
     }
@@ -136,64 +142,82 @@ export class RenameHandler {
     const renamedFsPaths = new Set(renames.map((r) => r.oldFsPath));
 
     await forEachConcurrent(referrers, READ_CONCURRENCY, async (ref) => {
-      // A doc already open (possibly dirty) must be read and positioned through its buffer.
-      let doc = vscode.workspace.textDocuments.find((d) => d.uri.toString() === ref.toString());
-      let text: string;
-      if (doc) {
-        text = doc.getText();
-      } else {
-        try {
-          if (mustUseVSCodeDecoder(ref)) {
-            // A non-UTF-8 files.encoding (or auto-guessing) can decode the same bytes to a
-            // different character count than a raw UTF-8 decode — positions computed on the
-            // wrong text splice mid-link when VSCode applies the edit. Only VSCode's own
-            // decoder is guaranteed to agree with how the edit will be applied.
-            doc = await vscode.workspace.openTextDocument(ref);
-            text = doc.getText();
-          } else {
-            const bytes = await vscode.workspace.fs.readFile(ref);
-            // NUL bytes mean UTF-16 (a BOM-less UTF-16 ASCII file is byte-valid UTF-8), and
-            // FATAL_UTF8 throws on malformed input (UTF-16 BOMs, legacy codepages) — both
-            // fall back to VSCode's encoding detection. Clean UTF-8 stays on the fast path.
-            if (bytes.includes(0)) {
-              doc = await vscode.workspace.openTextDocument(ref);
-              text = doc.getText();
-            } else {
-              text = FATAL_UTF8.decode(bytes);
-            }
-          }
-        } catch (e) {
-          if (e instanceof TypeError) {
-            // Malformed UTF-8 from FATAL_UTF8 — retry through VSCode's decoder.
-            try {
-              doc = await vscode.workspace.openTextDocument(ref);
-              text = doc.getText();
-            } catch {
-              return;
-            }
-          } else {
-            return; // deleted or unreadable between the scan and the read — nothing to rewrite
-          }
-        }
-      }
-      if (preFilter && !renamedFsPaths.has(ref.fsPath)) {
-        const lower = text.toLowerCase();
-        if (!needles.some((n) => lower.includes(n))) return;
-      }
-      const { snap, ctx } = contextFor(ref);
-      const replacements = rewriteWikiRefs(text, ref.fsPath, renames, snap, ctx);
-      if (replacements.length === 0) return;
-      const starts = doc ? undefined : computeLineStarts(text);
-      const toPosition = (offset: number): vscode.Position => {
-        if (doc) return doc.positionAt(offset);
-        const p = positionAt(starts!, offset);
-        return new vscode.Position(p.line, p.character);
-      };
-      for (const r of replacements) {
-        edit.replace(ref, new vscode.Range(toPosition(r.start), toPosition(r.end)), r.newText);
+      try {
+        await this.collectEdits(ref, edit, renames, contextFor, needles, preFilter, renamedFsPaths);
+      } catch (e) {
+        // One bad referrer must not reject the whole waitUntil edit — that would silently
+        // discard every other file's already-computed rewrites while the rename proceeds.
+        console.error(`wiki-links: skipping link rewrite for ${ref.fsPath}:`, e);
       }
     });
     return edit;
+  }
+
+  private async collectEdits(
+    ref: vscode.Uri,
+    edit: vscode.WorkspaceEdit,
+    renames: RenamePair[],
+    contextFor: (ref: vscode.Uri) => { snap: IndexSnapshot; ctx: RenameContext },
+    needles: string[],
+    preFilter: boolean,
+    renamedFsPaths: Set<string>,
+  ): Promise<void> {
+    // A doc already open (possibly dirty) must be read and positioned through its buffer.
+    let doc = vscode.workspace.textDocuments.find((d) => d.uri.toString() === ref.toString());
+    let text: string;
+    if (doc) {
+      text = doc.getText();
+    } else {
+      try {
+        if (mustUseVSCodeDecoder(ref)) {
+          // A non-UTF-8 files.encoding (or auto-guessing) can decode the same bytes to a
+          // different character count than a raw UTF-8 decode — positions computed on the
+          // wrong text splice mid-link when VSCode applies the edit. Only VSCode's own
+          // decoder is guaranteed to agree with how the edit will be applied.
+          doc = await vscode.workspace.openTextDocument(ref);
+          text = doc.getText();
+        } else {
+          const bytes = await vscode.workspace.fs.readFile(ref);
+          // NUL bytes mean UTF-16 (a BOM-less UTF-16 ASCII file is byte-valid UTF-8), and
+          // FATAL_UTF8 throws on malformed input (UTF-16 BOMs, legacy codepages) — both
+          // fall back to VSCode's encoding detection. Clean UTF-8 stays on the fast path.
+          if (bytes.includes(0)) {
+            doc = await vscode.workspace.openTextDocument(ref);
+            text = doc.getText();
+          } else {
+            text = FATAL_UTF8.decode(bytes);
+          }
+        }
+      } catch (e) {
+        if (e instanceof TypeError) {
+          // Malformed UTF-8 from FATAL_UTF8 — retry through VSCode's decoder.
+          try {
+            doc = await vscode.workspace.openTextDocument(ref);
+            text = doc.getText();
+          } catch {
+            return;
+          }
+        } else {
+          return; // deleted or unreadable between the scan and the read — nothing to rewrite
+        }
+      }
+    }
+    if (preFilter && !renamedFsPaths.has(ref.fsPath)) {
+      const lower = text.toLowerCase();
+      if (!needles.some((n) => lower.includes(n))) return;
+    }
+    const { snap, ctx } = contextFor(ref);
+    const replacements = rewriteWikiRefs(text, ref.fsPath, renames, snap, ctx);
+    if (replacements.length === 0) return;
+    const starts = doc ? undefined : computeLineStarts(text);
+    const toPosition = (offset: number): vscode.Position => {
+      if (doc) return doc.positionAt(offset);
+      const p = positionAt(starts!, offset);
+      return new vscode.Position(p.line, p.character);
+    };
+    for (const r of replacements) {
+      edit.replace(ref, new vscode.Range(toPosition(r.start), toPosition(r.end)), r.newText);
+    }
   }
 }
 
