@@ -49,7 +49,7 @@ Resolution rules that aren't obvious from the syntax alone:
 - **`..` segments and absolute paths are rejected** by the resolver.
 - **Supported file extensions:** `.md` and `.markdown` for Markdown targets. Image media (png/jpg/jpeg/gif/webp/svg) resolves as both link and embed targets — a plain `[[image.png]]` link hover-previews the image, `![[image.png]]` embeds it.
 - **YAML frontmatter is excluded.** Wiki-links inside a leading `---` block are not rewritten on rename, and frontmatter is stripped from embed/hover previews (`core/frontmatter.ts`).
-- **Index excludes vendor/VCS folders.** `core/pathFilter.ts` keeps files in `.git`, `node_modules`, etc. out of the index; the folder list is configurable via `wikiLinks.index.excludeFolders`.
+- **Index excludes vendor/VCS folders.** `core/pathFilter.ts` keeps files in `.git`, `node_modules`, etc. out of the index; the folder list is configurable via `wikiLinks.index.excludeFolders`. Rename link-rewriting scans with the same exclude list, so files in excluded folders are neither rewritten nor treated as link targets.
 - **Block IDs** (`^block-id`) are defined by suffixing a paragraph (`text ^id`) or, for lists/quotes, placing `^id` on a line _after_ the block. Both forms are recognized.
 - **Same-file fragment**: `[[#Heading]]` (empty target) links within the current file.
 - **Embed-only modifier**: `![[image.png|300]]` — for embeds the `|...` segment is a width/size hint, not display text. The link and embed parsers are deliberately separate (`linkParser.ts` vs `embedParser.ts`) — do not unify them.

@@ -103,6 +103,156 @@ suite('Rename propagation across sibling folders', () => {
   });
 });
 
+suite('Rename propagation to a referrer never opened in an editor', () => {
+  const ws = (): vscode.Uri => vscode.workspace.workspaceFolders![0].uri;
+  const referrer = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'closed-referrer.md');
+  const oldT = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'closed-old.md');
+  const newT = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'closed-new.md');
+
+  suiteSetup(async () => {
+    const ext = vscode.extensions.getExtension('ltvan.markdown-wiki-links');
+    await ext!.activate();
+    await tryDelete(newT());
+    await writeText(referrer(), 'A link: [[closed-old]] here.\n');
+    await writeText(oldT(), '# Closed old\n');
+  });
+
+  suiteTeardown(async () => {
+    await tryDelete(newT());
+    await tryDelete(oldT());
+    await tryDelete(referrer());
+  });
+
+  test('links are rewritten even when the referrer was never opened', async () => {
+    const edit = new vscode.WorkspaceEdit();
+    edit.renameFile(oldT(), newT(), { overwrite: false });
+    assert.strictEqual(await vscode.workspace.applyEdit(edit), true);
+
+    await waitFor(async () => {
+      const d = await vscode.workspace.openTextDocument(referrer());
+      return d.getText().includes('[[closed-new]]');
+    });
+    const text = (await vscode.workspace.openTextDocument(referrer())).getText();
+    assert.ok(text.includes('A link: [[closed-new]] here.'), `not rewritten: ${text}`);
+  });
+});
+
+suite('Rename propagation into a dirty (unsaved) referrer buffer', () => {
+  const ws = (): vscode.Uri => vscode.workspace.workspaceFolders![0].uri;
+  const referrer = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'dirty-referrer.md');
+  const oldT = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'dirty-old.md');
+  const newT = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'dirty-new.md');
+
+  suiteSetup(async () => {
+    const ext = vscode.extensions.getExtension('ltvan.markdown-wiki-links');
+    await ext!.activate();
+    await tryDelete(newT());
+    await writeText(referrer(), 'Saved link [[dirty-old]].\n');
+    await writeText(oldT(), '# Dirty old\n');
+  });
+
+  suiteTeardown(async () => {
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await tryDelete(newT());
+    await tryDelete(oldT());
+    await tryDelete(referrer());
+  });
+
+  test('unsaved buffer text is what gets rewritten, and unsaved edits survive', async () => {
+    const doc = await vscode.workspace.openTextDocument(referrer());
+    await vscode.window.showTextDocument(doc);
+    const insert = new vscode.WorkspaceEdit();
+    insert.insert(referrer(), new vscode.Position(0, 0), 'Unsaved link [[dirty-old]] first.\n');
+    assert.strictEqual(await vscode.workspace.applyEdit(insert), true);
+    assert.strictEqual(doc.isDirty, true, 'referrer buffer should be dirty before the rename');
+
+    const edit = new vscode.WorkspaceEdit();
+    edit.renameFile(oldT(), newT(), { overwrite: false });
+    assert.strictEqual(await vscode.workspace.applyEdit(edit), true);
+
+    await waitFor(() => doc.getText().includes('Saved link [[dirty-new]].'));
+    const text = doc.getText();
+    assert.ok(text.includes('Unsaved link [[dirty-new]] first.'), `unsaved line lost: ${text}`);
+    assert.ok(!text.includes('dirty-old'), `stale reference remains: ${text}`);
+  });
+});
+
+suite('Rename propagation in a CRLF referrer', () => {
+  const ws = (): vscode.Uri => vscode.workspace.workspaceFolders![0].uri;
+  const referrer = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'crlf-referrer.md');
+  const oldT = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'crlf-old.md');
+  const newT = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'crlf-new.md');
+
+  suiteSetup(async () => {
+    const ext = vscode.extensions.getExtension('ltvan.markdown-wiki-links');
+    await ext!.activate();
+    await tryDelete(newT());
+    await writeText(referrer(), 'Top line.\r\n\r\nSee [[crlf-old]] here, and [[crlf-old|D]].\r\n');
+    await writeText(oldT(), '# CRLF old\n');
+  });
+
+  suiteTeardown(async () => {
+    await tryDelete(newT());
+    await tryDelete(oldT());
+    await tryDelete(referrer());
+  });
+
+  test('rewrites land at the correct positions on CRLF lines', async () => {
+    const edit = new vscode.WorkspaceEdit();
+    edit.renameFile(oldT(), newT(), { overwrite: false });
+    assert.strictEqual(await vscode.workspace.applyEdit(edit), true);
+
+    await waitFor(async () => {
+      const d = await vscode.workspace.openTextDocument(referrer());
+      return d.getText().includes('[[crlf-new]]');
+    });
+    const text = (await vscode.workspace.openTextDocument(referrer())).getText();
+    assert.ok(
+      text.includes('See [[crlf-new]] here, and [[crlf-new|D]].'),
+      `mangled rewrite: ${JSON.stringify(text)}`,
+    );
+  });
+});
+
+suite('Rename propagation in a non-UTF-8 (UTF-16 BOM) referrer', () => {
+  const ws = (): vscode.Uri => vscode.workspace.workspaceFolders![0].uri;
+  const referrer = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'utf16-referrer.md');
+  const oldT = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'utf16-old.md');
+  const newT = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'utf16-new.md');
+
+  suiteSetup(async () => {
+    const ext = vscode.extensions.getExtension('ltvan.markdown-wiki-links');
+    await ext!.activate();
+    await tryDelete(newT());
+    const body = 'Tiếng Việt trước [[utf16-old]] sau.\n';
+    const bytes = Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(body, 'utf16le')]);
+    await vscode.workspace.fs.writeFile(referrer(), bytes);
+    await writeText(oldT(), '# UTF16 old\n');
+  });
+
+  suiteTeardown(async () => {
+    await tryDelete(newT());
+    await tryDelete(oldT());
+    await tryDelete(referrer());
+  });
+
+  test('links in a UTF-16 referrer are rewritten at the correct positions', async () => {
+    const edit = new vscode.WorkspaceEdit();
+    edit.renameFile(oldT(), newT(), { overwrite: false });
+    assert.strictEqual(await vscode.workspace.applyEdit(edit), true);
+
+    await waitFor(async () => {
+      const d = await vscode.workspace.openTextDocument(referrer());
+      return d.getText().includes('[[utf16-new]]');
+    });
+    const text = (await vscode.workspace.openTextDocument(referrer())).getText();
+    assert.ok(
+      text.includes('Tiếng Việt trước [[utf16-new]] sau.'),
+      `mangled or missing rewrite: ${JSON.stringify(text)}`,
+    );
+  });
+});
+
 suite('Rename propagation for media files', () => {
   const ws = (): vscode.Uri => vscode.workspace.workspaceFolders![0].uri;
   const note = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'note-with-image.md');

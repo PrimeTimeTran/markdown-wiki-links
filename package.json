@@ -94,7 +94,7 @@
             ".bzr",
             "bower_components"
           ],
-          "description": "Folder names excluded from the wiki-link index. Any file inside a folder with one of these names is not indexed, so wiki-links never resolve into vendor or VCS directories. Match is on the folder name, at any depth."
+          "description": "Folder names excluded from the wiki-link index. Any file inside a folder with one of these names is not indexed, so wiki-links never resolve into vendor or VCS directories. Match is on the folder name, at any depth. Rename link-rewriting skips these folders too."
         }
       }
     }

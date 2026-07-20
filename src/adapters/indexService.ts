@@ -98,7 +98,7 @@ function indexMaxFiles(): number {
   return typeof configured === 'number' && configured > 0 ? configured : DEFAULT_INDEX_MAX_FILES;
 }
 
-function excludedFolders(): string[] {
+export function excludedFolders(): string[] {
   const configured = vscode.workspace
     .getConfiguration('wikiLinks')
     .get<string[]>('index.excludeFolders');
