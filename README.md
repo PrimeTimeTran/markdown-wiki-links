@@ -47,7 +47,7 @@ Prefix any wikilink with `!` to embed its content inline:
 - Click to follow the link (headings and block IDs jump to the right line).
 - Hover to preview the linked file or section; hovering an image embed previews the image.
 - Autocomplete file names while typing `[[` or `![[`, ranked by closest folder. After `#`, autocomplete switches to the target file's headings and block IDs (and the current file's, for `[[#`), shown in document order with the heading level (H1, H2, …) beside each entry.
-- Auto update links when renaming or moving files (Markdown and media targets alike) — moving or renaming a whole folder updates links to every file inside it.
+- Auto update links when renaming or moving files (Markdown and media targets alike) — moving or renaming a whole folder updates links to every file inside it. Rewriting is resolution-verified: a link is rewritten exactly when its resolution would change, so links inside moved files are re-anchored to keep their targets, links threatened by an incoming name collision are pinned, and links that still resolve (including `[[Case]]`/`[[name.md]]` variants) are left untouched.
 - Both `[[...]]` links and `![[...]]` embeds rendered in the Markdown preview — links are navigable, embeds expand inline with cycle protection; occurrences inside backtick code spans or fenced code blocks are left as-is.
 - Resolved wiki-links are colored in the editor; unresolved ones are dimmed — based on real resolution, so spaces and Unicode in names color correctly.
 - Diagnostics flag broken or ambiguous wiki-links.

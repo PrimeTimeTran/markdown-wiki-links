@@ -2,7 +2,12 @@ import * as path from 'path';
 
 import * as vscode from 'vscode';
 
-import { rewriteWikiRefs, RenamePair } from '../core/rename/rewriteWikiRefs';
+import {
+  rewriteWikiRefs,
+  buildRenameContext,
+  RenameContext,
+  RenamePair,
+} from '../core/rename/rewriteWikiRefs';
 import { IndexSnapshot, buildLookup } from '../core/resolver/resolveTarget';
 import { computeLineStarts, positionAt } from '../core/textPosition';
 import { buildExcludeGlob } from '../core/pathFilter';
@@ -84,29 +89,37 @@ export class RenameHandler {
       }
     }
     if (renames.length === 0) return edit;
-    // Referrers in the same workspace folder share one snapshot — build it once per root.
-    const snapByRoot = new Map<string, IndexSnapshot>();
-    const snapFor = (ref: vscode.Uri): IndexSnapshot => {
+    // Referrers in the same workspace folder share one snapshot and one rename context —
+    // built once per root so the per-ref rewrite work stays independent of batch size.
+    const perRoot = new Map<string, { snap: IndexSnapshot; ctx: RenameContext }>();
+    const contextFor = (ref: vscode.Uri): { snap: IndexSnapshot; ctx: RenameContext } => {
       const root = vscode.workspace.getWorkspaceFolder(ref)?.uri.fsPath ?? '';
-      let snap = snapByRoot.get(root);
-      if (!snap) {
-        snap = buildSnapshot(root, allFiles);
-        snapByRoot.set(root, snap);
+      let entry = perRoot.get(root);
+      if (!entry) {
+        const snap = buildSnapshot(root, allFiles);
+        entry = { snap, ctx: buildRenameContext(renames, snap) };
+        perRoot.set(root, entry);
       }
-      return snap;
+      return entry;
     };
 
-    // Any wiki-ref form that resolves to a renamed file (bare, slashed, with or without
-    // extension) contains its extensionless base name, so a referrer whose text lacks every
-    // base name can be skipped without parsing. Past a handful of needles (a large folder
-    // move) the per-referrer substring sweep costs more than the parse it avoids, so the
-    // filter turns itself off and every referrer is parsed instead.
+    // A ref whose rewrite can be affected by this batch must textually contain either an old
+    // base name (its target moved, or a departing entry changed its resolution) or a new base
+    // name (an arriving entry collides with it), so a referrer lacking all of them can be
+    // skipped without parsing. Renamed files themselves are exempt: their own move can
+    // re-anchor refs that name no renamed file at all. Past a handful of needles (a large
+    // folder move) the per-referrer substring sweep costs more than the parse it avoids, so
+    // the filter turns itself off and every referrer is parsed instead.
     const needles = [
       ...new Set(
-        renames.map((r) => path.basename(r.oldFsPath).replace(LINKABLE_RE, '').toLowerCase()),
+        renames.flatMap((r) => [
+          path.basename(r.oldFsPath).replace(LINKABLE_RE, '').toLowerCase(),
+          path.basename(r.newFsPath).replace(LINKABLE_RE, '').toLowerCase(),
+        ]),
       ),
     ];
     const preFilter = needles.length <= MAX_PREFILTER_NEEDLES;
+    const renamedFsPaths = new Set(renames.map((r) => r.oldFsPath));
 
     await forEachConcurrent(referrers, READ_CONCURRENCY, async (ref) => {
       // A doc already open (possibly dirty) must be read and positioned through its buffer.
@@ -128,11 +141,12 @@ export class RenameHandler {
           return; // deleted or unreadable between the scan and the read — nothing to rewrite
         }
       }
-      if (preFilter) {
+      if (preFilter && !renamedFsPaths.has(ref.fsPath)) {
         const lower = text.toLowerCase();
         if (!needles.some((n) => lower.includes(n))) return;
       }
-      const replacements = rewriteWikiRefs(text, ref.fsPath, renames, snapFor(ref));
+      const { snap, ctx } = contextFor(ref);
+      const replacements = rewriteWikiRefs(text, ref.fsPath, renames, snap, ctx);
       if (replacements.length === 0) return;
       const starts = doc ? undefined : computeLineStarts(text);
       const toPosition = (offset: number): vscode.Position => {

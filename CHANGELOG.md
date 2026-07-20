@@ -9,6 +9,15 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- Slashed links (`[[folder/note]]`) now resolve on Windows; backslash relative
+  paths were never matched against the forward-slash link form.
+- Rename rewriting is now resolution-verified — each link is re-resolved from
+  its post-rename location against the post-rename index and rewritten exactly
+  when its resolution would change. Links inside a moved folder that resolved
+  via the closest-parent walk are re-anchored to keep their original target,
+  links that an incoming rename would make ambiguous are pinned to theirs, and
+  still-resolving variants (`[[Case]]`, `[[name.md]]`) are no longer churned.
+
 - Moving or renaming a **folder** now rewrites wiki-links to the files inside
   it. Previously folder operations were ignored entirely, silently breaking
   every link into the moved folder.

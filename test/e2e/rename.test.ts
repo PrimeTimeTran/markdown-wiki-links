@@ -304,6 +304,58 @@ suite('Rename propagation when moving/renaming a folder', () => {
   });
 });
 
+suite('Rename propagation re-anchors links inside a moved folder', () => {
+  const ws = (): vscode.Uri => vscode.workspace.workspaceFolders![0].uri;
+  const anchorA = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'anchorA');
+  const anchorB = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'anchorB');
+  const movedDir = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'anchorMoved');
+  const refInSub = (): vscode.Uri => vscode.Uri.joinPath(anchorA(), 'sub', 'ref.md');
+
+  async function tryDeleteDir(uri: vscode.Uri): Promise<void> {
+    try {
+      await vscode.workspace.fs.delete(uri, { recursive: true });
+    } catch {
+      // already gone
+    }
+  }
+
+  suiteSetup(async () => {
+    const ext = vscode.extensions.getExtension('ltvan.markdown-wiki-links');
+    await ext!.activate();
+    await tryDeleteDir(movedDir());
+    await tryDeleteDir(anchorA());
+    await tryDeleteDir(anchorB());
+    // [[anchor-notes]] is ambiguous (anchorA/ and anchorB/ both have one, none at the
+    // root), so from anchorA/sub it resolves via the closest-parent walk to anchorA's.
+    await writeText(vscode.Uri.joinPath(anchorA(), 'anchor-notes.md'), '# A notes\n');
+    await writeText(vscode.Uri.joinPath(anchorB(), 'anchor-notes.md'), '# B notes\n');
+    await writeText(refInSub(), 'See [[anchor-notes]].\n');
+  });
+
+  suiteTeardown(async () => {
+    await tryDeleteDir(movedDir());
+    await tryDeleteDir(anchorA());
+    await tryDeleteDir(anchorB());
+  });
+
+  test('a walk-resolved bare link is rewritten so it keeps its target after the move', async () => {
+    const edit = new vscode.WorkspaceEdit();
+    edit.renameFile(vscode.Uri.joinPath(anchorA(), 'sub'), movedDir(), { overwrite: false });
+    assert.strictEqual(await vscode.workspace.applyEdit(edit), true);
+
+    const movedRef = vscode.Uri.joinPath(movedDir(), 'ref.md');
+    await waitFor(async () => {
+      const d = await vscode.workspace.openTextDocument(movedRef);
+      return d.getText().includes('[[anchorA/anchor-notes]]');
+    });
+    const text = (await vscode.workspace.openTextDocument(movedRef)).getText();
+    assert.ok(
+      text.includes('See [[anchorA/anchor-notes]].'),
+      `link not re-anchored to its original target: ${text}`,
+    );
+  });
+});
+
 suite('Rename propagation for media files', () => {
   const ws = (): vscode.Uri => vscode.workspace.workspaceFolders![0].uri;
   const note = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'note-with-image.md');

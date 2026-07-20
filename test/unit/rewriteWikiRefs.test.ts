@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 
-import { rewriteWikiRefs } from '../../src/core/rename/rewriteWikiRefs';
+import { rewriteWikiRefs, buildRenameContext } from '../../src/core/rename/rewriteWikiRefs';
 import { IndexSnapshot } from '../../src/core/resolver/resolveTarget';
 
 function snap(paths: string[]): IndexSnapshot {
@@ -217,6 +217,67 @@ suite('rewriteWikiRefs (logic paths)', () => {
       s,
     );
     assert.strictEqual(applyReplacements(src, edits), '![[chart.png|300]]');
+  });
+
+  test('re-anchors a walk-resolved bare link when its own file moves', () => {
+    // ref.md's [[notes]] resolves via the ancestor walk to a/notes.md. Moving ref.md out
+    // of a/ breaks that walk, so the link must be rewritten to keep its old target.
+    const src = 'See [[notes]].';
+    const s = snap(['/root/a/notes.md', '/root/b/notes.md', '/root/a/sub/ref.md']);
+    const edits = rewriteWikiRefs(
+      src,
+      '/root/a/sub/ref.md',
+      [{ oldFsPath: '/root/a/sub/ref.md', newFsPath: '/root/moved/ref.md' }],
+      s,
+    );
+    assert.strictEqual(applyReplacements(src, edits), 'See [[a/notes]].');
+  });
+
+  test('case-variant [[Note]] is not rewritten on a folder move when it still resolves', () => {
+    const src = 'See [[Note]].';
+    const s = snap(['/root/docs/note.md']);
+    const edits = rewriteWikiRefs(
+      src,
+      '/root/home.md',
+      [{ oldFsPath: '/root/docs/note.md', newFsPath: '/root/archive/note.md' }],
+      s,
+    );
+    assert.deepStrictEqual(edits, []);
+  });
+
+  test('extension-variant [[note.md]] is not rewritten on a folder move when it still resolves', () => {
+    const src = 'See [[note.md]].';
+    const s = snap(['/root/docs/note.md']);
+    const edits = rewriteWikiRefs(
+      src,
+      '/root/home.md',
+      [{ oldFsPath: '/root/docs/note.md', newFsPath: '/root/archive/note.md' }],
+      s,
+    );
+    assert.deepStrictEqual(edits, []);
+  });
+
+  test('a bare link made ambiguous by an incoming rename is pinned to its old target', () => {
+    // [[dup]] resolved uniquely to a/dup.md; renaming other.md to b/dup.md would make the
+    // bare form ambiguous (and the walk from /root finds nothing), silently breaking it.
+    const src = 'See [[dup]].';
+    const s = snap(['/root/a/dup.md', '/root/other.md']);
+    const edits = rewriteWikiRefs(
+      src,
+      '/root/home.md',
+      [{ oldFsPath: '/root/other.md', newFsPath: '/root/b/dup.md' }],
+      s,
+    );
+    assert.strictEqual(applyReplacements(src, edits), 'See [[a/dup]].');
+  });
+
+  test('an explicitly passed rename context produces the same edits', () => {
+    const src = 'See [[notes]].';
+    const s = snap(['/root/a/notes.md', '/root/b/notes.md', '/root/a/sub/ref.md']);
+    const renames = [{ oldFsPath: '/root/a/sub/ref.md', newFsPath: '/root/moved/ref.md' }];
+    const ctx = buildRenameContext(renames, s);
+    const edits = rewriteWikiRefs(src, '/root/a/sub/ref.md', renames, s, ctx);
+    assert.strictEqual(applyReplacements(src, edits), 'See [[a/notes]].');
   });
 
   test('occurrences inside fenced code are not rewritten', () => {
