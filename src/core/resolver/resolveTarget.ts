@@ -2,7 +2,36 @@ import * as path from 'path';
 
 import { IndexEntry, ParsedRef, ResolvedTarget } from '../types';
 
-export type IndexSnapshot = { entries: IndexEntry[]; workspaceRoot: string };
+// Precomputed maps over the in-workspace entries so resolution is O(candidates) per link
+// instead of O(all entries). Build once per snapshot with buildLookup; when present it is
+// authoritative and `entries` is not read by resolveTarget.
+export type SnapshotLookup = {
+  entriesInWorkspace: IndexEntry[];
+  /** lowercased baseNoExt → entries with that base name */
+  byBase: Map<string, IndexEntry[]>;
+  /** lowercased fsPath → entry (for the ancestor-walk candidate probe) */
+  byFsPathLower: Map<string, IndexEntry>;
+};
+
+export type IndexSnapshot = {
+  entries: IndexEntry[];
+  workspaceRoot: string;
+  lookup?: SnapshotLookup;
+};
+
+export function buildLookup(entries: IndexEntry[], workspaceRoot: string): SnapshotLookup {
+  const entriesInWorkspace = entries.filter((e) => isContained(e.fsPath, workspaceRoot));
+  const byBase = new Map<string, IndexEntry[]>();
+  const byFsPathLower = new Map<string, IndexEntry>();
+  for (const e of entriesInWorkspace) {
+    const key = e.baseNoExt.toLowerCase();
+    const bucket = byBase.get(key);
+    if (bucket) bucket.push(e);
+    else byBase.set(key, [e]);
+    byFsPathLower.set(e.fsPath.toLowerCase(), e);
+  }
+  return { entriesInWorkspace, byBase, byFsPathLower };
+}
 
 export function resolveTarget(
   ref: ParsedRef,
@@ -20,18 +49,24 @@ export function resolveTarget(
     .replace(/\.(md|markdown)$/i, '')
     .toLowerCase();
 
-  const inWorkspace = idx.entries.filter((e) => isContained(e.fsPath, idx.workspaceRoot));
+  const lookup = idx.lookup ?? buildLookup(idx.entries, idx.workspaceRoot);
 
-  if (norm.includes('/')) return uniqueSuffixMatch(norm, inWorkspace);
+  if (norm.includes('/')) {
+    // Any rel-path suffix match necessarily shares the target's last segment as its base
+    // name, so only the entries under that base-name key need the full suffix test.
+    const lastSegment = norm.split('/').pop() ?? '';
+    const candidates = lookup.byBase.get(lastSegment) ?? [];
+    return uniqueSuffixMatch(norm, candidates);
+  }
 
-  const baseMatches = inWorkspace.filter((e) => e.baseNoExt.toLowerCase() === norm);
+  const baseMatches = lookup.byBase.get(norm) ?? [];
   if (baseMatches.length === 1) return { fsPath: baseMatches[0].fsPath };
   if (baseMatches.length === 0) return null;
 
   const rootLevel = baseMatches.filter((e) => path.dirname(e.fsPath) === idx.workspaceRoot);
   if (rootLevel.length === 1) return { fsPath: rootLevel[0].fsPath };
 
-  return walkAncestorsForBare(norm, fromFsPath, { ...idx, entries: inWorkspace });
+  return walkAncestorsForBare(norm, fromFsPath, idx.workspaceRoot, lookup);
 }
 
 function uniqueSuffixMatch(norm: string, entries: IndexEntry[]): ResolvedTarget | null {
@@ -45,18 +80,19 @@ function uniqueSuffixMatch(norm: string, entries: IndexEntry[]): ResolvedTarget 
 function walkAncestorsForBare(
   norm: string,
   fromFsPath: string,
-  idx: IndexSnapshot,
+  workspaceRoot: string,
+  lookup: SnapshotLookup,
 ): ResolvedTarget | null {
   const fromDir = path.dirname(fromFsPath);
-  if (!isContained(fromDir, idx.workspaceRoot)) return null;
+  if (!isContained(fromDir, workspaceRoot)) return null;
   let cur = fromDir;
-  while (isContained(cur, idx.workspaceRoot)) {
+  while (isContained(cur, workspaceRoot)) {
     for (const ext of ['md', 'markdown']) {
       const candidate = path.join(cur, `${norm}.${ext}`);
-      const hit = idx.entries.find((e) => e.fsPath.toLowerCase() === candidate.toLowerCase());
+      const hit = lookup.byFsPathLower.get(candidate.toLowerCase());
       if (hit) return { fsPath: hit.fsPath };
     }
-    if (cur === idx.workspaceRoot) break;
+    if (cur === workspaceRoot) break;
     const parent = path.dirname(cur);
     if (parent === cur) break;
     cur = parent;

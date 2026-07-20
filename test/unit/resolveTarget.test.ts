@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 
-import { resolveTarget, IndexSnapshot } from '../../src/core/resolver/resolveTarget';
+import { resolveTarget, buildLookup, IndexSnapshot } from '../../src/core/resolver/resolveTarget';
 
 function mkIndex(paths: string[]): IndexSnapshot {
   return {
@@ -150,6 +150,70 @@ suite('resolveTarget', () => {
     const r = resolveTarget({ target: 'notes' } as any, '/root/a/b/ref.md', idx);
     assert.strictEqual(r, null);
   });
+  suite('precomputed lookup (buildLookup)', () => {
+    // The lookup is authoritative when present: resolution must read it, not idx.entries.
+    // Each test passes an empty entries array so a pass proves the lookup was consulted.
+    function lookupOnly(paths: string[]): IndexSnapshot {
+      const full = mkIndex(paths);
+      return {
+        entries: [],
+        workspaceRoot: full.workspaceRoot,
+        lookup: buildLookup(full.entries, full.workspaceRoot),
+      };
+    }
+
+    test('bare target resolves through the lookup', () => {
+      const idx = lookupOnly(['/root/a/alpha.md']);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const r = resolveTarget({ target: 'alpha' } as any, '/root/x.md', idx);
+      assert.strictEqual(r?.fsPath, '/root/a/alpha.md');
+    });
+    test('ambiguous base name is still null through the lookup', () => {
+      const idx = lookupOnly(['/root/a/dup.md', '/root/b/dup.md']);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      assert.strictEqual(resolveTarget({ target: 'dup' } as any, '/root/x.md', idx), null);
+    });
+    test('root-level preference applies through the lookup', () => {
+      const idx = lookupOnly(['/root/notes.md', '/root/a/b/notes.md']);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const r = resolveTarget({ target: 'notes' } as any, '/root/a/b/c/ref.md', idx);
+      assert.strictEqual(r?.fsPath, '/root/notes.md');
+    });
+    test('closest-parent ancestor walk works through the lookup', () => {
+      const idx = lookupOnly(['/root/a/dup.md', '/root/b/dup.md']);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const r = resolveTarget({ target: 'dup' } as any, '/root/a/sub/ref.md', idx);
+      assert.strictEqual(r?.fsPath, '/root/a/dup.md');
+    });
+    test('slashed target: unique suffix match through the lookup', () => {
+      const idx = lookupOnly(['/root/x/y/z.md']);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const r = resolveTarget({ target: 'y/z' } as any, '/root/other.md', idx);
+      assert.strictEqual(r?.fsPath, '/root/x/y/z.md');
+    });
+    test('slashed target: ambiguous suffix is still null through the lookup', () => {
+      const idx = lookupOnly(['/root/x/y/z.md', '/root/other/y/z.md']);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      assert.strictEqual(resolveTarget({ target: 'y/z' } as any, '/root/elsewhere.md', idx), null);
+    });
+    test('case-insensitive base-name match through the lookup', () => {
+      const idx = lookupOnly(['/root/Notes.md']);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const r = resolveTarget({ target: 'notes' } as any, '/root/x.md', idx);
+      assert.strictEqual(r?.fsPath, '/root/Notes.md');
+    });
+    test('buildLookup excludes entries outside the workspace root', () => {
+      const full = mkIndex(['/root2/alpha.md']);
+      const idx: IndexSnapshot = {
+        entries: [],
+        workspaceRoot: '/root',
+        lookup: buildLookup(full.entries, '/root'),
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      assert.strictEqual(resolveTarget({ target: 'alpha' } as any, '/root/x.md', idx), null);
+    });
+  });
+
   suite('worked example: a/1/note, a/2/note, b/1/note', () => {
     const idx = mkIndex(['/root/a/1/note.md', '/root/a/2/note.md', '/root/b/1/note.md']);
     const from = '/root/b/1/note.md';

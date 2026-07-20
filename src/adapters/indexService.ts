@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 
 import { IndexEntry } from '../core/types';
-import { IndexSnapshot } from '../core/resolver/resolveTarget';
+import { IndexSnapshot, buildLookup } from '../core/resolver/resolveTarget';
 import { isExcludedPath, buildExcludeGlob } from '../core/pathFilter';
 
 const GLOB = '**/*.{md,markdown,png,jpg,jpeg,gif,webp,svg}';
@@ -48,10 +48,9 @@ export class IndexService {
   snapshotFor(fromFsPath: string): IndexSnapshot {
     const folder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(fromFsPath));
     const root = folder?.uri.fsPath ?? '';
-    return {
-      entries: [...this.entries.values()].filter((e) => e.fsPath.startsWith(root)),
-      workspaceRoot: root,
-    };
+    const entries = [...this.entries.values()].filter((e) => e.fsPath.startsWith(root));
+    // Precompute the resolver lookup once per snapshot so per-link resolution is not O(entries).
+    return { entries, workspaceRoot: root, lookup: buildLookup(entries, root) };
   }
 
   async refresh(): Promise<void> {
