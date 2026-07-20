@@ -20,8 +20,11 @@ export function buildRenameContext(renames: RenamePair[], snap: IndexSnapshot): 
   // First pair wins on duplicate old paths (matches the previous renames.find semantics).
   const renameByOld = new Map<string, RenamePair>();
   for (const p of renames) if (!renameByOld.has(p.oldFsPath)) renameByOld.set(p.oldFsPath, p);
+  // Overwrite renames land on a path that already has an entry — drop it too, or the
+  // effective index holds duplicates and the target looks spuriously ambiguous.
+  const newFsPaths = new Set([...renameByOld.values()].map((p) => p.newFsPath));
   const entries: IndexEntry[] = snap.entries
-    .filter((e) => !renameByOld.has(e.fsPath))
+    .filter((e) => !renameByOld.has(e.fsPath) && !newFsPaths.has(e.fsPath))
     .concat(
       [...renameByOld.values()].map((r) => ({
         fsPath: r.newFsPath,
@@ -98,6 +101,9 @@ function chooseTargetForm(
   // A `..` segment means the target is outside this file's workspace folder (e.g. a multi-root
   // workspace): there is no wiki-link form that can reach it, so skip the rewrite.
   if (UNSAFE_RE.test(rel) || rel.split('/').includes('..')) return null;
+  // The slashed form must be verified too: a suffix-ambiguous rel would WRITE a link that
+  // resolves to nothing — worse than leaving the (already broken) original text alone.
+  if (!resolvesTo(rel, newFrom, effective, finalFsPath)) return null;
   return rel;
 }
 
@@ -107,8 +113,7 @@ function resolvesTo(
   snap: IndexSnapshot,
   wantFsPath: string,
 ): boolean {
-  const probe = { target } as ParsedRef;
-  return resolveTarget(probe, fromFsPath, snap)?.fsPath === wantFsPath;
+  return resolveTarget({ target }, fromFsPath, snap)?.fsPath === wantFsPath;
 }
 
 function rebuildWiki(r: ParsedRef, newTarget: string): string {

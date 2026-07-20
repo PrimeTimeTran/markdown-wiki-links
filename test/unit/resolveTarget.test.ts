@@ -251,6 +251,12 @@ suite('resolveTarget', () => {
     test('a sibling root sharing a prefix is NOT contained', () => {
       assert.strictEqual(isContained('/root2/a.md', '/root'), false);
     });
+    test('empty root contains every absolute POSIX path (orphan-file snapshots)', () => {
+      // Files outside any workspace folder get root ''. On POSIX every absolute path
+      // starts with the separator, so orphan snapshots keep all entries — pinning the
+      // long-standing behavior that resolution and completion see the same set.
+      assert.strictEqual(isContained('/anywhere/a.md', ''), true);
+    });
   });
 
   suite('worked example: a/1/note, a/2/note, b/1/note', () => {

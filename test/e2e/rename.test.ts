@@ -404,6 +404,9 @@ suite('Rename propagation with files.encoding set to a legacy codepage', () => {
   suiteSetup(async () => {
     const ext = vscode.extensions.getExtension('ltvan.markdown-wiki-links');
     await ext!.activate();
+    // Self-heal from a previous crashed run before flipping the setting for this suite —
+    // a leftover windows1252 would silently slow-path every other suite in this fixture.
+    await filesConfig().update('encoding', undefined, vscode.ConfigurationTarget.Workspace);
     await filesConfig().update('encoding', 'windows1252', vscode.ConfigurationTarget.Workspace);
     await tryDelete(newT());
     // 'café' written as UTF-8 bytes is ALSO valid windows1252 (as 'cafÃ©', one char

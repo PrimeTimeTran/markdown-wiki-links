@@ -40,7 +40,9 @@ export function createSnapshot(entries: IndexEntry[], workspaceRoot: string): In
 }
 
 export function resolveTarget(
-  ref: ParsedRef,
+  // Only the target text participates in resolution — declaring that makes bare probe
+  // objects ({ target }) legal without casts, and keeps fragment/display/range inert here.
+  ref: Pick<ParsedRef, 'target'>,
   fromFsPath: string,
   idx: IndexSnapshot,
 ): ResolvedTarget | null {

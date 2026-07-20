@@ -65,6 +65,9 @@ export class IndexService {
 
   async refresh(): Promise<void> {
     this.entries.clear();
+    // Evict cached snapshots outright — refresh also runs on workspace-folder changes,
+    // after which a removed root's cache entry would otherwise linger forever.
+    this.snapCache.clear();
     this.generation++;
     await this.scan();
   }

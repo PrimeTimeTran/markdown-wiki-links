@@ -271,6 +271,36 @@ suite('rewriteWikiRefs (logic paths)', () => {
     assert.strictEqual(applyReplacements(src, edits), 'See [[a/dup]].');
   });
 
+  test('overwrite rename: a link to the overwritten file is not spuriously rewritten', () => {
+    // A.md is renamed onto docs/B.md (overwrite). The effective index must hold ONE entry
+    // for docs/B.md — a duplicate makes [[B]] look ambiguous (no root-level match, walk
+    // finds nothing) and triggers a bogus pin to the slashed form.
+    const src = 'See [[B]].';
+    const s = snap(['/root/A.md', '/root/docs/B.md']);
+    const edits = rewriteWikiRefs(
+      src,
+      '/root/home.md',
+      [{ oldFsPath: '/root/A.md', newFsPath: '/root/docs/B.md' }],
+      s,
+    );
+    assert.deepStrictEqual(edits, []);
+  });
+
+  test('no edit when neither the bare nor the slashed form would resolve to the target', () => {
+    // old.md moves to a/b.md, but the root-relative form "a/b" is an ambiguous suffix
+    // (x/a/b.md also matches). Writing [[a/b]] would produce a link that resolves to
+    // nothing — leave the (already broken) original text alone instead.
+    const src = 'See [[old]].';
+    const s = snap(['/root/old.md', '/root/x/a/b.md']);
+    const edits = rewriteWikiRefs(
+      src,
+      '/root/home.md',
+      [{ oldFsPath: '/root/old.md', newFsPath: '/root/a/b.md' }],
+      s,
+    );
+    assert.deepStrictEqual(edits, []);
+  });
+
   test('an explicitly passed rename context produces the same edits', () => {
     const src = 'See [[notes]].';
     const s = snap(['/root/a/notes.md', '/root/b/notes.md', '/root/a/sub/ref.md']);
