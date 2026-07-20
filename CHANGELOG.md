@@ -11,6 +11,10 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Slashed links (`[[folder/note]]`) now resolve on Windows; backslash relative
   paths were never matched against the forward-slash link form.
+- Rename rewriting is encoding-safe: files whose bytes are not clean UTF-8
+  (UTF-16 with or without BOM, legacy codepages) and workspaces with a
+  non-UTF-8 `files.encoding` now go through VSCode's own decoder, so rewrites
+  are neither silently skipped nor spliced at wrong offsets.
 - Rename rewriting is now resolution-verified — each link is re-resolved from
   its post-rename location against the post-rename index and rewritten exactly
   when its resolution would change. Links inside a moved folder that resolved

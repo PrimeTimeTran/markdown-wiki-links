@@ -356,6 +356,88 @@ suite('Rename propagation re-anchors links inside a moved folder', () => {
   });
 });
 
+suite('Rename propagation in a BOM-less UTF-16 referrer', () => {
+  const ws = (): vscode.Uri => vscode.workspace.workspaceFolders![0].uri;
+  const referrer = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'nobom16-referrer.md');
+  const oldT = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'nobom16-old.md');
+  const newT = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'nobom16-new.md');
+
+  suiteSetup(async () => {
+    const ext = vscode.extensions.getExtension('ltvan.markdown-wiki-links');
+    await ext!.activate();
+    await tryDelete(newT());
+    // ASCII-only UTF-16LE without a BOM: every byte pair decodes as valid UTF-8 (char +
+    // NUL), so a naive UTF-8 decode sees no replacement characters at all.
+    const body = 'See [[nobom16-old]] here.\n';
+    await vscode.workspace.fs.writeFile(referrer(), Buffer.from(body, 'utf16le'));
+    await writeText(oldT(), '# Old\n');
+  });
+
+  suiteTeardown(async () => {
+    await tryDelete(newT());
+    await tryDelete(oldT());
+    await tryDelete(referrer());
+  });
+
+  test('links in a BOM-less UTF-16 referrer are still rewritten', async () => {
+    const edit = new vscode.WorkspaceEdit();
+    edit.renameFile(oldT(), newT(), { overwrite: false });
+    assert.strictEqual(await vscode.workspace.applyEdit(edit), true);
+
+    await waitFor(async () => {
+      const d = await vscode.workspace.openTextDocument(referrer());
+      return d.getText().includes('[[nobom16-new]]');
+    });
+    const text = (await vscode.workspace.openTextDocument(referrer())).getText();
+    assert.ok(text.includes('See [[nobom16-new]] here.'), `not rewritten: ${text}`);
+  });
+});
+
+suite('Rename propagation with files.encoding set to a legacy codepage', () => {
+  const ws = (): vscode.Uri => vscode.workspace.workspaceFolders![0].uri;
+  const referrer = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'w1252-referrer.md');
+  const oldT = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'w1252-old.md');
+  const newT = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'w1252-new.md');
+  const filesConfig = (): vscode.WorkspaceConfiguration =>
+    vscode.workspace.getConfiguration('files');
+
+  suiteSetup(async () => {
+    const ext = vscode.extensions.getExtension('ltvan.markdown-wiki-links');
+    await ext!.activate();
+    await filesConfig().update('encoding', 'windows1252', vscode.ConfigurationTarget.Workspace);
+    await tryDelete(newT());
+    // 'café' written as UTF-8 bytes is ALSO valid windows1252 (as 'cafÃ©', one char
+    // longer). A naive UTF-8 decode computes offsets that disagree with how VSCode
+    // (configured for windows1252) positions the edit — splicing mid-link.
+    const bytes = Buffer.from('café sees [[w1252-old]] here.\n', 'utf8');
+    await vscode.workspace.fs.writeFile(referrer(), bytes);
+    await writeText(oldT(), '# Old\n');
+  });
+
+  suiteTeardown(async () => {
+    await filesConfig().update('encoding', undefined, vscode.ConfigurationTarget.Workspace);
+    await tryDelete(newT());
+    await tryDelete(oldT());
+    await tryDelete(referrer());
+  });
+
+  test('rewrites land at positions consistent with the configured encoding', async () => {
+    const edit = new vscode.WorkspaceEdit();
+    edit.renameFile(oldT(), newT(), { overwrite: false });
+    assert.strictEqual(await vscode.workspace.applyEdit(edit), true);
+
+    await waitFor(async () => {
+      const d = await vscode.workspace.openTextDocument(referrer());
+      return d.getText().includes('w1252-new');
+    });
+    const text = (await vscode.workspace.openTextDocument(referrer())).getText();
+    assert.ok(
+      text.includes('sees [[w1252-new]] here.'),
+      `mangled rewrite: ${JSON.stringify(text)}`,
+    );
+  });
+});
+
 suite('Rename propagation for media files', () => {
   const ws = (): vscode.Uri => vscode.workspace.workspaceFolders![0].uri;
   const note = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'note-with-image.md');

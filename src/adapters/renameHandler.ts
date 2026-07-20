@@ -31,6 +31,20 @@ const READ_CONCURRENCY = 16;
 // than just parsing each referrer, so the pre-filter disables itself.
 const MAX_PREFILTER_NEEDLES = 16;
 
+// Throws a TypeError on malformed UTF-8 instead of silently substituting U+FFFD — the only
+// reliable signal that raw bytes cannot be trusted to match VSCode's own decoding.
+const FATAL_UTF8 = new TextDecoder('utf-8', { fatal: true });
+
+// The fast path decodes raw bytes as UTF-8; that is only sound when VSCode will decode the
+// file identically when applying the WorkspaceEdit.
+function mustUseVSCodeDecoder(ref: vscode.Uri): boolean {
+  const files = vscode.workspace.getConfiguration('files', ref);
+  return (
+    files.get<string>('encoding', 'utf8') !== 'utf8' ||
+    files.get<boolean>('autoGuessEncoding', false)
+  );
+}
+
 export class RenameHandler {
   register(ctx: vscode.ExtensionContext): void {
     ctx.subscriptions.push(
@@ -129,16 +143,37 @@ export class RenameHandler {
         text = doc.getText();
       } else {
         try {
-          text = new TextDecoder('utf-8').decode(await vscode.workspace.fs.readFile(ref));
-          if (text.includes('�')) {
-            // Replacement chars mean the bytes are not clean UTF-8 (UTF-16, legacy codepage).
-            // Decoding wrong would skip or misplace rewrites, so take VSCode's encoding-aware
-            // document load for this file only — the slow path stays off clean-UTF-8 files.
+          if (mustUseVSCodeDecoder(ref)) {
+            // A non-UTF-8 files.encoding (or auto-guessing) can decode the same bytes to a
+            // different character count than a raw UTF-8 decode — positions computed on the
+            // wrong text splice mid-link when VSCode applies the edit. Only VSCode's own
+            // decoder is guaranteed to agree with how the edit will be applied.
             doc = await vscode.workspace.openTextDocument(ref);
             text = doc.getText();
+          } else {
+            const bytes = await vscode.workspace.fs.readFile(ref);
+            // NUL bytes mean UTF-16 (a BOM-less UTF-16 ASCII file is byte-valid UTF-8), and
+            // FATAL_UTF8 throws on malformed input (UTF-16 BOMs, legacy codepages) — both
+            // fall back to VSCode's encoding detection. Clean UTF-8 stays on the fast path.
+            if (bytes.includes(0)) {
+              doc = await vscode.workspace.openTextDocument(ref);
+              text = doc.getText();
+            } else {
+              text = FATAL_UTF8.decode(bytes);
+            }
           }
-        } catch {
-          return; // deleted or unreadable between the scan and the read — nothing to rewrite
+        } catch (e) {
+          if (e instanceof TypeError) {
+            // Malformed UTF-8 from FATAL_UTF8 — retry through VSCode's decoder.
+            try {
+              doc = await vscode.workspace.openTextDocument(ref);
+              text = doc.getText();
+            } catch {
+              return;
+            }
+          } else {
+            return; // deleted or unreadable between the scan and the read — nothing to rewrite
+          }
         }
       }
       if (preFilter && !renamedFsPaths.has(ref.fsPath)) {
