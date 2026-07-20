@@ -150,6 +150,16 @@ suite('resolveTarget', () => {
     const r = resolveTarget({ target: 'notes' } as any, '/root/a/b/ref.md', idx);
     assert.strictEqual(r, null);
   });
+  test('slashed target matches an entry whose relPath uses backslashes (Windows)', () => {
+    const idx: IndexSnapshot = {
+      entries: [{ fsPath: '/root/x/y/z.md', relPath: 'x\\y\\z.md', baseNoExt: 'z' }],
+      workspaceRoot: '/root',
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const r = resolveTarget({ target: 'y/z' } as any, '/root/other.md', idx);
+    assert.strictEqual(r?.fsPath, '/root/x/y/z.md');
+  });
+
   suite('precomputed lookup (buildLookup)', () => {
     // The lookup is authoritative when present: resolution must read it, not idx.entries.
     // Each test passes an empty entries array so a pass proves the lookup was consulted.

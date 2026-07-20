@@ -71,7 +71,12 @@ export function resolveTarget(
 
 function uniqueSuffixMatch(norm: string, entries: IndexEntry[]): ResolvedTarget | null {
   const hits = entries.filter((e) => {
-    const rel = e.relPath.toLowerCase().replace(/\.(md|markdown)$/, '');
+    // relPath comes from path.relative, which uses backslashes on Windows; norm is
+    // forward-slash-normalized, so the entry side must be normalized the same way.
+    const rel = e.relPath
+      .replace(/\\/g, '/')
+      .toLowerCase()
+      .replace(/\.(md|markdown)$/, '');
     return rel === norm || rel.endsWith('/' + norm);
   });
   return hits.length === 1 ? { fsPath: hits[0].fsPath } : null;
