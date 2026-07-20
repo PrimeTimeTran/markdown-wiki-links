@@ -113,6 +113,33 @@ suite('rewriteWikiRefs (logic paths)', () => {
     assert.strictEqual(applyReplacements(src, edits), '[[notes/new]]');
   });
 
+  test('same-file [[#fragment]] refs inside a renamed file are left untouched', () => {
+    // A same-file link survives any rename of its own file by definition.
+    const src = 'Jump to [[#Heading]].';
+    const s = snap(['/root/moving/inner.md']);
+    const edits = rewriteWikiRefs(
+      src,
+      '/root/moving/inner.md',
+      [{ oldFsPath: '/root/moving/inner.md', newFsPath: '/root/moved/inner.md' }],
+      s,
+    );
+    assert.deepStrictEqual(edits, []);
+  });
+
+  test('no edit is emitted when the rewritten text would be identical (folder move, bare link)', () => {
+    // A folder move keeps base names, so bare links need no textual change — emitting
+    // identical replacements would dirty every referrer and pollute undo stacks.
+    const src = 'See [[inner]].';
+    const s = snap(['/root/moving/inner.md']);
+    const edits = rewriteWikiRefs(
+      src,
+      '/root/home.md',
+      [{ oldFsPath: '/root/moving/inner.md', newFsPath: '/root/moved/inner.md' }],
+      s,
+    );
+    assert.deepStrictEqual(edits, []);
+  });
+
   test('no rewrite when nothing in the rename batch is referenced', () => {
     const src = '[[unrelated]]';
     const s = snap(['/root/unrelated.md']);

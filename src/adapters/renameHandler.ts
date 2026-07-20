@@ -2,7 +2,7 @@ import * as path from 'path';
 
 import * as vscode from 'vscode';
 
-import { rewriteWikiRefs } from '../core/rename/rewriteWikiRefs';
+import { rewriteWikiRefs, RenamePair } from '../core/rename/rewriteWikiRefs';
 import { IndexSnapshot, buildLookup } from '../core/resolver/resolveTarget';
 import { computeLineStarts, positionAt } from '../core/textPosition';
 import { buildExcludeGlob } from '../core/pathFilter';
@@ -22,6 +22,9 @@ const INDEX_GLOB = '**/*.{md,markdown,png,jpg,jpeg,gif,webp,svg}';
 // onDidOpenTextDocument and a diagnostics pass per referrer), and files that cannot possibly
 // reference a renamed target are skipped by a cheap substring pre-filter.
 const READ_CONCURRENCY = 16;
+// Above this many distinct base names, scanning every referrer for every needle costs more
+// than just parsing each referrer, so the pre-filter disables itself.
+const MAX_PREFILTER_NEEDLES = 16;
 
 export class RenameHandler {
   register(ctx: vscode.ExtensionContext): void {
@@ -38,10 +41,24 @@ export class RenameHandler {
     files: ReadonlyArray<{ oldUri: vscode.Uri; newUri: vscode.Uri }>,
   ): Promise<vscode.WorkspaceEdit> {
     const edit = new vscode.WorkspaceEdit();
-    const renames = files
-      .filter((f) => LINKABLE_RE.test(f.oldUri.fsPath))
-      .map((f) => ({ oldFsPath: f.oldUri.fsPath, newFsPath: f.newUri.fsPath }));
-    if (renames.length === 0) return edit;
+    // The will-event fires before the move, so old paths are still on disk: stat classifies
+    // each pair (a folder can carry a linkable-looking name), and the scan below still sees
+    // the old paths of files inside a moved folder.
+    const filePairs: RenamePair[] = [];
+    const dirPairs: RenamePair[] = [];
+    for (const f of files) {
+      const pair = { oldFsPath: f.oldUri.fsPath, newFsPath: f.newUri.fsPath };
+      let isDirectory = false;
+      try {
+        const st = await vscode.workspace.fs.stat(f.oldUri);
+        isDirectory = (st.type & vscode.FileType.Directory) !== 0;
+      } catch {
+        // gone already — fall back to the extension check below
+      }
+      if (isDirectory) dirPairs.push(pair);
+      else if (LINKABLE_RE.test(pair.oldFsPath)) filePairs.push(pair);
+    }
+    if (filePairs.length === 0 && dirPairs.length === 0) return edit;
 
     // Build the snapshot from a fresh scan rather than the cached index: rename is rare,
     // correctness matters more than the cache, and the cache can lag fixture/file creation.
@@ -51,6 +68,22 @@ export class RenameHandler {
     const exclude = buildExcludeGlob(excludedFolders());
     const allFiles = await vscode.workspace.findFiles(INDEX_GLOB, exclude);
     const referrers = allFiles.filter((u) => MARKDOWN_RE.test(u.fsPath));
+
+    // A moved folder arrives as one directory pair; every linkable file beneath its old
+    // path moves with it, so expand the pair to those files at their new locations.
+    const renames: RenamePair[] = [...filePairs];
+    for (const dir of dirPairs) {
+      const prefix = dir.oldFsPath + path.sep;
+      for (const u of allFiles) {
+        if (u.fsPath.startsWith(prefix) && LINKABLE_RE.test(u.fsPath)) {
+          renames.push({
+            oldFsPath: u.fsPath,
+            newFsPath: path.join(dir.newFsPath, u.fsPath.slice(prefix.length)),
+          });
+        }
+      }
+    }
+    if (renames.length === 0) return edit;
     // Referrers in the same workspace folder share one snapshot — build it once per root.
     const snapByRoot = new Map<string, IndexSnapshot>();
     const snapFor = (ref: vscode.Uri): IndexSnapshot => {
@@ -65,12 +98,15 @@ export class RenameHandler {
 
     // Any wiki-ref form that resolves to a renamed file (bare, slashed, with or without
     // extension) contains its extensionless base name, so a referrer whose text lacks every
-    // base name can be skipped without parsing. The renamed files themselves are exempt:
-    // their same-file refs ([[#heading]]) match without naming the file.
-    const needles = renames.map((r) =>
-      path.basename(r.oldFsPath).replace(LINKABLE_RE, '').toLowerCase(),
-    );
-    const renamedFsPaths = new Set(renames.map((r) => r.oldFsPath));
+    // base name can be skipped without parsing. Past a handful of needles (a large folder
+    // move) the per-referrer substring sweep costs more than the parse it avoids, so the
+    // filter turns itself off and every referrer is parsed instead.
+    const needles = [
+      ...new Set(
+        renames.map((r) => path.basename(r.oldFsPath).replace(LINKABLE_RE, '').toLowerCase()),
+      ),
+    ];
+    const preFilter = needles.length <= MAX_PREFILTER_NEEDLES;
 
     await forEachConcurrent(referrers, READ_CONCURRENCY, async (ref) => {
       // A doc already open (possibly dirty) must be read and positioned through its buffer.
@@ -92,7 +128,7 @@ export class RenameHandler {
           return; // deleted or unreadable between the scan and the read — nothing to rewrite
         }
       }
-      if (!renamedFsPaths.has(ref.fsPath)) {
+      if (preFilter) {
         const lower = text.toLowerCase();
         if (!needles.some((n) => lower.includes(n))) return;
       }

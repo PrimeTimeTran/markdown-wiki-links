@@ -253,6 +253,57 @@ suite('Rename propagation in a non-UTF-8 (UTF-16 BOM) referrer', () => {
   });
 });
 
+suite('Rename propagation when moving/renaming a folder', () => {
+  const ws = (): vscode.Uri => vscode.workspace.workspaceFolders![0].uri;
+  const oldDir = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'moving');
+  const newDir = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'moved');
+  const referrer = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'folder-referrer.md');
+
+  async function tryDeleteDir(uri: vscode.Uri): Promise<void> {
+    try {
+      await vscode.workspace.fs.delete(uri, { recursive: true });
+    } catch {
+      // already gone
+    }
+  }
+
+  suiteSetup(async () => {
+    const ext = vscode.extensions.getExtension('ltvan.markdown-wiki-links');
+    await ext!.activate();
+    await tryDeleteDir(newDir());
+    await tryDeleteDir(oldDir());
+    await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(oldDir(), 'sub'));
+    await writeText(vscode.Uri.joinPath(oldDir(), 'inner.md'), '# Inner\n');
+    await writeText(vscode.Uri.joinPath(oldDir(), 'sub', 'deep.md'), '# Deep\n');
+    await writeText(
+      referrer(),
+      'See [[moving/inner]] and ![[moving/inner]] and [[moving/sub/deep]].\n',
+    );
+  });
+
+  suiteTeardown(async () => {
+    await tryDeleteDir(newDir());
+    await tryDeleteDir(oldDir());
+    await tryDelete(referrer());
+  });
+
+  test('renaming a folder rewrites slashed links to the files inside it', async () => {
+    const edit = new vscode.WorkspaceEdit();
+    edit.renameFile(oldDir(), newDir(), { overwrite: false });
+    assert.strictEqual(await vscode.workspace.applyEdit(edit), true);
+
+    await waitFor(async () => {
+      const d = await vscode.workspace.openTextDocument(referrer());
+      return d.getText().includes('[[moved/inner]]');
+    });
+    const text = (await vscode.workspace.openTextDocument(referrer())).getText();
+    assert.ok(text.includes('See [[moved/inner]]'), `link not rewritten: ${text}`);
+    assert.ok(text.includes('![[moved/inner]]'), `embed not rewritten: ${text}`);
+    assert.ok(text.includes('[[moved/sub/deep]]'), `nested link not rewritten: ${text}`);
+    assert.ok(!text.includes('moving/'), `stale folder reference remains: ${text}`);
+  });
+});
+
 suite('Rename propagation for media files', () => {
   const ws = (): vscode.Uri => vscode.workspace.workspaceFolders![0].uri;
   const note = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'note-with-image.md');

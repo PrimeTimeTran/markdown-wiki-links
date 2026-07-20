@@ -21,13 +21,19 @@ export function rewriteWikiRefs(
   const out: Replacement[] = [];
   const refs: ParsedRef[] = [...parseLinks(sourceText), ...parseEmbeds(sourceText)];
   for (const r of refs) {
+    // Same-file refs ([[#fragment]]) survive any rename of their own file by definition.
+    if (r.target.trim() === '') continue;
     const resolved = resolveTarget(r, fromFsPath, snap);
     if (!resolved) continue;
     const hit = renames.find((p) => p.oldFsPath === resolved.fsPath);
     if (!hit) continue;
     const newTarget = chooseTargetForm(r.target, hit.newFsPath, snap, renames);
     if (newTarget === null) continue;
-    out.push({ start: r.range.start, end: r.range.end, newText: rebuildWiki(r, newTarget) });
+    const newText = rebuildWiki(r, newTarget);
+    // Folder moves keep base names, so bare links often need no textual change — an
+    // identical replacement would still dirty the referrer and pollute its undo stack.
+    if (newText === sourceText.slice(r.range.start, r.range.end)) continue;
+    out.push({ start: r.range.start, end: r.range.end, newText });
   }
   return out;
 }

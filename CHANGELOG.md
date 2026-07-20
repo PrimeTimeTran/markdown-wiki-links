@@ -9,6 +9,10 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- Moving or renaming a **folder** now rewrites wiki-links to the files inside
+  it. Previously folder operations were ignored entirely, silently breaking
+  every link into the moved folder.
+
 - Renaming or moving a linked file no longer freezes the editor for many
   seconds in large workspaces. The rename participant previously opened every
   Markdown file in the workspace one at a time (each open also triggering a
