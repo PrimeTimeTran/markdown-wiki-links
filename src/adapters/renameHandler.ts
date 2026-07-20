@@ -8,7 +8,7 @@ import {
   RenameContext,
   RenamePair,
 } from '../core/rename/rewriteWikiRefs';
-import { IndexSnapshot, buildLookup } from '../core/resolver/resolveTarget';
+import { IndexSnapshot, createSnapshot, isContained } from '../core/resolver/resolveTarget';
 import { computeLineStarts, positionAt } from '../core/textPosition';
 import { buildExcludeGlob } from '../core/pathFilter';
 import { IndexEntry } from '../core/types';
@@ -222,14 +222,16 @@ export class RenameHandler {
 }
 
 function buildSnapshot(root: string, allFiles: readonly vscode.Uri[]): IndexSnapshot {
+  // isContained (separator-safe), not startsWith: a sibling root like /ws/docs must not
+  // leak into /ws/doc's entries, or completion/collision checks diverge from resolution.
   const entries: IndexEntry[] = allFiles
-    .filter((u) => u.fsPath.startsWith(root))
+    .filter((u) => isContained(u.fsPath, root))
     .map((u) => ({
       fsPath: u.fsPath,
       relPath: path.relative(root, u.fsPath),
       baseNoExt: path.basename(u.fsPath).replace(/\.(md|markdown)$/i, ''),
     }));
-  return { entries, workspaceRoot: root, lookup: buildLookup(entries, root) };
+  return createSnapshot(entries, root);
 }
 
 async function forEachConcurrent<T>(

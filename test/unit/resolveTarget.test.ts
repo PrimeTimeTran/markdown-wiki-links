@@ -1,6 +1,12 @@
 import * as assert from 'assert';
 
-import { resolveTarget, buildLookup, IndexSnapshot } from '../../src/core/resolver/resolveTarget';
+import {
+  resolveTarget,
+  buildLookup,
+  createSnapshot,
+  isContained,
+  IndexSnapshot,
+} from '../../src/core/resolver/resolveTarget';
 
 function mkIndex(paths: string[]): IndexSnapshot {
   return {
@@ -221,6 +227,29 @@ suite('resolveTarget', () => {
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       assert.strictEqual(resolveTarget({ target: 'alpha' } as any, '/root/x.md', idx), null);
+    });
+  });
+
+  suite('createSnapshot factory', () => {
+    test('attaches a lookup so resolution works without the per-call fallback', () => {
+      const entries = [{ fsPath: '/root/a/alpha.md', relPath: 'a/alpha.md', baseNoExt: 'alpha' }];
+      const s = createSnapshot(entries, '/root');
+      assert.ok(s.lookup, 'factory must attach the precomputed lookup');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const r = resolveTarget({ target: 'alpha' } as any, '/root/x.md', s);
+      assert.strictEqual(r?.fsPath, '/root/a/alpha.md');
+    });
+  });
+
+  suite('isContained', () => {
+    test('path inside the root is contained', () => {
+      assert.strictEqual(isContained('/root/a/b.md', '/root'), true);
+    });
+    test('the root itself is contained', () => {
+      assert.strictEqual(isContained('/root', '/root'), true);
+    });
+    test('a sibling root sharing a prefix is NOT contained', () => {
+      assert.strictEqual(isContained('/root2/a.md', '/root'), false);
     });
   });
 

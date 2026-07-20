@@ -34,10 +34,17 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   in parallel and without opening editor documents, and link resolution runs
   through a precomputed index lookup.
 
+- In a multi-root workspace, a sibling folder sharing a name prefix (`/ws/doc`
+  vs `/ws/docs`) no longer leaks its files into the other root's completion
+  and rename-collision checks.
+
 ### Changed
 
 - Rename link-rewriting now honors `wikiLinks.index.excludeFolders` (matching
   the index) instead of only skipping `node_modules`.
+- Index snapshots (used by links, hovers, completion, diagnostics, decorations,
+  and the preview) are cached per workspace root and rebuilt only when the
+  index changes, instead of being recomputed on every request.
 
 ## [0.1.0] - 2026-05-24
 

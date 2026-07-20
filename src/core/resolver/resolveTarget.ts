@@ -6,7 +6,6 @@ import { IndexEntry, ParsedRef, ResolvedTarget } from '../types';
 // instead of O(all entries). Build once per snapshot with buildLookup; when present it is
 // authoritative and `entries` is not read by resolveTarget.
 export type SnapshotLookup = {
-  entriesInWorkspace: IndexEntry[];
   /** lowercased baseNoExt → entries with that base name */
   byBase: Map<string, IndexEntry[]>;
   /** lowercased fsPath → entry (for the ancestor-walk candidate probe) */
@@ -20,17 +19,24 @@ export type IndexSnapshot = {
 };
 
 export function buildLookup(entries: IndexEntry[], workspaceRoot: string): SnapshotLookup {
-  const entriesInWorkspace = entries.filter((e) => isContained(e.fsPath, workspaceRoot));
   const byBase = new Map<string, IndexEntry[]>();
   const byFsPathLower = new Map<string, IndexEntry>();
-  for (const e of entriesInWorkspace) {
+  for (const e of entries) {
+    if (!isContained(e.fsPath, workspaceRoot)) continue;
     const key = e.baseNoExt.toLowerCase();
     const bucket = byBase.get(key);
     if (bucket) bucket.push(e);
     else byBase.set(key, [e]);
     byFsPathLower.set(e.fsPath.toLowerCase(), e);
   }
-  return { entriesInWorkspace, byBase, byFsPathLower };
+  return { byBase, byFsPathLower };
+}
+
+// The one way snapshots should be built: entries plus the precomputed lookup. Constructing
+// the object by hand and forgetting `lookup` silently reverts resolution to a per-call
+// lookup rebuild (see the fallback in resolveTarget).
+export function createSnapshot(entries: IndexEntry[], workspaceRoot: string): IndexSnapshot {
+  return { entries, workspaceRoot, lookup: buildLookup(entries, workspaceRoot) };
 }
 
 export function resolveTarget(
@@ -105,6 +111,6 @@ function walkAncestorsForBare(
   return null;
 }
 
-function isContained(p: string, root: string): boolean {
+export function isContained(p: string, root: string): boolean {
   return p === root || p.startsWith(root + path.sep);
 }

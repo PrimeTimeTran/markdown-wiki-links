@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 
 import { IndexEntry } from '../core/types';
-import { IndexSnapshot, buildLookup } from '../core/resolver/resolveTarget';
+import { IndexSnapshot, createSnapshot, isContained } from '../core/resolver/resolveTarget';
 import { isExcludedPath, buildExcludeGlob } from '../core/pathFilter';
 
 const GLOB = '**/*.{md,markdown,png,jpg,jpeg,gif,webp,svg}';
@@ -25,16 +25,21 @@ export class IndexService {
   private entries = new Map<string, IndexEntry>();
   private watcher?: vscode.FileSystemWatcher;
   private listeners: vscode.Disposable[] = [];
+  // Snapshots (entries copy + resolver lookup) are O(index) to build, and providers ask for
+  // one on every keystroke/render — cache per root and invalidate by generation, so the
+  // cost is paid once per index mutation, not once per call. Bounded: one entry per root.
+  private generation = 0;
+  private snapCache = new Map<string, { generation: number; snap: IndexSnapshot }>();
 
   async initialize(): Promise<void> {
     await this.scan();
     this.watcher = vscode.workspace.createFileSystemWatcher(GLOB);
     this.listeners.push(
       this.watcher.onDidCreate((u) => this.add(u)),
-      this.watcher.onDidDelete((u) => this.entries.delete(u.fsPath)),
+      this.watcher.onDidDelete((u) => this.remove(u)),
       vscode.workspace.onDidRenameFiles((e) => {
         for (const f of e.files) {
-          this.entries.delete(f.oldUri.fsPath);
+          this.remove(f.oldUri);
           this.add(f.newUri);
         }
       }),
@@ -48,13 +53,19 @@ export class IndexService {
   snapshotFor(fromFsPath: string): IndexSnapshot {
     const folder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(fromFsPath));
     const root = folder?.uri.fsPath ?? '';
-    const entries = [...this.entries.values()].filter((e) => e.fsPath.startsWith(root));
-    // Precompute the resolver lookup once per snapshot so per-link resolution is not O(entries).
-    return { entries, workspaceRoot: root, lookup: buildLookup(entries, root) };
+    const cached = this.snapCache.get(root);
+    if (cached && cached.generation === this.generation) return cached.snap;
+    // isContained (separator-safe), not startsWith: a sibling root like /ws/docs must not
+    // leak into /ws/doc's entries, or completion offers targets resolution rejects.
+    const entries = [...this.entries.values()].filter((e) => isContained(e.fsPath, root));
+    const snap = createSnapshot(entries, root);
+    this.snapCache.set(root, { generation: this.generation, snap });
+    return snap;
   }
 
   async refresh(): Promise<void> {
     this.entries.clear();
+    this.generation++;
     await this.scan();
   }
 
@@ -88,6 +99,11 @@ export class IndexService {
     if (!this.entries.has(u.fsPath) && this.entries.size >= indexMaxFiles()) return;
     const base = path.basename(u.fsPath).replace(/\.(md|markdown)$/i, '');
     this.entries.set(u.fsPath, { fsPath: u.fsPath, relPath: rel, baseNoExt: base });
+    this.generation++;
+  }
+
+  private remove(u: vscode.Uri): void {
+    if (this.entries.delete(u.fsPath)) this.generation++;
   }
 }
 

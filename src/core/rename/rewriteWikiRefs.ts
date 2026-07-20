@@ -3,7 +3,7 @@ import * as path from 'path';
 import { ParsedRef, IndexEntry } from '../types';
 import { parseLinks } from '../parser/linkParser';
 import { parseEmbeds } from '../parser/embedParser';
-import { resolveTarget, buildLookup, IndexSnapshot } from '../resolver/resolveTarget';
+import { resolveTarget, createSnapshot, IndexSnapshot } from '../resolver/resolveTarget';
 
 export type RenamePair = { oldFsPath: string; newFsPath: string };
 export type Replacement = { start: number; end: number; newText: string };
@@ -29,14 +29,7 @@ export function buildRenameContext(renames: RenamePair[], snap: IndexSnapshot): 
         baseNoExt: path.basename(r.newFsPath).replace(/\.(md|markdown)$/i, ''),
       })),
     );
-  return {
-    renameByOld,
-    effective: {
-      entries,
-      workspaceRoot: snap.workspaceRoot,
-      lookup: buildLookup(entries, snap.workspaceRoot),
-    },
-  };
+  return { renameByOld, effective: createSnapshot(entries, snap.workspaceRoot) };
 }
 
 // Chars that would break out of [[target|display]] / [[target#fragment]] grammar.
