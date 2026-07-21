@@ -10,7 +10,10 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Fixed
 
 - Slashed links (`[[folder/note]]`) now resolve on Windows; backslash relative
-  paths were never matched against the forward-slash link form.
+  paths were never matched against the forward-slash link form. The same fix
+  now covers image embeds in the Markdown preview, which also no longer match
+  a target against a longer file name that merely ends with it
+  (`![[photo.png]]` no longer finds `my-photo.png`).
 - Code-fence detection is now correct in CRLF files: fence intervals drifted
   one character left per CRLF line, so links near the end of a fence could be
   treated as live — colored, diagnosed, and even rewritten on rename — while

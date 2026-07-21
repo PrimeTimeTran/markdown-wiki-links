@@ -5,6 +5,7 @@ import {
   buildLookup,
   createSnapshot,
   isContained,
+  relSuffixMatches,
   IndexSnapshot,
 } from '../../src/core/resolver/resolveTarget';
 
@@ -256,6 +257,22 @@ suite('resolveTarget', () => {
       // starts with the separator, so orphan snapshots keep all entries — pinning the
       // long-standing behavior that resolution and completion see the same set.
       assert.strictEqual(isContained('/anywhere/a.md', ''), true);
+    });
+  });
+
+  suite('relSuffixMatches', () => {
+    test('matches a forward-slash target against a backslash (Windows) relPath', () => {
+      assert.strictEqual(relSuffixMatches('pics\\photo.png', 'pics/photo.png'), true);
+    });
+    test('matches a bare file name as the last segment', () => {
+      assert.strictEqual(relSuffixMatches('pics/photo.png', 'photo.png'), true);
+    });
+    test('is segment-safe: a name that merely ends with the target does not match', () => {
+      assert.strictEqual(relSuffixMatches('my-pics/photo.png', 'pics/photo.png'), false);
+      assert.strictEqual(relSuffixMatches('a/my-photo.png', 'photo.png'), false);
+    });
+    test('exact relPath match and case-insensitive compare', () => {
+      assert.strictEqual(relSuffixMatches('Pics/Photo.PNG', 'pics/photo.png'), true);
     });
   });
 

@@ -3,7 +3,7 @@ import * as path from 'path';
 
 import * as vscode from 'vscode';
 
-import { resolveTarget, IndexSnapshot } from '../core/resolver/resolveTarget';
+import { resolveTarget, relSuffixMatches, IndexSnapshot } from '../core/resolver/resolveTarget';
 import { sliceSection } from '../core/blocks/sectionSlice';
 import { slugify } from '../core/blocks/headingExtractor';
 import { stripFrontmatter } from '../core/frontmatter';
@@ -56,7 +56,9 @@ function basePath(fromFsPath: string, snap: IndexSnapshot): string {
 }
 
 function resolveImage(target: string, snap: IndexSnapshot): EmbedResolved | null {
-  const hit = snap.entries.find((e) => e.relPath.toLowerCase().endsWith(target.toLowerCase()));
+  // relSuffixMatches, not a raw endsWith: relPath uses backslashes on Windows, and endsWith
+  // has no segment boundary (target 'photo.png' must not match 'my-photo.png').
+  const hit = snap.entries.find((e) => relSuffixMatches(e.relPath, target));
   if (!hit) return null;
   const uri = vscode.Uri.file(hit.fsPath);
   if (!isInsideWorkspaceRealSync(uri)) return null;

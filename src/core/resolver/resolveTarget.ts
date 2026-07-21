@@ -77,16 +77,20 @@ export function resolveTarget(
   return walkAncestorsForBare(norm, fromFsPath, idx.workspaceRoot, lookup);
 }
 
+// Segment-safe suffix match of a forward-slash link target against an entry relPath (which
+// uses platform separators — backslashes on Windows). Shared by the resolver and the preview
+// so both sides agree on which files a slashed target can mean.
+export function relSuffixMatches(relPath: string, target: string): boolean {
+  const rel = relPath.replace(/\\/g, '/').toLowerCase();
+  const t = target.toLowerCase();
+  return rel === t || rel.endsWith('/' + t);
+}
+
 function uniqueSuffixMatch(norm: string, entries: IndexEntry[]): ResolvedTarget | null {
-  const hits = entries.filter((e) => {
-    // relPath comes from path.relative, which uses backslashes on Windows; norm is
-    // forward-slash-normalized, so the entry side must be normalized the same way.
-    const rel = e.relPath
-      .replace(/\\/g, '/')
-      .toLowerCase()
-      .replace(/\.(md|markdown)$/, '');
-    return rel === norm || rel.endsWith('/' + norm);
-  });
+  // norm is already extension-stripped, so strip the entry side too before matching.
+  const hits = entries.filter((e) =>
+    relSuffixMatches(e.relPath.replace(/\.(md|markdown)$/i, ''), norm),
+  );
   return hits.length === 1 ? { fsPath: hits[0].fsPath } : null;
 }
 
