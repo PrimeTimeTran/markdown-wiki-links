@@ -1,4 +1,5 @@
 import * as assert from 'assert';
+import * as path from 'path';
 
 import {
   resolveTarget,
@@ -6,6 +7,7 @@ import {
   createSnapshot,
   isContained,
   relSuffixMatches,
+  makeIndexEntry,
   IndexSnapshot,
 } from '../../src/core/resolver/resolveTarget';
 
@@ -257,6 +259,19 @@ suite('resolveTarget', () => {
       // starts with the separator, so orphan snapshots keep all entries — pinning the
       // long-standing behavior that resolution and completion see the same set.
       assert.strictEqual(isContained('/anywhere/a.md', ''), true);
+    });
+  });
+
+  suite('makeIndexEntry', () => {
+    test('builds fsPath, root-relative relPath, and extension-stripped baseNoExt', () => {
+      const e = makeIndexEntry('/root/a/Note.md', '/root');
+      assert.strictEqual(e.fsPath, '/root/a/Note.md');
+      assert.strictEqual(e.relPath, ['a', 'Note.md'].join(path.sep));
+      assert.strictEqual(e.baseNoExt, 'Note');
+    });
+    test('strips .markdown case-insensitively but keeps media extensions', () => {
+      assert.strictEqual(makeIndexEntry('/root/x.MARKDOWN', '/root').baseNoExt, 'x');
+      assert.strictEqual(makeIndexEntry('/root/pic.png', '/root').baseNoExt, 'pic.png');
     });
   });
 

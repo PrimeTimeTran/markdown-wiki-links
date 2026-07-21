@@ -3,7 +3,12 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 
 import { IndexEntry } from '../core/types';
-import { IndexSnapshot, createSnapshot, isContained } from '../core/resolver/resolveTarget';
+import {
+  IndexSnapshot,
+  createSnapshot,
+  isContained,
+  makeIndexEntry,
+} from '../core/resolver/resolveTarget';
 import { isExcludedPath, buildExcludeGlob } from '../core/pathFilter';
 
 const GLOB = '**/*.{md,markdown,png,jpg,jpeg,gif,webp,svg}';
@@ -117,8 +122,7 @@ export class IndexService {
     // Hard-stop at the cap so watcher-driven creates cannot grow the index past it.
     // Known paths are still allowed through so an in-place update (e.g. rename) is not blocked.
     if (!this.entries.has(u.fsPath) && this.entries.size >= indexMaxFiles()) return;
-    const base = path.basename(u.fsPath).replace(/\.(md|markdown)$/i, '');
-    this.entries.set(u.fsPath, { fsPath: u.fsPath, relPath: rel, baseNoExt: base });
+    this.entries.set(u.fsPath, makeIndexEntry(u.fsPath, folder.uri.fsPath));
     this.generation++;
   }
 

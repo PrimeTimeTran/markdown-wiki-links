@@ -1,6 +1,6 @@
 import * as path from 'path';
 
-import { resolveTarget, IndexSnapshot } from '../resolver/resolveTarget';
+import { resolveTarget, stripMdExt, IndexSnapshot } from '../resolver/resolveTarget';
 
 export type Candidate = {
   fsPath: string;
@@ -95,7 +95,7 @@ function chooseInsertText(
   fromFsPath: string,
   idx: IndexSnapshot,
 ): string {
-  const noExt = relPath.replace(/\\/g, '/').replace(/\.(md|markdown)$/i, '');
+  const noExt = stripMdExt(relPath.replace(/\\/g, '/'));
   const segments = noExt.split('/');
   for (let depth = 1; depth <= segments.length; depth++) {
     const candidate = segments.slice(-depth).join('/');

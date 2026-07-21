@@ -39,6 +39,23 @@ export function createSnapshot(entries: IndexEntry[], workspaceRoot: string): In
   return { entries, workspaceRoot, lookup: buildLookup(entries, workspaceRoot) };
 }
 
+// Strips the Markdown extension a wiki-link may omit. Media extensions stay: [[pic.png]]
+// must keep its extension to resolve.
+export function stripMdExt(name: string): string {
+  return name.replace(/\.(md|markdown)$/i, '');
+}
+
+// The one way IndexEntry objects should be built. The live index, the rename-time snapshot,
+// and the synthesized post-rename entries must all agree on relPath/baseNoExt semantics, or
+// rename verification is judged against entries the resolver would never produce.
+export function makeIndexEntry(fsPath: string, root: string): IndexEntry {
+  return {
+    fsPath,
+    relPath: path.relative(root, fsPath),
+    baseNoExt: stripMdExt(path.basename(fsPath)),
+  };
+}
+
 export function resolveTarget(
   // Only the target text participates in resolution — declaring that makes bare probe
   // objects ({ target }) legal without casts, and keeps fragment/display/range inert here.
@@ -52,10 +69,7 @@ export function resolveTarget(
   if (/^[/\\]/.test(t) || /^[A-Za-z]:/.test(t)) return null;
   if (t.split(/[\\/]/).some((seg) => seg === '..')) return null;
 
-  const norm = t
-    .replace(/\\/g, '/')
-    .replace(/\.(md|markdown)$/i, '')
-    .toLowerCase();
+  const norm = stripMdExt(t.replace(/\\/g, '/')).toLowerCase();
 
   const lookup = idx.lookup ?? buildLookup(idx.entries, idx.workspaceRoot);
 
@@ -88,9 +102,7 @@ export function relSuffixMatches(relPath: string, target: string): boolean {
 
 function uniqueSuffixMatch(norm: string, entries: IndexEntry[]): ResolvedTarget | null {
   // norm is already extension-stripped, so strip the entry side too before matching.
-  const hits = entries.filter((e) =>
-    relSuffixMatches(e.relPath.replace(/\.(md|markdown)$/i, ''), norm),
-  );
+  const hits = entries.filter((e) => relSuffixMatches(stripMdExt(e.relPath), norm));
   return hits.length === 1 ? { fsPath: hits[0].fsPath } : null;
 }
 

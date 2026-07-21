@@ -3,7 +3,13 @@ import * as path from 'path';
 import { ParsedRef, IndexEntry } from '../types';
 import { parseLinks } from '../parser/linkParser';
 import { parseEmbeds } from '../parser/embedParser';
-import { resolveTarget, createSnapshot, IndexSnapshot } from '../resolver/resolveTarget';
+import {
+  resolveTarget,
+  createSnapshot,
+  makeIndexEntry,
+  stripMdExt,
+  IndexSnapshot,
+} from '../resolver/resolveTarget';
 
 export type RenamePair = { oldFsPath: string; newFsPath: string };
 export type Replacement = { start: number; end: number; newText: string };
@@ -25,13 +31,7 @@ export function buildRenameContext(renames: RenamePair[], snap: IndexSnapshot): 
   const newFsPaths = new Set([...renameByOld.values()].map((p) => p.newFsPath));
   const entries: IndexEntry[] = snap.entries
     .filter((e) => !renameByOld.has(e.fsPath) && !newFsPaths.has(e.fsPath))
-    .concat(
-      [...renameByOld.values()].map((r) => ({
-        fsPath: r.newFsPath,
-        relPath: path.relative(snap.workspaceRoot, r.newFsPath),
-        baseNoExt: path.basename(r.newFsPath).replace(/\.(md|markdown)$/i, ''),
-      })),
-    );
+    .concat([...renameByOld.values()].map((r) => makeIndexEntry(r.newFsPath, snap.workspaceRoot)));
   return { renameByOld, effective: createSnapshot(entries, snap.workspaceRoot) };
 }
 
@@ -83,7 +83,7 @@ function chooseTargetForm(
   effective: IndexSnapshot,
 ): string | null {
   const oldHadSlash = oldTarget.includes('/');
-  const newBase = path.basename(finalFsPath).replace(/\.(md|markdown)$/i, '');
+  const newBase = stripMdExt(path.basename(finalFsPath));
   if (UNSAFE_RE.test(newBase)) return null;
 
   // Prefer keeping the author's form: bare stays bare when the bare name actually resolves
@@ -94,10 +94,7 @@ function chooseTargetForm(
   // Slashed wiki-link targets are workspace-root-relative (the resolver suffix-matches them
   // against each file's relPath), NOT relative to the source file. Computing the path from
   // the source dir would emit `../` segments, which the resolver rejects.
-  const rel = path
-    .relative(effective.workspaceRoot, finalFsPath)
-    .replace(/\\/g, '/')
-    .replace(/\.(md|markdown)$/i, '');
+  const rel = stripMdExt(path.relative(effective.workspaceRoot, finalFsPath).replace(/\\/g, '/'));
   // A `..` segment means the target is outside this file's workspace folder (e.g. a multi-root
   // workspace): there is no wiki-link form that can reach it, so skip the rewrite.
   if (UNSAFE_RE.test(rel) || rel.split('/').includes('..')) return null;

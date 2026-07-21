@@ -8,7 +8,12 @@ import {
   RenameContext,
   RenamePair,
 } from '../core/rename/rewriteWikiRefs';
-import { IndexSnapshot, createSnapshot, isContained } from '../core/resolver/resolveTarget';
+import {
+  IndexSnapshot,
+  createSnapshot,
+  isContained,
+  makeIndexEntry,
+} from '../core/resolver/resolveTarget';
 import { computeLineStarts, positionAt } from '../core/textPosition';
 import { buildExcludeGlob } from '../core/pathFilter';
 import { IndexEntry } from '../core/types';
@@ -105,12 +110,12 @@ export class RenameHandler {
     // path moves with it, so expand the pair to those files at their new locations.
     const renames: RenamePair[] = [...filePairs];
     for (const dir of dirPairs) {
-      const prefix = dir.oldFsPath + path.sep;
       for (const u of allFiles) {
-        if (u.fsPath.startsWith(prefix) && LINKABLE_RE.test(u.fsPath)) {
+        // isContained (separator-safe), matching buildSnapshot — not a raw startsWith.
+        if (isContained(u.fsPath, dir.oldFsPath) && LINKABLE_RE.test(u.fsPath)) {
           renames.push({
             oldFsPath: u.fsPath,
-            newFsPath: path.join(dir.newFsPath, u.fsPath.slice(prefix.length)),
+            newFsPath: path.join(dir.newFsPath, path.relative(dir.oldFsPath, u.fsPath)),
           });
         }
       }
@@ -215,7 +220,10 @@ export class RenameHandler {
           // (permissions, transient FS failure) means this referrer's links silently
           // break with the rename — surface it, as the changelog promises.
           if (!(e instanceof vscode.FileSystemError && e.code === 'FileNotFound')) {
-            console.error(`wiki-links: cannot read ${ref.fsPath}; its links were not rewritten:`, e);
+            console.error(
+              `wiki-links: cannot read ${ref.fsPath}; its links were not rewritten:`,
+              e,
+            );
           }
           return;
         }
@@ -245,11 +253,7 @@ function buildSnapshot(root: string, allFiles: readonly vscode.Uri[]): IndexSnap
   // leak into /ws/doc's entries, or completion/collision checks diverge from resolution.
   const entries: IndexEntry[] = allFiles
     .filter((u) => isContained(u.fsPath, root))
-    .map((u) => ({
-      fsPath: u.fsPath,
-      relPath: path.relative(root, u.fsPath),
-      baseNoExt: path.basename(u.fsPath).replace(/\.(md|markdown)$/i, ''),
-    }));
+    .map((u) => makeIndexEntry(u.fsPath, root));
   return createSnapshot(entries, root);
 }
 
