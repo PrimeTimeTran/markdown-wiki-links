@@ -201,7 +201,13 @@ export class RenameHandler {
             return;
           }
         } else {
-          return; // deleted or unreadable between the scan and the read — nothing to rewrite
+          // Deleted between the scan and the read is expected churn. Anything else
+          // (permissions, transient FS failure) means this referrer's links silently
+          // break with the rename — surface it, as the changelog promises.
+          if (!(e instanceof vscode.FileSystemError && e.code === 'FileNotFound')) {
+            console.error(`wiki-links: cannot read ${ref.fsPath}; its links were not rewritten:`, e);
+          }
+          return;
         }
       }
     }
