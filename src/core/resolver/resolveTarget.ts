@@ -93,7 +93,9 @@ export function resolveTarget(
 
 // Segment-safe suffix match of a forward-slash link target against an entry relPath (which
 // uses platform separators — backslashes on Windows). Shared by the resolver and the preview
-// so both sides agree on which files a slashed target can mean.
+// so both sides agree on which files a slashed target can MATCH. Uniqueness policy still
+// differs by design of the caller: the resolver requires a unique match, the preview's
+// image embed takes the first hit.
 export function relSuffixMatches(relPath: string, target: string): boolean {
   const rel = relPath.replace(/\\/g, '/').toLowerCase();
   const t = target.toLowerCase();

@@ -53,6 +53,10 @@ export class IndexService {
           // A folder rename arrives as one pair for the directory itself, and the watcher
           // does not emit per-file events for the children — remap every indexed entry
           // beneath the old path or they go stale (and keep offering dead targets).
+          // Skip the sweep for plain-file pairs (an indexable extension): they have no
+          // children, and a large multi-select rename would otherwise do one full
+          // O(entries) pass per file.
+          if (INDEXABLE_RE.test(f.oldUri.fsPath)) continue;
           const oldDir = f.oldUri.fsPath;
           for (const entry of [...this.entries.values()]) {
             if (isContained(entry.fsPath, oldDir) && entry.fsPath !== oldDir) {
