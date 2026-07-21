@@ -1,0 +1,13 @@
+# Normalize text to LF in the repository AND in the working tree. .prettierrc pins
+# endOfLine: "lf", so without eol=lf a Windows checkout (core.autocrlf=true) produces
+# CRLF files and `pnpm format:check` fails on every file in the repo.
+* text=auto eol=lf
+
+# Binary fixtures must never be line-ending-converted. Git's heuristic already detects
+# these, but the embeds fixture PNG happens to contain a 0D 0A byte pair, so pin them.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.vsix binary
