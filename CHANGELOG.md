@@ -11,6 +11,10 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Slashed links (`[[folder/note]]`) now resolve on Windows; backslash relative
   paths were never matched against the forward-slash link form.
+- Code-fence detection is now correct in CRLF files: fence intervals drifted
+  one character left per CRLF line, so links near the end of a fence could be
+  treated as live — colored, diagnosed, and even rewritten on rename — while
+  text just after a fence could be wrongly ignored.
 - Rename rewriting is encoding-safe: files whose bytes are not clean UTF-8
   (UTF-16 with or without BOM, legacy codepages) and workspaces with a
   non-UTF-8 `files.encoding` — including a language-scoped

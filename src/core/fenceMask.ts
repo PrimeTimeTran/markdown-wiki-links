@@ -3,7 +3,10 @@ export type FenceMask = Interval[];
 
 export function buildFenceMask(text: string): FenceMask {
   const out: Interval[] = [];
-  const lines = text.split(/\r?\n/);
+  // Split on \n only: a CRLF's \r stays inside `line`, so `line.length + 1` advances by the
+  // true byte distance. Splitting on /\r?\n/ undercounted one char per CRLF line, drifting
+  // every interval left of the offsets parsers compute on the raw text.
+  const lines = text.split('\n');
   let offset = 0;
   let inFence: '```' | '~~~' | null = null;
   let fenceStart = 0;

@@ -187,7 +187,11 @@ suite('Rename propagation in a CRLF referrer', () => {
     const ext = vscode.extensions.getExtension('ltvan.markdown-wiki-links');
     await ext!.activate();
     await tryDelete(newT());
-    await writeText(referrer(), 'Top line.\r\n\r\nSee [[crlf-old]] here, and [[crlf-old|D]].\r\n');
+    await writeText(
+      referrer(),
+      'Top line.\r\n\r\nSee [[crlf-old]] here, and [[crlf-old|D]].\r\n\r\n' +
+        '```\r\nfenced [[crlf-old]] stays\r\n```\r\n',
+    );
     await writeText(oldT(), '# CRLF old\n');
   });
 
@@ -210,6 +214,10 @@ suite('Rename propagation in a CRLF referrer', () => {
     assert.ok(
       text.includes('See [[crlf-new]] here, and [[crlf-new|D]].'),
       `mangled rewrite: ${JSON.stringify(text)}`,
+    );
+    assert.ok(
+      text.includes('fenced [[crlf-old]] stays'),
+      `fenced CRLF occurrence must not be rewritten: ${JSON.stringify(text)}`,
     );
   });
 });
