@@ -51,6 +51,9 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - In a multi-root workspace, a sibling folder sharing a name prefix (`/ws/doc`
   vs `/ws/docs`) no longer leaks its files into the other root's completion
   and rename-collision checks.
+- Moving a folder from one workspace root into another no longer rewrites its
+  files' links into forms that only the old root could resolve. Since
+  wiki-links never resolve across roots, such refs are now left untouched.
 - One unreadable or otherwise failing file during rename rewriting no longer
   discards the rewrites computed for every other file — the bad file is
   skipped with a logged error.

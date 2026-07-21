@@ -19,7 +19,7 @@ TypeScript, pnpm, esbuild bundling, `@vscode/test-cli` + `@vscode/test-electron`
 - `pnpm test` — `pretest` (format check, lint, build, compile) then unit + e2e
 - `pnpm lint` / `pnpm format` — ESLint / Prettier
 
-E2e suites are split per fixture workspace in `.vscode-test.mjs` (labels: `unique`, `ambiguous`, `boundary`, `renames`, `fragments`, `embeds`); run one with `pnpm exec vscode-test --label <name>`.
+E2e suites are split per fixture workspace in `.vscode-test.mjs` (labels: `unique`, `ambiguous`, `boundary`, `renames`, `multiroot`, `fragments`, `embeds`); run one with `pnpm exec vscode-test --label <name>`. The `multiroot` label opens a `.code-workspace` with two roots.
 
 ## Architecture
 

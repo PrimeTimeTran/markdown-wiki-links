@@ -33,6 +33,13 @@ export default defineConfig([
     mocha: { ui: 'tdd', timeout: 20000 },
   },
   {
+    label: 'multiroot',
+    files: 'out/test/e2e/crossRoot.test.js',
+    workspaceFolder: 'test/fixtures/multiroot/multiroot.code-workspace',
+    launchArgs,
+    mocha: { ui: 'tdd', timeout: 20000 },
+  },
+  {
     label: 'fragments',
     files: 'out/test/e2e/fragments.test.js',
     workspaceFolder: 'test/fixtures/headings-and-blocks',

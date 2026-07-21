@@ -118,9 +118,15 @@ export class RenameHandler {
     if (renames.length === 0) return edit;
     // Referrers in the same workspace folder share one snapshot and one rename context —
     // built once per root so the per-ref rewrite work stays independent of batch size.
+    const newPathByOld = new Map(renames.map((r) => [r.oldFsPath, r.newFsPath]));
     const perRoot = new Map<string, { snap: IndexSnapshot; ctx: RenameContext }>();
     const contextFor = (ref: vscode.Uri): { snap: IndexSnapshot; ctx: RenameContext } => {
-      const root = vscode.workspace.getWorkspaceFolder(ref)?.uri.fsPath ?? '';
+      // Key on where the referrer will live AFTER the rename: a referrer moved across
+      // workspace roots must be judged against its destination root's snapshot, or the
+      // rewrite verification approves forms only the old root can resolve — writing
+      // links that are dead where the file actually ends up.
+      const post = newPathByOld.get(ref.fsPath) ?? ref.fsPath;
+      const root = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(post))?.uri.fsPath ?? '';
       let entry = perRoot.get(root);
       if (!entry) {
         const snap = buildSnapshot(root, allFiles);
