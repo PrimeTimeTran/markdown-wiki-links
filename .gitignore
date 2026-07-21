@@ -1,6 +1,53 @@
+# Dependencies
 node_modules/
-out/
-dist/
-*.vsix
-.vscode-test/
+.pnpm-store/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS — macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# OS — Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# OS — Linux
+*~
+.directory
+.Trash-*
+
+# Editors
+*.swp
+.idea/
+.vscode/settings.json
+*.code-workspace
+settings.local.json
+
+# Env — keep committed .env (fake placeholders); ignore local overrides
+*.local
+.env.local
+
+# Build & Export
+dist/
+out/
+*.vsix
+
+# Tests
+.vscode-test/
+test-results/
+playwright-report/
+.playwright/
+
+
+# Repo-local working dirs (never commit)
+.references/
+.superpowers/
+.*-mcp/
+
