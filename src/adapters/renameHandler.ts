@@ -77,8 +77,12 @@ export class RenameHandler {
           const st = await vscode.workspace.fs.stat(f.oldUri);
           return { pair, isDirectory: (st.type & vscode.FileType.Directory) !== 0 };
         } catch {
-          // gone already — fall back to the extension check below
-          return { pair, isDirectory: false };
+          // Stat can fail transiently (remote FS hiccup, permissions) while the path still
+          // exists. Falling back on the extension is strictly safer than assuming "file":
+          // treating a vanished path as a directory just expands to zero children, while
+          // misclassifying a real folder as a file would silently drop every rewrite for
+          // the move.
+          return { pair, isDirectory: !LINKABLE_RE.test(pair.oldFsPath) };
         }
       }),
     );
