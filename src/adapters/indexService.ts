@@ -7,6 +7,10 @@ import { IndexSnapshot, createSnapshot, isContained } from '../core/resolver/res
 import { isExcludedPath, buildExcludeGlob } from '../core/pathFilter';
 
 const GLOB = '**/*.{md,markdown,png,jpg,jpeg,gif,webp,svg}';
+// The same extension set as GLOB. add() must enforce it directly: rename events are not
+// filtered by the watcher glob, so without this a renamed folder (or a .md renamed to .txt)
+// would be inserted into the index as a link target.
+const INDEXABLE_RE = /\.(md|markdown|png|jpe?g|gif|webp|svg)$/i;
 
 const DEFAULT_EXCLUDED_FOLDERS = [
   '.git',
@@ -41,6 +45,18 @@ export class IndexService {
         for (const f of e.files) {
           this.remove(f.oldUri);
           this.add(f.newUri);
+          // A folder rename arrives as one pair for the directory itself, and the watcher
+          // does not emit per-file events for the children — remap every indexed entry
+          // beneath the old path or they go stale (and keep offering dead targets).
+          const oldDir = f.oldUri.fsPath;
+          for (const entry of [...this.entries.values()]) {
+            if (isContained(entry.fsPath, oldDir) && entry.fsPath !== oldDir) {
+              this.remove(vscode.Uri.file(entry.fsPath));
+              this.add(
+                vscode.Uri.file(path.join(f.newUri.fsPath, path.relative(oldDir, entry.fsPath))),
+              );
+            }
+          }
         }
       }),
       vscode.workspace.onDidChangeWorkspaceFolders(() => this.refresh()),
@@ -92,6 +108,7 @@ export class IndexService {
   }
 
   private add(u: vscode.Uri): void {
+    if (!INDEXABLE_RE.test(u.fsPath)) return;
     const folder = vscode.workspace.getWorkspaceFolder(u);
     if (!folder) return;
     const rel = path.relative(folder.uri.fsPath, u.fsPath);

@@ -1,4 +1,5 @@
 import * as assert from 'assert';
+import * as path from 'path';
 
 import * as vscode from 'vscode';
 
@@ -445,6 +446,68 @@ suite('Rename propagation with files.encoding set to a legacy codepage', () => {
     assert.ok(
       text.includes('sees [[w1252-new]] here.'),
       `mangled rewrite: ${JSON.stringify(text)}`,
+    );
+  });
+});
+
+suite('Index consistency after a folder rename', () => {
+  const ws = (): vscode.Uri => vscode.workspace.workspaceFolders![0].uri;
+  const oldDir = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'idxdir');
+  const newDir = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'idxdir2');
+  const referrer = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'idx-referrer.md');
+
+  async function tryDeleteDir(uri: vscode.Uri): Promise<void> {
+    try {
+      await vscode.workspace.fs.delete(uri, { recursive: true });
+    } catch {
+      // already gone
+    }
+  }
+
+  suiteSetup(async () => {
+    const ext = vscode.extensions.getExtension('ltvan.markdown-wiki-links');
+    await ext!.activate();
+    await tryDeleteDir(newDir());
+    await tryDeleteDir(oldDir());
+    await writeText(vscode.Uri.joinPath(oldDir(), 'idx-note.md'), '# Idx note\n');
+  });
+
+  suiteTeardown(async () => {
+    await tryDeleteDir(newDir());
+    await tryDeleteDir(oldDir());
+    await tryDelete(referrer());
+  });
+
+  test('links through the renamed folder path resolve; the folder itself is never a target', async () => {
+    const linkTargets = async (): Promise<string[]> => {
+      const links = await vscode.commands.executeCommand<vscode.DocumentLink[]>(
+        'vscode.executeLinkProvider',
+        referrer(),
+      );
+      return links.map((l) => l.target?.fsPath ?? '');
+    };
+
+    // Precondition: the file must actually be indexed before the rename, or there is
+    // nothing for the rename handling to remap (watcher create events arrive async).
+    await writeText(referrer(), 'Probe [[idxdir/idx-note]].\n');
+    await vscode.workspace.openTextDocument(referrer());
+    await waitFor(async () =>
+      (await linkTargets()).some((t) => t.endsWith(path.join('idxdir', 'idx-note.md'))),
+    );
+
+    const edit = new vscode.WorkspaceEdit();
+    edit.renameFile(oldDir(), newDir(), { overwrite: false });
+    assert.strictEqual(await vscode.workspace.applyEdit(edit), true);
+
+    // Written after the rename on purpose: this pins the index, not link rewriting.
+    await writeText(referrer(), 'See [[idxdir2/idx-note]] and [[idxdir2]].\n');
+    await waitFor(async () =>
+      (await linkTargets()).some((t) => t.endsWith(path.join('idxdir2', 'idx-note.md'))),
+    );
+    const targets = await linkTargets();
+    assert.ok(
+      !targets.includes(newDir().fsPath),
+      `the renamed folder itself must not be indexed as a link target: ${targets.join(', ')}`,
     );
   });
 });

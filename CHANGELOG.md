@@ -34,6 +34,11 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Moving or renaming a **folder** now rewrites wiki-links to the files inside
   it. Previously folder operations were ignored entirely, silently breaking
   every link into the moved folder.
+- The index now follows folder renames: entries under the old folder path are
+  remapped to the new one (they previously went stale, offering dead
+  completion/link targets until a reload), and a renamed folder or a file
+  renamed to a non-indexable extension is no longer inserted into the index
+  as a bogus link target.
 
 - Renaming or moving a linked file no longer freezes the editor for many
   seconds in large workspaces. The rename participant previously opened every
