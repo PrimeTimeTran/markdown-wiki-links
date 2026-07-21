@@ -28,6 +28,8 @@ $RECYCLE.BIN/
 .idea/
 .vscode/settings.json
 *.code-workspace
+# Test fixtures are real inputs, not editor state.
+!test/fixtures/**/*.code-workspace
 settings.local.json
 
 # Env — keep committed .env (fake placeholders); ignore local overrides
