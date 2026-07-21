@@ -1,20 +1,23 @@
 import * as assert from 'assert';
 
 import { rewriteWikiRefs, buildRenameContext } from '../../src/core/rename/rewriteWikiRefs';
-import { IndexSnapshot } from '../../src/core/resolver/resolveTarget';
+import { IndexSnapshot, makeIndexEntry } from '../../src/core/resolver/resolveTarget';
+import { np } from '../helpers/nativePath';
 
+// Fixture paths are written POSIX-style and translated to native paths by np(), so these
+// tests pin the same behavior on Windows and POSIX. See test/helpers/nativePath.ts.
+// The wiki-link text in `src` and in the expected results is always forward-slash — that is
+// link syntax, not a filesystem path — so it stays literal.
 function snap(paths: string[]): IndexSnapshot {
   return {
-    workspaceRoot: '/root',
-    entries: paths.map((p) => ({
-      fsPath: p,
-      relPath: p.replace(/^\/root\//, ''),
-      baseNoExt: p
-        .split('/')
-        .pop()!
-        .replace(/\.(md|markdown)$/, ''),
-    })),
+    workspaceRoot: np('/root'),
+    entries: paths.map((p) => makeIndexEntry(np(p), np('/root'))),
   };
+}
+
+/** Rename pair from POSIX-style literals. */
+function pair(oldPosix: string, newPosix: string) {
+  return { oldFsPath: np(oldPosix), newFsPath: np(newPosix) };
 }
 
 function applyReplacements(
@@ -34,8 +37,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/old.md']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/home.md',
-      [{ oldFsPath: '/root/old.md', newFsPath: '/root/new.md' }],
+      np('/root/home.md'),
+      [pair('/root/old.md', '/root/new.md')],
       s,
     );
     assert.strictEqual(applyReplacements(src, edits), 'See [[new]] here.');
@@ -46,8 +49,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/old.md']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/home.md',
-      [{ oldFsPath: '/root/old.md', newFsPath: '/root/new.md' }],
+      np('/root/home.md'),
+      [pair('/root/old.md', '/root/new.md')],
       s,
     );
     assert.strictEqual(applyReplacements(src, edits), '[[new|Display]]');
@@ -58,8 +61,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/old.md']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/home.md',
-      [{ oldFsPath: '/root/old.md', newFsPath: '/root/new.md' }],
+      np('/root/home.md'),
+      [pair('/root/old.md', '/root/new.md')],
       s,
     );
     assert.strictEqual(applyReplacements(src, edits), '[[new#H]]');
@@ -70,8 +73,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/old.md']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/home.md',
-      [{ oldFsPath: '/root/old.md', newFsPath: '/root/new.md' }],
+      np('/root/home.md'),
+      [pair('/root/old.md', '/root/new.md')],
       s,
     );
     assert.strictEqual(applyReplacements(src, edits), '![[new|300]]');
@@ -82,8 +85,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/old.md', '/root/notes/new.md']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/home.md',
-      [{ oldFsPath: '/root/old.md', newFsPath: '/root/new.md' }],
+      np('/root/home.md'),
+      [pair('/root/old.md', '/root/new.md')],
       s,
     );
     assert.strictEqual(applyReplacements(src, edits), 'See [[new]].');
@@ -94,8 +97,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/old.md']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/home.md',
-      [{ oldFsPath: '/root/old.md', newFsPath: '/root/new.md' }],
+      np('/root/home.md'),
+      [pair('/root/old.md', '/root/new.md')],
       s,
     );
     assert.strictEqual(applyReplacements(src, edits), 'See [[new]].');
@@ -106,8 +109,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/notes/old.md', '/root/other.md']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/home.md',
-      [{ oldFsPath: '/root/notes/old.md', newFsPath: '/root/notes/new.md' }],
+      np('/root/home.md'),
+      [pair('/root/notes/old.md', '/root/notes/new.md')],
       s,
     );
     assert.strictEqual(applyReplacements(src, edits), '[[notes/new]]');
@@ -119,8 +122,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/moving/inner.md']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/moving/inner.md',
-      [{ oldFsPath: '/root/moving/inner.md', newFsPath: '/root/moved/inner.md' }],
+      np('/root/moving/inner.md'),
+      [pair('/root/moving/inner.md', '/root/moved/inner.md')],
       s,
     );
     assert.deepStrictEqual(edits, []);
@@ -133,8 +136,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/moving/inner.md']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/home.md',
-      [{ oldFsPath: '/root/moving/inner.md', newFsPath: '/root/moved/inner.md' }],
+      np('/root/home.md'),
+      [pair('/root/moving/inner.md', '/root/moved/inner.md')],
       s,
     );
     assert.deepStrictEqual(edits, []);
@@ -145,8 +148,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/unrelated.md']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/home.md',
-      [{ oldFsPath: '/root/old.md', newFsPath: '/root/new.md' }],
+      np('/root/home.md'),
+      [pair('/root/old.md', '/root/new.md')],
       s,
     );
     assert.deepStrictEqual(edits, []);
@@ -157,8 +160,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/old.md']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/home.md',
-      [{ oldFsPath: '/root/old.md', newFsPath: '/root/weird]name.md' }],
+      np('/root/home.md'),
+      [pair('/root/old.md', '/root/weird]name.md')],
       s,
     );
     assert.deepStrictEqual(edits, [], 'no edits emitted for unsafe filename');
@@ -171,8 +174,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/Drafts/README.md', '/root/Inbox/note.md']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/Inbox/home.md',
-      [{ oldFsPath: '/root/Drafts/README.md', newFsPath: '/root/Drafts/README3.md' }],
+      np('/root/Inbox/home.md'),
+      [pair('/root/Drafts/README.md', '/root/Drafts/README3.md')],
       s,
     );
     const result = applyReplacements(src, edits);
@@ -185,8 +188,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/Drafts/README.md', '/root/a/b/c/note.md']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/a/b/c/home.md',
-      [{ oldFsPath: '/root/Drafts/README.md', newFsPath: '/root/Drafts/README3.md' }],
+      np('/root/a/b/c/home.md'),
+      [pair('/root/Drafts/README.md', '/root/Drafts/README3.md')],
       s,
     );
     assert.strictEqual(applyReplacements(src, edits), '[[Drafts/README3]]');
@@ -197,8 +200,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/diagram.png']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/home.md',
-      [{ oldFsPath: '/root/diagram.png', newFsPath: '/root/chart.png' }],
+      np('/root/home.md'),
+      [pair('/root/diagram.png', '/root/chart.png')],
       s,
     );
     assert.strictEqual(
@@ -212,8 +215,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/diagram.png']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/home.md',
-      [{ oldFsPath: '/root/diagram.png', newFsPath: '/root/chart.png' }],
+      np('/root/home.md'),
+      [pair('/root/diagram.png', '/root/chart.png')],
       s,
     );
     assert.strictEqual(applyReplacements(src, edits), '![[chart.png|300]]');
@@ -226,8 +229,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/a/notes.md', '/root/b/notes.md', '/root/a/sub/ref.md']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/a/sub/ref.md',
-      [{ oldFsPath: '/root/a/sub/ref.md', newFsPath: '/root/moved/ref.md' }],
+      np('/root/a/sub/ref.md'),
+      [pair('/root/a/sub/ref.md', '/root/moved/ref.md')],
       s,
     );
     assert.strictEqual(applyReplacements(src, edits), 'See [[a/notes]].');
@@ -238,8 +241,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/docs/note.md']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/home.md',
-      [{ oldFsPath: '/root/docs/note.md', newFsPath: '/root/archive/note.md' }],
+      np('/root/home.md'),
+      [pair('/root/docs/note.md', '/root/archive/note.md')],
       s,
     );
     assert.deepStrictEqual(edits, []);
@@ -250,8 +253,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/docs/note.md']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/home.md',
-      [{ oldFsPath: '/root/docs/note.md', newFsPath: '/root/archive/note.md' }],
+      np('/root/home.md'),
+      [pair('/root/docs/note.md', '/root/archive/note.md')],
       s,
     );
     assert.deepStrictEqual(edits, []);
@@ -264,8 +267,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/a/dup.md', '/root/other.md']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/home.md',
-      [{ oldFsPath: '/root/other.md', newFsPath: '/root/b/dup.md' }],
+      np('/root/home.md'),
+      [pair('/root/other.md', '/root/b/dup.md')],
       s,
     );
     assert.strictEqual(applyReplacements(src, edits), 'See [[a/dup]].');
@@ -279,8 +282,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/A.md', '/root/docs/B.md']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/home.md',
-      [{ oldFsPath: '/root/A.md', newFsPath: '/root/docs/B.md' }],
+      np('/root/home.md'),
+      [pair('/root/A.md', '/root/docs/B.md')],
       s,
     );
     assert.deepStrictEqual(edits, []);
@@ -294,8 +297,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/old.md', '/root/x/a/b.md']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/home.md',
-      [{ oldFsPath: '/root/old.md', newFsPath: '/root/a/b.md' }],
+      np('/root/home.md'),
+      [pair('/root/old.md', '/root/a/b.md')],
       s,
     );
     assert.deepStrictEqual(edits, []);
@@ -304,9 +307,9 @@ suite('rewriteWikiRefs (logic paths)', () => {
   test('an explicitly passed rename context produces the same edits', () => {
     const src = 'See [[notes]].';
     const s = snap(['/root/a/notes.md', '/root/b/notes.md', '/root/a/sub/ref.md']);
-    const renames = [{ oldFsPath: '/root/a/sub/ref.md', newFsPath: '/root/moved/ref.md' }];
+    const renames = [pair('/root/a/sub/ref.md', '/root/moved/ref.md')];
     const ctx = buildRenameContext(renames, s);
-    const edits = rewriteWikiRefs(src, '/root/a/sub/ref.md', renames, s, ctx);
+    const edits = rewriteWikiRefs(src, np('/root/a/sub/ref.md'), renames, s, ctx);
     assert.strictEqual(applyReplacements(src, edits), 'See [[a/notes]].');
   });
 
@@ -315,8 +318,8 @@ suite('rewriteWikiRefs (logic paths)', () => {
     const s = snap(['/root/old.md']);
     const edits = rewriteWikiRefs(
       src,
-      '/root/home.md',
-      [{ oldFsPath: '/root/old.md', newFsPath: '/root/new.md' }],
+      np('/root/home.md'),
+      [pair('/root/old.md', '/root/new.md')],
       s,
     );
     const result = applyReplacements(src, edits);
