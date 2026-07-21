@@ -441,6 +441,60 @@ suite('Rename propagation with files.encoding set to a legacy codepage', () => {
   });
 });
 
+suite('Rename propagation with a language-scoped [markdown] files.encoding', () => {
+  const ws = (): vscode.Uri => vscode.workspace.workspaceFolders![0].uri;
+  const referrer = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'langscope-referrer.md');
+  const oldT = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'langscope-old.md');
+  const newT = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'langscope-new.md');
+  // Language-scoped configuration: writes into "[markdown]": { "files.encoding": ... },
+  // which a bare-Uri getConfiguration scope cannot see.
+  const mdFilesConfig = (): vscode.WorkspaceConfiguration =>
+    vscode.workspace.getConfiguration('files', { languageId: 'markdown' });
+
+  suiteSetup(async () => {
+    const ext = vscode.extensions.getExtension('ltvan.markdown-wiki-links');
+    await ext!.activate();
+    // Self-heal from a previous crashed run before flipping the setting for this suite.
+    await mdFilesConfig().update('encoding', undefined, vscode.ConfigurationTarget.Workspace, true);
+    await mdFilesConfig().update(
+      'encoding',
+      'windows1252',
+      vscode.ConfigurationTarget.Workspace,
+      true,
+    );
+    await tryDelete(newT());
+    // Same trap as the resource-scoped w1252 suite: 'café' as UTF-8 bytes is also valid
+    // windows1252 (one char longer), so offsets computed from a raw UTF-8 decode disagree
+    // with VSCode's language-override decode and would splice mid-link.
+    const bytes = Buffer.from('café sees [[langscope-old]] here.\n', 'utf8');
+    await vscode.workspace.fs.writeFile(referrer(), bytes);
+    await writeText(oldT(), '# Old\n');
+  });
+
+  suiteTeardown(async () => {
+    await mdFilesConfig().update('encoding', undefined, vscode.ConfigurationTarget.Workspace, true);
+    await tryDelete(newT());
+    await tryDelete(oldT());
+    await tryDelete(referrer());
+  });
+
+  test('rewrites land at positions consistent with the [markdown]-scoped encoding', async () => {
+    const edit = new vscode.WorkspaceEdit();
+    edit.renameFile(oldT(), newT(), { overwrite: false });
+    assert.strictEqual(await vscode.workspace.applyEdit(edit), true);
+
+    await waitFor(async () => {
+      const d = await vscode.workspace.openTextDocument(referrer());
+      return d.getText().includes('langscope-new');
+    });
+    const text = (await vscode.workspace.openTextDocument(referrer())).getText();
+    assert.ok(
+      text.includes('sees [[langscope-new]] here.'),
+      `mangled rewrite: ${JSON.stringify(text)}`,
+    );
+  });
+});
+
 suite('Rename propagation for media files', () => {
   const ws = (): vscode.Uri => vscode.workspace.workspaceFolders![0].uri;
   const note = (): vscode.Uri => vscode.Uri.joinPath(ws(), 'note-with-image.md');

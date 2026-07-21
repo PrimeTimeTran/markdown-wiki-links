@@ -38,7 +38,10 @@ const FATAL_UTF8 = new TextDecoder('utf-8', { fatal: true });
 // The fast path decodes raw bytes as UTF-8; that is only sound when VSCode will decode the
 // file identically when applying the WorkspaceEdit.
 function mustUseVSCodeDecoder(ref: vscode.Uri): boolean {
-  const files = vscode.workspace.getConfiguration('files', ref);
+  // {uri, languageId} scope, not the bare Uri: files.encoding is language-overridable, and a
+  // bare-Uri scope cannot see "[markdown]": {"files.encoding": ...} overrides. Every referrer
+  // on this path is Markdown by construction (MARKDOWN_RE filter).
+  const files = vscode.workspace.getConfiguration('files', { uri: ref, languageId: 'markdown' });
   return (
     files.get<string>('encoding', 'utf8') !== 'utf8' ||
     files.get<boolean>('autoGuessEncoding', false)
