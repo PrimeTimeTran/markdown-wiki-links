@@ -5,7 +5,10 @@ All notable changes to this extension are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.0-preview.1] - 2026-07-22
+
+Pre-release (published to the Marketplace as `0.2.0` with the pre-release
+flag; the Marketplace does not accept semver suffixes).
 
 ### Fixed
 
