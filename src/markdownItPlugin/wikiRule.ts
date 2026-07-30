@@ -7,11 +7,19 @@ export type EmbedResolved =
   | { kind: 'markdown'; text: string; sourcePath: string }
   | { kind: 'image'; src: string };
 
+export type LinkResolved =
+  | { kind: 'file'; href: string }
+  | { kind: 'url'; href: string }
+  | { kind: 'command'; command: string; args?: unknown[] }
+  | { kind: 'preview'; path: string }
+  | { kind: 'bookmark'; id: string }
+  | { kind: 'panel'; panel: string };
+
 export type WikiResolver = {
   // Resolve an embed (![[...]]). `key` is `target` or `target#fragment`.
   resolveEmbed: (fromFsPath: string, key: string, sizeHint?: string) => EmbedResolved | null;
   // Resolve a link ([[...]]) to an href the Markdown preview can navigate; null = unresolved.
-  resolveLink: (fromFsPath: string, target: string, fragment?: string) => string | null;
+  resolveLink: (fromFsPath: string, target: string, fragment?: string) => LinkResolved | null;
 };
 
 const EMBED_RE = /!\[\[([^[\]|#\r\n]+)(?:#([^[\]|\r\n]+))?(?:\|([^[\]\r\n]+))?\]\]/g;

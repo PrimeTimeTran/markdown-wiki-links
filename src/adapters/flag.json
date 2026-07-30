@@ -1,0 +1,93 @@
+[
+  {
+    "id": "@save",
+    "label": "Save",
+    "description": "Save",
+    "scope": "language",
+    "action": "wiki.click"
+  },
+  {
+    "id": "@capture",
+    "label": "Capture",
+    "description": "Capture",
+    "scope": "language",
+    "action": "wiki.click"
+  },
+  {
+    "id": "@note",
+    "label": "Note",
+    "description": "Note...",
+    "scope": "language",
+    "action": "wiki.branch"
+  },
+  {
+    "id": "@fold",
+    "label": "Fold",
+    "description": "Fold....",
+    "scope": "language",
+    "action": "wiki.branch"
+  },
+  {
+    "id": "@preserve",
+    "label": "Preserve",
+    "description": "Preserve...",
+    "scope": "language",
+    "action": "wiki.branch"
+  },
+  {
+    "id": "@option",
+    "label": "Option",
+    "description": "Option...",
+    "scope": "language",
+    "action": "wiki.branch"
+  },
+  {
+    "id": "@inline",
+    "label": "Inline",
+    "description": "Inline...",
+    "scope": "language",
+    "action": "wiki.branch"
+  },
+  {
+    "id": "@context",
+    "label": "Option",
+    "description": "Option...",
+    "scope": "language",
+    "action": "ui.openInNewEditorGroup"
+  },
+  {
+    "id": "@connected",
+    "label": "Connected",
+    "description": "Connected...",
+    "scope": "language",
+    "action": "wiki.branch"
+  },
+  {
+    "id": "@branch",
+    "label": "Branch",
+    "description": "Branch...",
+    "scope": "language",
+    "action": "wiki.branch"
+  },
+  {
+    "id": "@hoverable",
+    "label": "Hoverable",
+    "description": "Hoverable...",
+    "scope": "language",
+    "action": "wiki.hoverable"
+  },
+  {
+    "id": "@pinnable",
+    "label": "Pinnable",
+    "description": "Pinnable...",
+    "scope": "language",
+    "action": "ui.pinnable"
+  },
+  {
+    "id": "@pick",
+    "label": "Pick",
+    "description": "Pick...",
+    "scope": "language",
+    "action": "wiki.ui.pick"
+  }
+]

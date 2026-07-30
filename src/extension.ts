@@ -7,12 +7,15 @@ import { RenameHandler } from './adapters/renameHandler';
 import { createPreviewResolver } from './adapters/previewResolver';
 import { WikiDiagnostics } from './adapters/diagnostics';
 import { WikiCompletionProvider } from './adapters/completionProvider';
-import { WikiDecorations } from './adapters/decorations';
+import { WikiCodeLensProvider } from './adapters/codelens';
+import { BookmarkStore } from './adapters/bookmarkService';
 import {
   extendMarkdownIt as wireMarkdownIt,
   setResolver,
   resetResolver,
 } from './markdownItPlugin/index';
+import { ActivityStore } from './adapters/activityService';
+import { EstateContext, showEstatePanel } from './adapters/estate';
 
 let indexService: IndexService | undefined;
 
@@ -22,12 +25,125 @@ type WikiLinksApi = { extendMarkdownIt(md: any): any };
 export async function activate(context: vscode.ExtensionContext): Promise<WikiLinksApi> {
   indexService = new IndexService();
   await indexService.initialize();
-  context.subscriptions.push(indexService);
+  const store = new BookmarkStore();
+  store.init();
+  const activityStore = new ActivityStore();
+  activityStore.init(context);
+  const codeLens = new WikiCodeLensProvider(store, activityStore);
   context.subscriptions.push(
-    vscode.commands.registerCommand('wikiLinks.rebuildIndex', () => indexService?.refresh()),
+    vscode.languages.registerCodeLensProvider({ language: 'markdown' }, codeLens),
     vscode.languages.registerDocumentLinkProvider(
       { language: 'markdown' },
       new WikiDocumentLinkProvider(indexService),
+    ),
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('ui.addInlinePanel', (ctx: { id: string }) => {
+      const bookmark = store.get(ctx.id);
+      if (!bookmark) return;
+      vscode.window.showInformationMessage(`Inline: ${bookmark.label}`);
+    }),
+    vscode.commands.registerCommand('ui.openInNewEditorGroup', async (ctx: EstateContext) => {
+      const bookmark = store.get(ctx.bookmark);
+      if (!bookmark) {
+        vscode.window.showWarningMessage(`Unknown estate: ${ctx.bookmark}`);
+        return;
+      }
+
+      await showEstatePanel(bookmark);
+
+      vscode.window.showInformationMessage(`Editor Group: ${bookmark.label}`);
+    }),
+    vscode.commands.registerCommand('estate.addPersistentNotification', (ctx: { id: string }) => {
+      const bookmark = store.get(ctx.id);
+      if (!bookmark) return;
+      vscode.window.showInformationMessage(`Pinned: ${bookmark.label}`);
+    }),
+    vscode.commands.registerCommand('estate.openTextAndIconPanel', (ctx: { id: string }) => {
+      const bookmark = store.get(ctx.id);
+      if (!bookmark) return;
+      vscode.window.showInformationMessage(`Panel: ${bookmark.label}`);
+    }),
+    vscode.commands.registerCommand('ui.openQuickpickDropdown', (ctx: { id: string }) => {
+      const bookmark = store.get(ctx.id);
+      if (!bookmark) return;
+      vscode.window.showQuickPick([
+        `🧩 Inline ${bookmark.label}`,
+        `🕸 Graph ${bookmark.label}`,
+        `♻️ Replace ${bookmark.label}`,
+        `💾 Save ${bookmark.label}`,
+      ]);
+    }),
+    vscode.commands.registerCommand('estate.contentSave', (ctx: { id: string }) => {
+      const bookmark = store.get(ctx.id);
+      if (!bookmark) return;
+      vscode.window.showInformationMessage(`Save content for ${bookmark.label}`);
+    }),
+    vscode.commands.registerCommand('estate.contentCycle', (ctx: { id: string }) => {
+      const bookmark = store.get(ctx.id);
+      if (!bookmark) return;
+      vscode.window.showInformationMessage(`Cycle variants for ${bookmark.label}`);
+    }),
+    vscode.commands.registerCommand('estate.contentReplace', (ctx: { id: string }) => {
+      const bookmark = store.get(ctx.id);
+      if (!bookmark) return;
+
+      vscode.window.showInformationMessage(`Replace using ${bookmark.label}`);
+    }),
+    vscode.commands.registerCommand(
+      'estate.toggleFold',
+      async (uri: vscode.Uri, range: vscode.Range) => {
+        const editor = vscode.window.visibleTextEditors.find(
+          (e) => e.document.uri.toString() === uri.toString(),
+        );
+        if (!editor) {
+          return;
+        }
+        await vscode.window.showTextDocument(editor.document, editor.viewColumn);
+        const folded = codeLens.isFolded(uri, range);
+        editor.selection = new vscode.Selection(range.start, range.start);
+        editor.revealRange(range);
+        if (folded) {
+          await vscode.commands.executeCommand('editor.unfold');
+        } else {
+          await vscode.commands.executeCommand('editor.fold');
+        }
+        codeLens.setFolded(uri, range, !folded);
+        codeLens.refresh();
+      },
+    ),
+    vscode.commands.registerCommand('wikiLinks.rebuildIndex', () => indexService?.refresh()),
+    vscode.commands.registerCommand('wiki.showGraph', (ctx: EstateContext) => {
+      vscode.window.showInformationMessage(`Graph for ${ctx.bookmark}`);
+    }),
+    vscode.commands.registerCommand('ui.pinnable', (ctx: { id: string }) => {
+      const flag = store.getFlag(ctx.id);
+      if (!flag) return;
+      vscode.window.showInformationMessage(`Pinnable for ${flag?.label}`);
+    }),
+    vscode.commands.registerCommand('ui.pick', (ctx) => {
+      const bookmark = store.get(ctx.id);
+      vscode.window.showQuickPick([
+        `🏠 ${bookmark?.label}`,
+        '🕸 Graph',
+        '📄 Open Body',
+        '🌿 Branches',
+      ]);
+    }),
+    // Hover item
+    vscode.languages.registerHoverProvider(
+      { language: 'markdown' },
+      {
+        provideHover(document, position) {
+          const line = document.lineAt(position.line).text;
+          if (line.includes('@hover')) {
+            const md = new vscode.MarkdownString();
+            md.isTrusted = true;
+            md.appendMarkdown(newEditorGroupTabContent);
+            return new vscode.Hover(md);
+          }
+        },
+      },
     ),
     vscode.languages.registerHoverProvider(
       { language: 'markdown' },
@@ -42,9 +158,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
       '^',
     ),
   );
+
+  context.subscriptions.push(indexService);
+  activityStore.subscribe((activity) => {
+    let item = {
+      file: activity.editor.fileName,
+      line: activity.editor.line,
+      text: activity.editor.lineText,
+      scope: activity.scope,
+    };
+    console.log('ACTIVITY:');
+    console.log('ACTIVITY file', item.file);
+    console.log('ACTIVITY line', item.line);
+    console.log('ACTIVITY scope', item.scope);
+  });
   new RenameHandler().register(context);
   new WikiDiagnostics(indexService).register(context);
-  new WikiDecorations(indexService).register(context);
+  //  new WikiDecorations(indexService).register(context);
 
   // VSCode reads `extendMarkdownIt` off the extension's exports — i.e. activate's return value.
   return {
@@ -68,7 +198,6 @@ export function deactivate(): void {
   resetResolver();
   indexService = undefined;
 }
-
 const DEFAULT_EMBED_MAX_DEPTH = 3;
 
 function embedMaxDepth(): number {
@@ -77,3 +206,15 @@ function embedMaxDepth(): number {
     .get<number>('embed.maxDepth', DEFAULT_EMBED_MAX_DEPTH);
   return typeof configured === 'number' && configured >= 1 ? configured : DEFAULT_EMBED_MAX_DEPTH;
 }
+
+const newEditorGroupTabContent = `
+## 🏠 Foo Architecture
+
+Foo desc
+
+**Context**
+
+Foo context
+
+[Open Graph](command:wiki.showGraph)
+      `;

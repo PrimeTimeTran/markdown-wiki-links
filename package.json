@@ -2,7 +2,7 @@
   "name": "markdown-wiki-links",
   "displayName": "Markdown Wiki Links",
   "publisher": "ltvan",
-  "version": "0.2.0",
+  "version": "0.2.5",
   "description": "Obsidian-style [[wiki-links]] between Markdown files in the workspace.",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -33,7 +33,7 @@
   "main": "./dist/extension.js",
   "scripts": {
     "build": "node esbuild.mjs",
-    "watch": "node esbuild.mjs --watch",
+    "watch": "node esbuild.mjs --watch; echo 'watching'",
     "compile:tests": "tsc -p ./",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -115,6 +115,7 @@
     "mocha": "^11.7.5",
     "prettier": "^3.8.3",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.4"
+    "typescript-eslint": "^8.59.4",
+    "vscode": "^1.1.37"
   }
 }
