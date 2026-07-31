@@ -124,21 +124,21 @@ export class WikiDecorations {
   });
   private timer?: ReturnType<typeof setTimeout>;
   constructor(
+    app: AppStore,
     private idx: IndexService,
-    store: BookmarkStore,
-    ctx: vscode.ExtensionContext,
-    analysisStore: AnalysisStore,
   ) {
-    analysisStore.subscribe(() => {
-      const result = analysisStore.get();
-      const lines = analysisStore.getRelatedLines();
+    console.log('Hi Decorations');
+    app.analysis.subscribe(() => {
+      console.log('Click Decoration');
+      const result = app.analysis.get();
+      const lines = app.analysis.getRelatedLines();
       if (!result) return;
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
       this.previewIconStack(editor);
       this.applyDecorations(editor, lines);
     });
-    ctx.subscriptions.push(
+    app.ctx.subscriptions.push(
       this.resolved,
       this.unresolved,
       this.unrelatedDecorationType,
@@ -732,6 +732,7 @@ function isProbablyVisible(editor: vscode.TextEditor, line: number) {
 }
 
 import { icons } from '../ownership';
+import { AppStore } from '../app';
 
 // export class DecorationService {
 //   private unrelatedDecorationType = vscode.window.createTextEditorDecorationType({
@@ -839,7 +840,3 @@ import { icons } from '../ownership';
 //     }
 //   }
 // }
-
-
-
-

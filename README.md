@@ -69,6 +69,8 @@ Prefix any wikilink with `!` to embed its content inline:
 
 Requires Node.js and pnpm.
 
+
+# @context
 ```sh
 pnpm install        # install dependencies
 pnpm build          # bundle the extension into dist/
@@ -78,3 +80,5 @@ pnpm test:e2e       # end-to-end tests in a real VSCode Extension Development Ho
 ```
 
 Press `F5` in VSCode to launch the extension in an Extension Development Host for manual testing.
+
+

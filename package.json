@@ -2,13 +2,13 @@
   "name": "markdown-wiki-links",
   "displayName": "Markdown Wiki Links",
   "publisher": "ltvan",
-  "version": "0.2.12",
+  "version": "0.2.14",
   "description": "Obsidian-style [[wiki-links]] between Markdown files in the workspace.",
   "license": "MIT",
   "icon": "media/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ltvan/markdown-wiki-links.git"
+    "url": "https://github.com/ltvan/m.rustarkdown-wiki-links.git"
   },
   "bugs": {
     "url": "https://github.com/ltvan/markdown-wiki-links/issues"
@@ -28,7 +28,7 @@
     "zettelkasten"
   ],
   "engines": {
-    "vscode": "^1.90.0"
+    "vscode": "^1.131.0"
   },
   "main": "./dist/extension.js",
   "scripts": {
@@ -48,8 +48,10 @@
   "activationEvents": [
     "onLanguage:markdown",
     "onLanguage:rust",
+    "onLanguage:typescript",
     "workspaceContains:**/*.{md,markdown}",
-    "workspaceContains:**/*.rs"
+    "workspaceContains:**/*.rs",
+    "workspaceContains:**/*.ts"
   ],
   "capabilities": {
     "untrustedWorkspaces": {
@@ -82,7 +84,11 @@
         "title": "Estate: Analyze Subject"
       },
       {
-        "command": "estate.addBookmark",
+        "command": "bookmark.create",
+        "title": "Estate: Add Bookmark"
+      },
+      {
+        "command": "bookmark.edit",
         "title": "Estate: Add Bookmark"
       }
     ],

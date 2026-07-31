@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import { ScopeInfo } from './activityService';
-import { Bookmark, BookmarkStore } from './bookmarkService';
+import { ScopeInfo } from './activity';
+import { Bookmark, BookmarkStore } from './adapters/bookmarkService';
+import { AppStore } from './app';
 
 export interface EstateContext {
   bookmark: string;
@@ -122,7 +123,7 @@ export async function showEstatePanel(bookmark: Bookmark) {
 }
 
 export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
-  constructor(private readonly store: BookmarkStore) {}
+  constructor(public app: AppStore) {}
 
   private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<
     EstateNode | null | undefined
@@ -144,11 +145,10 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
     if (!node) {
       return [new EstateNode('Favorites'), new EstateNode('Flags')];
     }
-
     if (node.label === 'Favorites') {
-      return this.store.list().map((id) => {
-        const bookmark = this.store.get(id);
-
+      return this.app.bookmarks.list().map((id) => {
+        const bookmark = this.app.bookmarks.get(id);
+        if (!bookmark) return;
         return new EstateNode(bookmark?.label ?? id, undefined);
       });
     }
@@ -199,3 +199,110 @@ export class EstateNode extends vscode.TreeItem {
     }
   }
 }
+
+export const flags: EstateFlag[] = [
+  {
+    id: '@save',
+    label: 'Save',
+    description: 'Save',
+    scope: 'language',
+    capabilities: [],
+    action: 'estate.save',
+  },
+  {
+    id: '@capture',
+    label: 'Capture',
+    description: 'Capture',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.click',
+  },
+  {
+    id: '@note',
+    label: 'Note',
+    description: 'Note...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.branch',
+  },
+  {
+    id: '@fold',
+    label: 'Fold',
+    description: 'Fold....',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.branch',
+  },
+  {
+    id: '@preserve',
+    label: 'Preserve',
+    description: 'Preserve...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.branch',
+  },
+  {
+    id: '@option',
+    label: 'Option',
+    description: 'Option...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.branch',
+  },
+  {
+    id: '@inline',
+    label: 'Inline',
+    description: 'Inline...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.branch',
+  },
+  {
+    id: '@context',
+    label: 'Option',
+    description: 'Option...',
+    scope: 'language',
+    capabilities: [],
+    action: 'ui.openInNewEditorGroup',
+  },
+  {
+    id: '@connected',
+    label: 'Connected',
+    description: 'Connected...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.branch',
+  },
+  {
+    id: '@branch',
+    label: 'Branch',
+    description: 'Branch...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.branch',
+  },
+  {
+    id: '@hoverable',
+    label: 'Hoverable',
+    description: 'Hoverable...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.hoverable',
+  },
+  {
+    id: '@pinnable',
+    label: 'Pinnable',
+    description: 'Pinnable...',
+    capabilities: [],
+    scope: 'language',
+    action: 'ui.pinnable',
+  },
+  {
+    id: '@pick',
+    label: 'Pick',
+    description: 'Pick...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.ui.pick',
+  },
+];

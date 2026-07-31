@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
 
-import { BookmarkOccurrence, BookmarkStore, FlagOccurrence } from './bookmarkService';
-import { Activity, ActivityStore, captureScope } from './activityService';
-import { EstateContext } from './estate';
+import { BookmarkOccurrence } from './bookmarkService';
+import { Activity, captureScope } from '../activity';
+import { EstateContext } from '../estate';
 import { icons } from '../ownership';
+import { AppStore } from '../app';
 
 export class WikiCodeLensProvider implements vscode.CodeLensProvider {
   private readonly _onDidChangeCodeLenses = new vscode.EventEmitter<void>();
@@ -12,18 +13,15 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
     console.log('Refreshing the wikicodelens provider.');
     this._onDidChangeCodeLenses.fire();
   }
-  constructor(
-    private ctx: vscode.ExtensionContext,
-    private store: BookmarkStore,
-    private activityStore: ActivityStore,
-  ) {
-    activityStore.subscribe((activity) => {
+  constructor(private app: AppStore) {
+    app.activity.subscribe((activity) => {
+      console.log('Wikicodelens Provider');
       this.analyzeLine(activity);
       this.refresh();
     });
   }
   private analyzeLine(activity: Activity) {
-    console.log('analyzeLine');
+    console.log('analyzeLine WikiCodeLensProvider event', activity);
   }
 
   //   init(context: vscode.ExtensionContext) {
@@ -61,7 +59,6 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
       this.folded.delete(key);
     }
   }
-
   //   addLabel(
   //     match: BookmarkOccurrence | FlagOccurrence,
   //     doc: vscode.TextDocument,
@@ -90,29 +87,30 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
   //     'estate.contentCycle', // Select from bookmark(go through a list of options)
   //     'estate.contentReplace', // Select from bookmark(after having captured/saved I any to apply)
   //   ];
+
   addIcon() {}
 
   provideCodeLenses(doc: vscode.TextDocument): vscode.CodeLens[] {
     const lenses: vscode.CodeLens[] = [];
     for (let line = 0; line < doc.lineCount; line++) {
       const text = doc.lineAt(line).text;
-      const matches = this.store.find(text, line);
+      const matches = this.app.bookmarks.find(text, line);
       for (const match of matches) {
         const range = new vscode.Range(line, match.start, line, match.end);
         // let item = this.addLabel(match, doc, range);
-        const bookmark = this.store.get(match.id);
+        const bookmark = this.app.bookmarks.get(match.id);
         // console.log('bookmark', bookmark?.label);
         if (bookmark) {
           lenses.push(
             new vscode.CodeLens(range, {
               title: `🏠 Personal ${bookmark?.label ?? match.id}`,
-              command: 'wiki.openEstate',
+              command: 'bookmark.edit',
               arguments: [this.makeCtx(doc, match, range)],
             }),
           );
           new vscode.CodeLens(range, {
             title: '🔖 Bookmark',
-            command: 'estate.addBookmark',
+            command: 'bookmark.edit',
             arguments: [doc.uri, range],
           });
           //   const hasBookmark = this.store.hasSource(doc.uri.fsPath, range);
@@ -120,7 +118,7 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
           //   lenses.push(
           //     new vscode.CodeLens(range, {
           //       title: hasBookmark ? '🔖 Saved' : '➕ Bookmark',
-          //       command: hasBookmark ? 'estate.removeBookmark' : 'estate.addBookmark',
+          //       command: hasBookmark ? 'estate.removeBookmark' : 'bookmark.create',
           //       arguments: [doc.uri, range],
           //     }),
           //   );
@@ -132,7 +130,7 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
           //     }),
           //   );
         }
-        const flag = this.store.getFlag(match.id);
+        const flag = this.app.bookmarks.getFlag(match.id);
         if (flag?.id == '@context') {
           // TODO: Identify how to properly differenrite between intrinsic vs user defined.
           lenses.push(
@@ -283,23 +281,23 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
     //   command: 'flowify.showScope',
     // });
     // lenses.push(addHeader);
-    // const line = vscode.window.activeTextEditor?.selection.start.line ?? 0;
-    // const range = new vscode.Range(line, 0, line, 0);
-    // icons.forEach((icon) => {
-    //   lenses.push(
-    //     new vscode.CodeLens(range, {
-    //       title: `🔹 ${icon}`,
-    //       command: 'flowify.previewIcon',
-    //       arguments: [icon, line],
-    //     }),
-    //   );
-    // });
+    const line = vscode.window.activeTextEditor?.selection.start.line ?? 0;
+    const range = new vscode.Range(line, 0, line, 0);
+    icons.forEach((icon) => {
+      lenses.push(
+        new vscode.CodeLens(range, {
+          title: `🔹 ${icon}`,
+          command: 'flowify.previewIcon',
+          arguments: [icon, line],
+        }),
+      );
+    });
     lenses.push(...this.provideBookmarkLenses(doc));
     return lenses;
   }
   private provideBookmarkLenses(doc: vscode.TextDocument): vscode.CodeLens[] {
     const lenses: vscode.CodeLens[] = [];
-    const bookmarks = this.store.list();
+    const bookmarks = this.app.bookmarks.list();
     for (const bookmark of bookmarks) {
       const source = bookmark.source;
       if (!source) {
@@ -317,7 +315,7 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
       lenses.push(
         new vscode.CodeLens(range, {
           title: `🔖 ${bookmark.label ?? 'Bookmark'}`,
-          command: 'wiki.openEstate',
+          command: 'bookmark.edit',
           arguments: [
             {
               uri: doc.uri,

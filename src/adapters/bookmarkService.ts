@@ -4,9 +4,31 @@ import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
-import { EstateContext, EstateFlag } from './estate';
+import { EstateContext, EstateFlag, EstateTreeProvider, flags } from '../estate';
+import { randomUUID } from 'node:crypto';
+import { AppStore } from '../app';
+
+const bookmark = ['create', 'read', 'update', 'delete'];
+
+// # Flag
+// - Fold flags: show prevent 'above' from 'unfolding' no matter how many depths I've unfolded. Think about how I might want to 'ignore' tests of rust or imports or 'first impl'
+
+// # Bookmark capabilities
+// seed: a bookmark which is saved to disk with no other capabilities attached
+//  - personal
+//  - 'web bookmark' for code blocks
+// overlay: a 'local' bookmark which is injected into a 'public' repo/file/commit. Creates a copy of itself into the .estate of that repo
+// clone: a synced 'bookmark' that auto follows counter party source
+//  - think of it as
+// fork: a bookmark that creates a copy of the original but with the intention of not remaining the same and done explicitly to see that 'this is the reason why we did this'.
+//  - consider adding it as a 'prev' version with 'x y z' reasons we did this or that.
+// series: enables progression ui 'move through'.
+//  - 1. lexer, 2. parser, 3, type checking
+// option: enables picking one of more
+//  - graph problems: dfs, bfs, etc.
 
 export interface Bookmark {
+  id?: string;
   type?: string;
   description?: string;
   context?: string;
@@ -20,11 +42,12 @@ export interface Bookmark {
   body?: string;
   updatedAt?: string;
   createdAt?: string;
+  tags: string[];
 }
 export interface BookmarkStoreType {
+  get(id: string): Bookmark | undefined;
   load(path: string): void;
   save(): void;
-  get(id: string): Bookmark | undefined;
   create(ctx: EstateContext, opts: CreateBookmarkOptions, bookmark: Partial<Bookmark>): Bookmark;
   update(id: string, patch: Partial<Bookmark>): void;
   delete(id: string): void;
@@ -67,10 +90,18 @@ export class BookmarkStore implements BookmarkStoreType {
     }
     editor.setDecorations(this.bookmarkDecoration, ranges);
   }
-
-  constructor(private roots: string[] = []) {}
+  constructor(app: AppStore) {
+    this.init();
+    app.activity.subscribe(() => {
+      console.log('Bookmark store... activity detcted');
+    });
+  }
 
   init(): void {
+    // @context
+    // ⚠️ Must bind to capture lexical scope when registering commands.
+    // vscode.commands.registerCommand('bookmark.create', this.addBookmark);
+    // vscode.commands.registerCommand('bookmark.create', (ctx) => this.addBookmark(ctx, this.app));
     const estates = this.findEstates();
     for (const estate of estates) {
       this.loadRegistry(path.join(estate, 'bookmark.json'));
@@ -86,6 +117,7 @@ export class BookmarkStore implements BookmarkStoreType {
     }
     return estates;
   }
+
   //   private findEstate(startPath: string): string | undefined {
   //     let current = path.resolve(startPath);
   //     while (true) {
@@ -105,6 +137,7 @@ export class BookmarkStore implements BookmarkStoreType {
   create(ctx: EstateContext, opts: CreateBookmarkOptions, bookmark: Partial<Bookmark>): Bookmark {
     const now = new Date().toISOString();
     return {
+      tags: [],
       type: bookmark.type ?? 'concept',
       label: opts.label,
       description: opts.description ?? '',
@@ -120,22 +153,20 @@ export class BookmarkStore implements BookmarkStoreType {
       updatedAt: now,
     };
   }
-  async addBookmark(ctx: vscode.ExtensionContext) {
+  async addBookmark(ctx: vscode.ExtensionContext, app: AppStore) {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
       return;
     }
+    // app.bookmarks.
     const selection = editor.selection;
     if (selection.isEmpty) {
       vscode.window.showWarningMessage('Select something to bookmark first');
       return;
     }
-
     const document = editor.document;
     const selectedText = document.getText(selection);
-
     const id = `@${Date.now()}`;
-
     const bookmark = this.create(
       {
         bookmark: id,
@@ -201,11 +232,11 @@ export class BookmarkStore implements BookmarkStoreType {
       this.items.set(id, bookmark as Bookmark);
     }
   }
-  static fromPath(filePath: string): BookmarkStore {
-    const store = new BookmarkStore();
-    store.loadFsPath(filePath);
-    return store;
-  }
+  //   static fromPath(filePath: string): BookmarkStore {
+  //     const store = new BookmarkStore();
+  //     store.loadFsPath(filePath);
+  //     return store;
+  //   }
   loadFsPath(filePath: string): void {
     const estates = this.findEstatesFs(filePath);
     for (const estate of estates) {
@@ -216,7 +247,6 @@ export class BookmarkStore implements BookmarkStoreType {
     //   this.registerFlags();
     // }
   }
-
   get(id: string) {
     return this.items.get(id);
   }
@@ -293,21 +323,28 @@ export class BookmarkStore implements BookmarkStoreType {
   }
   private registerFlagsUser(filePath: string): EstateFlag[] {
     const flags: EstateFlag[] = [
-      { id: '1', label: 'save', description: 'hi', scope: 'language', action: 'wiki.click' },
+      {
+        id: '1',
+        label: 'save',
+        description: 'hi',
+        scope: 'language',
+        action: 'wiki.click',
+        capabilities: [],
+      },
     ];
     return flags;
   }
   private resolveEstate(): string | undefined {
-    for (const root of this.roots) {
-      let current = root;
-      while (current !== path.dirname(current)) {
-        const candidate = path.join(current, '.estate');
-        if (fs.existsSync(candidate)) {
-          return candidate;
-        }
-        current = path.dirname(current);
-      }
-    }
+    // for (const root of this.roots) {
+    //   let current = root;
+    //   while (current !== path.dirname(current)) {
+    //     const candidate = path.join(current, '.estate');
+    //     if (fs.existsSync(candidate)) {
+    //       return candidate;
+    //     }
+    //     current = path.dirname(current);
+    //   }
+    // }
     return undefined;
   }
 }
@@ -397,118 +434,220 @@ export interface BookmarkSource {
   languageId?: string;
 }
 
-// class BookmarkDocument {
-//   readonly id: string;
-//   bookmark: Bookmark;
-//   save();
-//   revert();
-// }
+function getHtml(bookmark: Bookmark): string {
+  return /* html */ `
 
-// class BookmarkEditorProvider implements vscode.CustomTextEditorProvider {}
+<!DOCTYPE html>
 
-const flags: EstateFlag[] = [
-  {
-    id: '@save',
-    label: 'Save',
-    description: 'Save',
-    scope: 'language',
-    capabilities: [],
-    action: 'estate.save',
-  },
-  {
-    id: '@capture',
-    label: 'Capture',
-    description: 'Capture',
-    scope: 'language',
-    capabilities: [],
-    action: 'wiki.click',
-  },
-  {
-    id: '@note',
-    label: 'Note',
-    description: 'Note...',
-    scope: 'language',
-    capabilities: [],
-    action: 'wiki.branch',
-  },
-  {
-    id: '@fold',
-    label: 'Fold',
-    description: 'Fold....',
-    scope: 'language',
-    capabilities: [],
-    action: 'wiki.branch',
-  },
-  {
-    id: '@preserve',
-    label: 'Preserve',
-    description: 'Preserve...',
-    scope: 'language',
-    capabilities: [],
-    action: 'wiki.branch',
-  },
-  {
-    id: '@option',
-    label: 'Option',
-    description: 'Option...',
-    scope: 'language',
-    capabilities: [],
-    action: 'wiki.branch',
-  },
-  {
-    id: '@inline',
-    label: 'Inline',
-    description: 'Inline...',
-    scope: 'language',
-    capabilities: [],
-    action: 'wiki.branch',
-  },
-  {
-    id: '@context',
-    label: 'Option',
-    description: 'Option...',
-    scope: 'language',
-    capabilities: [],
-    action: 'ui.openInNewEditorGroup',
-  },
-  {
-    id: '@connected',
-    label: 'Connected',
-    description: 'Connected...',
-    scope: 'language',
-    capabilities: [],
-    action: 'wiki.branch',
-  },
-  {
-    id: '@branch',
-    label: 'Branch',
-    description: 'Branch...',
-    scope: 'language',
-    capabilities: [],
-    action: 'wiki.branch',
-  },
-  {
-    id: '@hoverable',
-    label: 'Hoverable',
-    description: 'Hoverable...',
-    scope: 'language',
-    capabilities: [],
-    action: 'wiki.hoverable',
-  },
-  {
-    id: '@pinnable',
-    label: 'Pinnable',
-    description: 'Pinnable...',
-    capabilities: [],
-    scope: 'language',
-    action: 'ui.pinnable',
-  },
-  {
-    id: '@pick',
-    label: 'Pick',
-    description: 'Pick...',
-    scope: 'language',
-    capabilities: [],
-    action: 'wiki.ui.pick',
-  },
-];
+<html>
+
+<head>
+
+<style>
+
+body{
+    font-family: sans-serif;
+    padding:24px;
+}
+
+label{
+    display:block;
+    margin-top:16px;
+    font-weight:bold;
+}
+
+input,
+select,
+textarea{
+
+    width:100%;
+    box-sizing:border-box;
+    padding:8px;
+    margin-top:6px;
+
+}
+
+textarea{
+
+    height:180px;
+
+}
+
+.tags{
+
+    margin-top:8px;
+
+}
+
+.tag{
+
+    display:block;
+    margin:4px 0;
+
+}
+
+button{
+
+    margin-top:24px;
+    padding:10px 24px;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<label>Label</label>
+
+<input id="label"
+value="${bookmark.label}">
+
+<label>Description</label>
+
+<input id="description"
+value="${bookmark.description}">
+
+<label>Scope</label>
+
+<select id="scope">
+
+<option>workspace</option>
+<option>package</option>
+<option>module</option>
+<option>file</option>
+<option selected>markdown.heading</option>
+<option>function</option>
+
+</select>
+
+<label>Privacy</label>
+
+<select id="privacy">
+
+<option selected>personal</option>
+<option>workspace</option>
+<option>public</option>
+
+</select>
+
+<label>Tags</label>
+
+<div class="tags">
+
+${renderTag('architecture', bookmark.tags)}
+${renderTag('parser', bookmark.tags)}
+${renderTag('compiler', bookmark.tags)}
+${renderTag('rust', bookmark.tags)}
+${renderTag('vscode', bookmark.tags)}
+
+</div>
+
+<label>Body</label>
+
+<textarea id="body">${bookmark.body}</textarea>
+
+<button id="save">
+Save Bookmark
+</button>
+
+<script>
+
+const vscode = acquireVsCodeApi();
+
+document
+.getElementById("save")
+.onclick = () => {
+
+    const tags =
+        [...document.querySelectorAll(".tag input")]
+            .filter(x=>x.checked)
+            .map(x=>x.value);
+
+    vscode.postMessage({
+
+        type:"save",
+
+        bookmark:{
+
+            label:
+                document.getElementById("label").value,
+
+            description:
+                document.getElementById("description").value,
+
+            scope:
+                document.getElementById("scope").value,
+
+            privacy:
+                document.getElementById("privacy").value,
+
+            body:
+                document.getElementById("body").value,
+
+            tags
+
+        }
+
+    });
+
+};
+
+</script>
+
+</body>
+
+</html>
+
+`;
+}
+
+function renderTag(tag: string, selected: string[]) {
+  const checked = selected?.includes(tag) ? 'checked' : '';
+  return `
+<label class="tag">
+<input
+type="checkbox"
+value="${tag}"
+${checked}>
+${tag}
+</label>
+`;
+}
+
+export class BookmarkSeries {}
+
+export class BookmarkPresenter {
+  constructor(private app: AppStore) {}
+  init() {
+    vscode.commands.registerCommand('bookmark.edit', this.present);
+  }
+  async present(ctx: vscode.ExtensionContext) {
+    console.log('Bookmark Present present');
+    const panel = vscode.window.createWebviewPanel(
+      'estateBookmark',
+      'Edit Bookmark',
+      vscode.ViewColumn.Active,
+      {
+        enableScripts: true,
+      },
+    );
+    console.log('Bookmark Present present');
+    const bookmark = this.app.bookmarks.get('@1785496399347');
+    if (!bookmark) return;
+    console.log('Bookmark Present present');
+    panel.webview.html = getHtml(bookmark);
+    console.log('Bookmark Present present');
+    panel.webview.onDidReceiveMessage((msg) => {
+      if (msg.type === 'save') {
+        console.log('Bookmark Present present onDidReceiveMessage');
+        this.app.bookmarks.update(bookmark?.id || '', msg.bookmark);
+        console.log('Bookmark Present present update');
+        this.app.tree.refresh();
+        vscode.window.showInformationMessage('Bookmark saved.');
+      }
+    });
+  }
+  // Messages
+}

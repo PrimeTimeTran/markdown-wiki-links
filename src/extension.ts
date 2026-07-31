@@ -8,18 +8,16 @@ import { WikiDocumentLinkProvider } from './adapters/documentLinkProvider';
 import { WikiDiagnostics } from './adapters/diagnostics';
 import { WikiCompletionProvider } from './adapters/completionProvider';
 import { WikiCodeLensProvider } from './adapters/codelens';
-import { BookmarkStore } from './adapters/bookmarkService';
+import { BookmarkPresenter } from './adapters/bookmarkService';
 import {
   extendMarkdownIt as wireMarkdownIt,
   setResolver,
   resetResolver,
 } from './markdownItPlugin/index';
-import { ActivityStore } from './adapters/activityService';
-import { EstateContext, EstateNode, EstateTreeProvider, showEstatePanel } from './adapters/estate';
-import { StateStore } from './adapters/stateService';
+import { EstateContext, EstateNode } from './estate';
+import { AppStore } from './app';
 import { WikiDecorations } from './adapters/decorations';
 import { OwnershipInlayProvider } from './ownership';
-import { AnalysisStore } from './analysis';
 
 let indexService: IndexService | undefined;
 
@@ -27,55 +25,54 @@ let indexService: IndexService | undefined;
 type WikiLinksApi = { extendMarkdownIt(md: any): any };
 
 export async function activate(context: vscode.ExtensionContext): Promise<WikiLinksApi> {
-  const state = new StateStore();
   indexService = new IndexService();
   await indexService.initialize();
-  const store = new BookmarkStore();
-  store.init();
-  const activityStore = new ActivityStore();
-  activityStore.init(context);
-  let outputChannel = vscode.window.createOutputChannel('Flowify');
-  const analysisStore = new AnalysisStore(outputChannel);
-  const tree = new EstateTreeProvider(store);
+  const app = new AppStore(context);
+  app.init();
+
   const view = vscode.window.createTreeView<EstateNode>('estateExplorer', {
-    treeDataProvider: tree,
+    treeDataProvider: app.tree,
   });
-  context.subscriptions.push(
-    activityStore.subscribe((activity) => {
-      console.log('activityStore handler for click');
-      analysisStore.analyzeLine(activity);
-    }),
-  );
+
   context.subscriptions.push(view);
 
-  const codeLens = new WikiCodeLensProvider(context, store, activityStore);
+  const codeLens = new WikiCodeLensProvider(app);
+  let langs = [{ language: 'markdown' }, { language: 'rust' }, { language: 'ts' }]
   context.subscriptions.push(
     vscode.languages.registerCodeLensProvider(
-      [{ language: 'markdown' }, { language: 'rust' }],
+      langs,
       codeLens,
     ),
     vscode.languages.registerDocumentLinkProvider(
-      { language: 'markdown' },
+      langs,
       new WikiDocumentLinkProvider(indexService),
     ),
   );
+
+  let store = app.bookmarks;
   context.subscriptions.push(
     vscode.commands.registerCommand('ui.addInlinePanel', (ctx: { id: string }) => {
-      const bookmark = store.get(ctx.id);
+      const bookmark = app.bookmarks.get(ctx.id);
       if (!bookmark) return;
       vscode.window.showInformationMessage(`Inline: ${bookmark.label}`);
     }),
-    vscode.commands.registerCommand('ui.openInNewEditorGroup', async (ctx: EstateContext) => {
-      const bookmark = store.get(ctx.bookmark);
-      if (!bookmark) {
-        vscode.window.showWarningMessage(`Unknown estate: ${ctx.bookmark}`);
-        return;
-      }
+    // vscode.commands.registerCommand('bookmark.create', (ctx) =>
+    //   new BookmarkPresenter(app).present(ctx, store, tree),
+    ),
+    // vscode.commands.registerCommand('bookmark.edit', (ctx) =>
+    //   new BookmarkPresenter(app).present(ctx, store, tree),
+    // ),
+    // vscode.commands.registerCommand('ui.openInNewEditorGroup', async (ctx: EstateContext) => {
+    //   const bookmark = store.get(ctx.bookmark);
+    //   if (!bookmark) {
+    //     vscode.window.showWarningMessage(`Unknown estate: ${ctx.bookmark}`);
+    //     return;
+    //   }
 
-      await showEstatePanel(bookmark);
+    //   await showEstatePanel(bookmark);
 
-      vscode.window.showInformationMessage(`Editor Group: ${bookmark.label}`);
-    }),
+    //   vscode.window.showInformationMessage(`Editor Group: ${bookmark.label}`);
+    // }),
     vscode.commands.registerCommand('estate.addPersistentNotification', (ctx: { id: string }) => {
       const bookmark = store.get(ctx.id);
       if (!bookmark) return;
@@ -114,10 +111,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
     }),
 
     vscode.commands.registerCommand(
-      'estate.addBookmark',
+      'bookmark.create',
       async (uri: vscode.Uri, range: vscode.Range) => {
         console.log('ADD BOOKMARK', { uri, range });
-        await store.addBookmark(context);
+        await store.create(context);
         codeLens.refresh();
       },
     ),
@@ -163,11 +160,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
       ]);
     }),
     vscode.commands.registerCommand('ui.toggleMDPreview', async () => {
-      state.toggleMdPreview();
-
+      app.toggleMdPreview();
       const editor = vscode.window.activeTextEditor;
-
-      if (editor && editor.document.languageId === 'markdown' && state.isMdPreviewEnabled()) {
+      if (editor && editor.document.languageId === 'markdown' && app.isMdPreviewEnabled()) {
         await vscode.commands.executeCommand('markdown.togglePreview', editor.document.uri);
       }
     }),
@@ -200,7 +195,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   );
   vscode.window.onDidChangeActiveTextEditor(async (editor) => {
     if (!editor) return;
-    if (!state.isMdPreviewEnabled()) return;
+    if (!app.isMdPreviewEnabled()) return;
     if (editor.document.languageId !== 'markdown') return;
     await vscode.commands.executeCommand('markdown.togglePreview', editor.document.uri);
   });
@@ -208,13 +203,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   context.subscriptions.push(indexService);
   new RenameHandler().register(context);
   new WikiDiagnostics(indexService).register(context);
-  const decorations = new WikiDecorations(indexService, store, context, analysisStore);
+  const decorations = new WikiDecorations(app, indexService);
   decorations.register(context);
 
-  let inlineProvider = new OwnershipInlayProvider(context, state, activityStore, store);
-  context.subscriptions.push(
-    vscode.languages.registerInlayHintsProvider({ language: 'rust' }, inlineProvider),
-  );
+  let inlineProvider = new OwnershipInlayProvider(app);
+  //   context.subscriptions.push(
+  //     vscode.languages.registerInlayHintsProvider({ language: 'rust' }, inlineProvider),
+  //   );
 
   // VSCode reads `extendMarkdownIt` off the extension's exports — i.e. activate's return value.
   return {
@@ -258,6 +253,3 @@ Foo context
 
 [Open Graph](command:wiki.showGraph)
       `;
-
-
-

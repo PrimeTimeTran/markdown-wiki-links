@@ -1,9 +1,8 @@
 import * as vscode from 'vscode';
-import { ActivityStore, Activity } from './adapters/activityService';
-import { BookmarkStore } from './adapters/bookmarkService';
-import { StateStore } from './adapters/stateService';
+import { AppStore } from './app';
 
 export const flowitryMode = '';
+
 export const icons = [
   'alias',
   'binding',
@@ -35,13 +34,13 @@ export class OwnershipInlayProvider implements vscode.InlayHintsProvider {
   readonly onDidChangeInlayHints = this._onDidChangeInlayHints.event;
   private currentLine = 0;
   constructor(
-    private ctx: vscode.ExtensionContext,
-    private state: StateStore,
-    private activityStore: ActivityStore,
-    private bookmarkStore: BookmarkStore,
+    private app: AppStore,
+    // private ctx: vscode.ExtensionContext,
+    // private activityStore: ActivityStore,
+    // private bookmarkStore: BookmarkStore,
   ) {
-    console.log('OwnershipInlayProvider ctor');
-    activityStore.subscribe((activity) => {
+    console.log('OwnershipInlayProvider constructor');
+    app.activity.subscribe((activity) => {
       console.log('click', activity);
       this.currentLine = activity.editor.line;
       this.refresh();

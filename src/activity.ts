@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { EstateFocus } from './estate';
+import { AppStore } from './app';
 
 // Right now store the cursor here.
 // - I have other ideas on how this could be used in compostion with event to do more interesting things.
@@ -63,6 +64,7 @@ export interface ActivityStoreType {
 export class ActivityStore implements ActivityStoreType {
   private activity?: Activity;
   private listeners = new Set<(a: Activity) => void>();
+  constructor(private app: AppStore) {}
   init(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
       vscode.window.onDidChangeTextEditorSelection((event) => {
@@ -105,8 +107,8 @@ export class ActivityStore implements ActivityStoreType {
         cursor: position,
         selection: editor.selection,
         line: position.line,
-        column: position.character, // 0-based column
-        displayColumn: position.character + 1, // 1-based column (status bar style)
+        column: position.character,
+        displayColumn: position.character + 1,
         lineText: document.lineAt(position.line).text,
         languageId: document.languageId,
         fileName: document.fileName,
@@ -130,6 +132,37 @@ export class ActivityStore implements ActivityStoreType {
         this.listeners.delete(listener);
       },
     };
+  }
+
+  // Want to share this so it's left deliberately half baked
+  selectionScope(editor: vscode.TextEditor) {
+    const selection = editor.selection;
+    if (selection.isEmpty) {
+      vscode.window.showWarningMessage('Select something to bookmark first');
+      return;
+    }
+    const document = editor.document;
+    const selectedText = document.getText(selection);
+    // const id = `@${Date.now()}`;
+    //   bookmark: id,
+    //   label: `Bookmark ${id}`,
+    const bookmark = {
+      scope: 'source.selection',
+      uri: document.uri,
+      selection,
+      body: selectedText,
+      code: selectedText,
+      context: selectedText,
+      source: {
+        uri: document.uri.fsPath,
+        startLine: selection.start.line,
+        endLine: selection.end.line,
+        startCharacter: selection.start.character,
+        endCharacter: selection.end.character,
+        languageId: document.languageId,
+      },
+    };
+    return bookmark;
   }
 }
 // export interface ScopeInfo {

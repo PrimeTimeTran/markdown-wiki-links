@@ -2,8 +2,9 @@ import * as util from 'util';
 import * as vscode from 'vscode';
 
 import { execFile } from 'child_process';
-import { Activity } from './adapters/activityService';
+import { Activity } from './activity';
 import { icons } from './ownership';
+import { AppStore } from './app';
 
 const execFileAsync = util.promisify(execFile);
 
@@ -12,8 +13,7 @@ export class AnalysisStore {
   private currentActivity?: Activity;
   private currentRelatedLines: any[] = [];
   private listeners = new Set<() => void>();
-
-  constructor(private outputChannel: vscode.OutputChannel) {}
+  constructor(private app: AppStore) {}
 
   async analyzeLine(activity: Activity): Promise<void> {
     console.log('AnalysisStore handler for click');
@@ -60,7 +60,7 @@ export class AnalysisStore {
         raw.relations,
         raw.scope,
       );
-      logAnalysis(this.outputChannel, item.file, item.line, raw);
+      logAnalysis(this.app.outputChannel, item.file, item.line, raw);
       this.set(analysis, raw.related_lines);
     } catch (error: any) {
       console.error('Analysis failed', error);
