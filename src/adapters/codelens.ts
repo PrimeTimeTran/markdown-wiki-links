@@ -91,6 +91,7 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
   //     'estate.contentReplace', // Select from bookmark(after having captured/saved I any to apply)
   //   ];
   addIcon() {}
+
   provideCodeLenses(doc: vscode.TextDocument): vscode.CodeLens[] {
     const lenses: vscode.CodeLens[] = [];
     for (let line = 0; line < doc.lineCount; line++) {
@@ -191,7 +192,7 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
         if (flag?.id == '@inline') {
           lenses.push(
             new vscode.CodeLens(range, {
-              title: '🧩 Add Inline Panel', // Reveal more context without leaving the current file
+              title: '🧩 Add Inline Panel',
               command: 'ui.addInlinePanel',
               arguments: [this.makeCtx(doc, match, range)],
             }),
@@ -253,13 +254,13 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
         //   }),
         // );
 
-        // lenses.push(
-        //   new vscode.CodeLens(range, {
-        //     title: '💾 Save Bookmark', // Capture current scope into the estate registry
-        //     command: 'estate.contentSave',
-        //     arguments: [this.makeCtx(doc, match, range)],
-        //   }),
-        // );
+        lenses.push(
+          new vscode.CodeLens(range, {
+            title: '💾 Save Bookmark',
+            command: 'estate.contentSave',
+            arguments: [this.makeCtx(doc, match, range)],
+          }),
+        );
         // lenses.push(
         //   new vscode.CodeLens(range, {
         //     title: '🔄 Cycle Variants', // Move through saved bookmark variations/options
@@ -282,52 +283,46 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
     //   command: 'flowify.showScope',
     // });
     // lenses.push(addHeader);
-    const line = vscode.window.activeTextEditor?.selection.start.line ?? 0;
-    const range = new vscode.Range(line, 0, line, 0);
-    icons.forEach((icon) => {
-      lenses.push(
-        new vscode.CodeLens(range, {
-          title: `🔹 ${icon}`,
-          command: 'flowify.previewIcon',
-          arguments: [icon, line],
-        }),
-      );
-    });
+    // const line = vscode.window.activeTextEditor?.selection.start.line ?? 0;
+    // const range = new vscode.Range(line, 0, line, 0);
+    // icons.forEach((icon) => {
+    //   lenses.push(
+    //     new vscode.CodeLens(range, {
+    //       title: `🔹 ${icon}`,
+    //       command: 'flowify.previewIcon',
+    //       arguments: [icon, line],
+    //     }),
+    //   );
+    // });
     lenses.push(...this.provideBookmarkLenses(doc));
     return lenses;
   }
   private provideBookmarkLenses(doc: vscode.TextDocument): vscode.CodeLens[] {
     const lenses: vscode.CodeLens[] = [];
-
     const bookmarks = this.store.list();
-
     for (const bookmark of bookmarks) {
       const source = bookmark.source;
-
       if (!source) {
         continue;
       }
-
       if (source.uri !== doc.uri.fsPath) {
         continue;
       }
-
       const range = new vscode.Range(
         source.startLine,
         source.startCharacter ?? 0,
         source.endLine,
         source.endCharacter ?? 0,
       );
-
       lenses.push(
         new vscode.CodeLens(range, {
           title: `🔖 ${bookmark.label ?? 'Bookmark'}`,
           command: 'wiki.openEstate',
           arguments: [
             {
-              bookmark: bookmark.label,
               uri: doc.uri,
               selection: range,
+              bookmark: bookmark.label,
             },
           ],
         }),

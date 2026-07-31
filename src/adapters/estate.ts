@@ -12,6 +12,7 @@ export interface EstateFlag {
   id: string;
   label: string;
   description?: string;
+  capabilities: any[];
   scope: 'language' | 'workspace';
   action: string;
 }

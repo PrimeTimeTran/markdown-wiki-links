@@ -19,6 +19,7 @@ import { EstateContext, EstateNode, EstateTreeProvider, showEstatePanel } from '
 import { StateStore } from './adapters/stateService';
 import { WikiDecorations } from './adapters/decorations';
 import { OwnershipInlayProvider } from './ownership';
+import { AnalysisStore } from './analysis';
 
 let indexService: IndexService | undefined;
 
@@ -33,12 +34,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   store.init();
   const activityStore = new ActivityStore();
   activityStore.init(context);
-  const codeLens = new WikiCodeLensProvider(context, store, activityStore);
+  let outputChannel = vscode.window.createOutputChannel('Flowify');
+  const analysisStore = new AnalysisStore(outputChannel);
   const tree = new EstateTreeProvider(store);
   const view = vscode.window.createTreeView<EstateNode>('estateExplorer', {
     treeDataProvider: tree,
   });
+  context.subscriptions.push(
+    activityStore.subscribe((activity) => {
+      console.log('activityStore handler for click');
+      analysisStore.analyzeLine(activity);
+    }),
+  );
   context.subscriptions.push(view);
+
+  const codeLens = new WikiCodeLensProvider(context, store, activityStore);
   context.subscriptions.push(
     vscode.languages.registerCodeLensProvider(
       [{ language: 'markdown' }, { language: 'rust' }],
@@ -102,6 +112,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
 
       vscode.window.showInformationMessage(`Replace using ${bookmark.label}`);
     }),
+
     vscode.commands.registerCommand(
       'estate.addBookmark',
       async (uri: vscode.Uri, range: vscode.Range) => {
@@ -197,23 +208,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   context.subscriptions.push(indexService);
   new RenameHandler().register(context);
   new WikiDiagnostics(indexService).register(context);
-  const decorations = new WikiDecorations(indexService, store, context, activityStore);
+  const decorations = new WikiDecorations(indexService, store, context, analysisStore);
   decorations.register(context);
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('flowify.analyzeLine', decorations.analyzeLine),
-  );
-
-  //   context.subscriptions.push(
-  //     vscode.languages.registerCodeLensProvider(
-  //       [{ language: 'markdown' }, { language: 'rust' }],
-  //       codeLens,
-  //     ),
-  //     vscode.languages.registerDocumentLinkProvider(
-  //       { language: 'markdown' },
-  //       new WikiDocumentLinkProvider(indexService),
-  //     ),
-  //   );
 
   let inlineProvider = new OwnershipInlayProvider(context, state, activityStore, store);
   context.subscriptions.push(
@@ -262,22 +258,6 @@ Foo context
 
 [Open Graph](command:wiki.showGraph)
       `;
-export function logAnalysis(
-  outputChannel: vscode.OutputChannel,
-  filePath: string,
-  lineNumber: string,
-  result: any,
-) {
-  const timestamp = new Date().toLocaleTimeString();
-  const fileName = filePath.split('/').pop() || filePath;
 
-  outputChannel.appendLine(`[⚡ xxx FLOWIFY] ${timestamp} — Analysis Complete`);
-  outputChannel.appendLine(`  💡 File   : ${fileName}`);
-  outputChannel.appendLine(`  📂 Path   : ${filePath}`);
-  outputChannel.appendLine(`  📍 Line   : ${lineNumber}`);
-  outputChannel.appendLine(`  🚀 Action : ${result.action || 'N/A'}`);
-  outputChannel.appendLine(`  📊 METRICS:`);
-  outputChannel.appendLine(`     ├── Complexity : ${result.metrics?.complexity ?? 0}`);
-  outputChannel.appendLine(`     └── AST Nodes  : ${result.metrics?.ast_nodes ?? 0}`);
-  outputChannel.appendLine(``);
-}
+
+

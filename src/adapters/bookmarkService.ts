@@ -33,6 +33,7 @@ export interface BookmarkStoreType {
   hasFlag(id: string): boolean;
   getFlag(id: string): EstateFlag | undefined;
 }
+
 export class BookmarkStore implements BookmarkStoreType {
   private items = new Map<string, Bookmark>();
   private flags = new Map<string, EstateFlag>();
@@ -66,6 +67,7 @@ export class BookmarkStore implements BookmarkStoreType {
     }
     editor.setDecorations(this.bookmarkDecoration, ranges);
   }
+
   constructor(private roots: string[] = []) {}
 
   init(): void {
@@ -386,100 +388,6 @@ export function findFlags(text: string, store: BookmarkStore, line: number): Fla
   return results;
 }
 
-const flags: EstateFlag[] = [
-  {
-    id: '@save',
-    label: 'Save',
-    description: 'Save',
-    scope: 'language',
-    action: 'wiki.click',
-  },
-  {
-    id: '@capture',
-    label: 'Capture',
-    description: 'Capture',
-    scope: 'language',
-    action: 'wiki.click',
-  },
-  {
-    id: '@note',
-    label: 'Note',
-    description: 'Note...',
-    scope: 'language',
-    action: 'wiki.branch',
-  },
-  {
-    id: '@fold',
-    label: 'Fold',
-    description: 'Fold....',
-    scope: 'language',
-    action: 'wiki.branch',
-  },
-  {
-    id: '@preserve',
-    label: 'Preserve',
-    description: 'Preserve...',
-    scope: 'language',
-    action: 'wiki.branch',
-  },
-  {
-    id: '@option',
-    label: 'Option',
-    description: 'Option...',
-    scope: 'language',
-    action: 'wiki.branch',
-  },
-  {
-    id: '@inline',
-    label: 'Inline',
-    description: 'Inline...',
-    scope: 'language',
-    action: 'wiki.branch',
-  },
-  {
-    id: '@context',
-    label: 'Option',
-    description: 'Option...',
-    scope: 'language',
-    action: 'ui.openInNewEditorGroup',
-  },
-  {
-    id: '@connected',
-    label: 'Connected',
-    description: 'Connected...',
-    scope: 'language',
-    action: 'wiki.branch',
-  },
-  {
-    id: '@branch',
-    label: 'Branch',
-    description: 'Branch...',
-    scope: 'language',
-    action: 'wiki.branch',
-  },
-  {
-    id: '@hoverable',
-    label: 'Hoverable',
-    description: 'Hoverable...',
-    scope: 'language',
-    action: 'wiki.hoverable',
-  },
-  {
-    id: '@pinnable',
-    label: 'Pinnable',
-    description: 'Pinnable...',
-    scope: 'language',
-    action: 'ui.pinnable',
-  },
-  {
-    id: '@pick',
-    label: 'Pick',
-    description: 'Pick...',
-    scope: 'language',
-    action: 'wiki.ui.pick',
-  },
-];
-
 export interface BookmarkSource {
   uri: string;
   startLine: number;
@@ -488,3 +396,119 @@ export interface BookmarkSource {
   endCharacter?: number;
   languageId?: string;
 }
+
+// class BookmarkDocument {
+//   readonly id: string;
+//   bookmark: Bookmark;
+//   save();
+//   revert();
+// }
+
+// class BookmarkEditorProvider implements vscode.CustomTextEditorProvider {}
+
+const flags: EstateFlag[] = [
+  {
+    id: '@save',
+    label: 'Save',
+    description: 'Save',
+    scope: 'language',
+    capabilities: [],
+    action: 'estate.save',
+  },
+  {
+    id: '@capture',
+    label: 'Capture',
+    description: 'Capture',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.click',
+  },
+  {
+    id: '@note',
+    label: 'Note',
+    description: 'Note...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.branch',
+  },
+  {
+    id: '@fold',
+    label: 'Fold',
+    description: 'Fold....',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.branch',
+  },
+  {
+    id: '@preserve',
+    label: 'Preserve',
+    description: 'Preserve...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.branch',
+  },
+  {
+    id: '@option',
+    label: 'Option',
+    description: 'Option...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.branch',
+  },
+  {
+    id: '@inline',
+    label: 'Inline',
+    description: 'Inline...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.branch',
+  },
+  {
+    id: '@context',
+    label: 'Option',
+    description: 'Option...',
+    scope: 'language',
+    capabilities: [],
+    action: 'ui.openInNewEditorGroup',
+  },
+  {
+    id: '@connected',
+    label: 'Connected',
+    description: 'Connected...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.branch',
+  },
+  {
+    id: '@branch',
+    label: 'Branch',
+    description: 'Branch...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.branch',
+  },
+  {
+    id: '@hoverable',
+    label: 'Hoverable',
+    description: 'Hoverable...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.hoverable',
+  },
+  {
+    id: '@pinnable',
+    label: 'Pinnable',
+    description: 'Pinnable...',
+    capabilities: [],
+    scope: 'language',
+    action: 'ui.pinnable',
+  },
+  {
+    id: '@pick',
+    label: 'Pick',
+    description: 'Pick...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.ui.pick',
+  },
+];
