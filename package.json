@@ -2,7 +2,7 @@
   "name": "markdown-wiki-links",
   "displayName": "Markdown Wiki Links",
   "publisher": "ltvan",
-  "version": "0.2.14",
+  "version": "0.2.15",
   "description": "Obsidian-style [[wiki-links]] between Markdown files in the workspace.",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -49,9 +49,13 @@
     "onLanguage:markdown",
     "onLanguage:rust",
     "onLanguage:typescript",
+    "onLanguage:javascript",
+    "onLanguage:js",
+    "onLanguage:ts",
     "workspaceContains:**/*.{md,markdown}",
     "workspaceContains:**/*.rs",
-    "workspaceContains:**/*.ts"
+    "workspaceContains:**/*.{ts,mjs}",
+    "workspaceContains:**/*.{js,cjs}"
   ],
   "capabilities": {
     "untrustedWorkspaces": {
@@ -85,11 +89,11 @@
       },
       {
         "command": "bookmark.create",
-        "title": "Estate: Add Bookmark"
+        "title": "Estate: Create Bookmark"
       },
       {
         "command": "bookmark.edit",
-        "title": "Estate: Add Bookmark"
+        "title": "Estate: Edit Bookmark"
       }
     ],
     "configuration": {

@@ -67,12 +67,21 @@ export class ActivityStore implements ActivityStoreType {
   constructor(private app: AppStore) {}
   init(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
+      vscode.window.onDidChangeActiveTextEditor((editor) => {
+        if (!editor) return;
+        console.log('Activity onDidChangeActiveTextEditor');
+        console.log(editor.document.fileName, editor.document.languageId);
+      }),
+    );
+    context.subscriptions.push(
       vscode.window.onDidChangeTextEditorSelection((event) => {
+        console.log('Activity onDidChangeTextEditorSelection');
         this.update(event.textEditor);
       }),
     );
     context.subscriptions.push(
       vscode.workspace.onDidChangeTextDocument((event) => {
+        console.log('Activity onDidChangeTextDocument');
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
           return;
@@ -91,16 +100,13 @@ export class ActivityStore implements ActivityStoreType {
   private update(editor: vscode.TextEditor): void {
     const document = editor.document;
     const position = editor.selection.active;
-
     const range = new vscode.Range(
       position.line,
       position.character,
       position.line,
       position.character,
     );
-
     const scope = captureScope(document, range);
-
     this.activity = {
       editor: {
         uri: document.uri,
@@ -336,4 +342,75 @@ export function getHeadingLevel(text: string): number | undefined {
 //     endLine: end,
 //     text,
 //   };
+// }
+
+// 1. Create 2nd field to index by file
+// export class BookmarkStore implements BookmarkStoreType {
+//   private items = new Map<string, Bookmark>();
+//   private fileIndex = new Map<string, Bookmark[]>();
+//   1. Add to items and fileIndex when creating
+//   2. Use fileIndex for embedded(or over all, so we dont have to do "row by row scan")
+
+// 2. Create register function for this logic, adding to that list
+//   register(id: string, b: Bookmark): void {
+//     let uri = b.uri.toString();
+//     let index = this.fileIndex.get(uri) || [];
+//     index.push(b);
+//     this.fileIndex.set(uri, index);
+//     this.items.set(id, b);
+//   }
+
+// 3. Ensure we use it in create.
+//   create(ctx: EstateContext, opts: CreateBookmarkOptions, bookmark: Partial<Bookmark>): Bookmark {
+//     const now = new Date().toISOString();
+//     let id = randomUUID();
+//     let b = new Bookmark(id, {
+//       id,
+//       tags: [],
+//         // ...
+//     });
+//     this.register(id, b)
+//     return b;
+//   }
+
+// 4. Add a findInIndex
+//   inFile(b: Bookmark, file: vscode.Uri) {
+//     return file == this.getUri(b);
+//   }
+//   find(text: string, line: number): BookmarkOccurrence[] | FlagOccurrence[] {
+//     return [...findBookmarks(text, this, line), ...findFlags(text, this, line)];
+//   }
+//   findInFile(file: vscode.Uri): Bookmark[] {
+//     return this.list().filter((b) => this.inFile(b, file));
+//   }
+//   // Now this one returns...
+//   findInIndex(file: vscode.Uri) {
+//     return this.fileIndex.get(file.toString());
+//   }
+
+// 5. Merge with this guy
+// Cause I know there's a method somewhere that were going row by row and rendering anchors so we ned them in order
+// export function findBookmarks(
+//   text: string,
+//   store: BookmarkStore,
+//   line: number,
+// ): BookmarkOccurrence[] {
+//   const results: BookmarkOccurrence[] = [];
+//   const regex = /@[A-Za-z0-9_-]+/g;
+//   for (const match of text.matchAll(regex)) {
+//     const id = match[0];
+//     // "if match is in store or embedded store contains an entry for this file and line..."
+//     // It's like two sides of the same coin.
+//     if (!store.has(id)) {
+//       continue;
+//     }
+//     results.push({
+//       id,
+//       line,
+//       start: match.index!,
+//       end: match.index! + id.length,
+//     });
+//   }
+
+//   return results;
 // }

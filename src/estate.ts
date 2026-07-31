@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ScopeInfo } from './activity';
-import { Bookmark, BookmarkStore } from './adapters/bookmarkService';
+import { Bookmark } from './adapters/bookmarkService';
 import { AppStore } from './app';
 
 export interface EstateContext {
@@ -17,6 +17,9 @@ export interface EstateFlag {
   scope: 'language' | 'workspace';
   action: string;
 }
+
+export type EstateFlags = EstateFlag[];
+
 export interface EstateScope {
   language: string;
   kind:
@@ -199,110 +202,6 @@ export class EstateNode extends vscode.TreeItem {
     }
   }
 }
-
-export const flags: EstateFlag[] = [
-  {
-    id: '@save',
-    label: 'Save',
-    description: 'Save',
-    scope: 'language',
-    capabilities: [],
-    action: 'estate.save',
-  },
-  {
-    id: '@capture',
-    label: 'Capture',
-    description: 'Capture',
-    scope: 'language',
-    capabilities: [],
-    action: 'wiki.click',
-  },
-  {
-    id: '@note',
-    label: 'Note',
-    description: 'Note...',
-    scope: 'language',
-    capabilities: [],
-    action: 'wiki.branch',
-  },
-  {
-    id: '@fold',
-    label: 'Fold',
-    description: 'Fold....',
-    scope: 'language',
-    capabilities: [],
-    action: 'wiki.branch',
-  },
-  {
-    id: '@preserve',
-    label: 'Preserve',
-    description: 'Preserve...',
-    scope: 'language',
-    capabilities: [],
-    action: 'wiki.branch',
-  },
-  {
-    id: '@option',
-    label: 'Option',
-    description: 'Option...',
-    scope: 'language',
-    capabilities: [],
-    action: 'wiki.branch',
-  },
-  {
-    id: '@inline',
-    label: 'Inline',
-    description: 'Inline...',
-    scope: 'language',
-    capabilities: [],
-    action: 'wiki.branch',
-  },
-  {
-    id: '@context',
-    label: 'Option',
-    description: 'Option...',
-    scope: 'language',
-    capabilities: [],
-    action: 'ui.openInNewEditorGroup',
-  },
-  {
-    id: '@connected',
-    label: 'Connected',
-    description: 'Connected...',
-    scope: 'language',
-    capabilities: [],
-    action: 'wiki.branch',
-  },
-  {
-    id: '@branch',
-    label: 'Branch',
-    description: 'Branch...',
-    scope: 'language',
-    capabilities: [],
-    action: 'wiki.branch',
-  },
-  {
-    id: '@hoverable',
-    label: 'Hoverable',
-    description: 'Hoverable...',
-    scope: 'language',
-    capabilities: [],
-    action: 'wiki.hoverable',
-  },
-  {
-    id: '@pinnable',
-    label: 'Pinnable',
-    description: 'Pinnable...',
-    capabilities: [],
-    scope: 'language',
-    action: 'ui.pinnable',
-  },
-  {
-    id: '@pick',
-    label: 'Pick',
-    description: 'Pick...',
-    scope: 'language',
-    capabilities: [],
-    action: 'wiki.ui.pick',
-  },
-];
+// When a bookmark has been tagged to be of a certain
+// class then we can attach capabilities.
+// Also useful if it's been idenfieid to have a matching property

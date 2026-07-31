@@ -4,11 +4,12 @@ import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
-import { EstateContext, EstateFlag, EstateTreeProvider, flags } from '../estate';
+import { EstateContext, EstateFlag, EstateTreeProvider } from '../estate';
 import { randomUUID } from 'node:crypto';
 import { AppStore } from '../app';
-
-const bookmark = ['create', 'read', 'update', 'delete'];
+import { capability, CMD, flags } from '../cmds';
+import { bookmarkShowPage, getHtml } from './htmlBookmark';
+import { Activity } from '../activity';
 
 // # Flag
 // - Fold flags: show prevent 'above' from 'unfolding' no matter how many depths I've unfolded. Think about how I might want to 'ignore' tests of rust or imports or 'first impl'
@@ -27,199 +28,144 @@ const bookmark = ['create', 'read', 'update', 'delete'];
 // option: enables picking one of more
 //  - graph problems: dfs, bfs, etc.
 
+// interface augments types
 export interface Bookmark {
-  id?: string;
   type?: string;
   description?: string;
-  context?: string;
-  label?: string;
   code?: string;
+  context?: string;
+  body?: string;
   repo?: string;
   commit?: string;
   scope?: string;
   privacy?: string;
-  source?: BookmarkSource;
-  body?: string;
   updatedAt?: string;
   createdAt?: string;
-  tags: string[];
+  origin: BookmarkOrigin;
+  anchors: BookmarkAnchor[];
 }
+// Runtime
+export class Bookmark {
+  id: string;
+  label?: string;
+  src?: BookmarkSource;
+  tags: EstateFlag[] = [];
+
+  constructor(id: string, data: Partial<Bookmark>) {
+    this.id = id;
+    Object.assign(this, data);
+  }
+
+  uri(): string {
+    if (!this.src?.uri) {
+      throw new Error('Invalid URI');
+    }
+    return this.src.uri.toString();
+  }
+}
+export type BookmarkOrigin = 'system' | 'personal' | 'workspace';
+export interface BookmarkSource {
+  uri: string;
+  startLine: number;
+  endLine: number;
+  startCharacter?: number;
+  endCharacter?: number;
+  languageId?: string;
+}
+export interface BookmarkOccurrence extends Anchor {}
+export interface FlagOccurrence extends Anchor {
+  flag: EstateFlag;
+}
+export type Occurrence = BookmarkOccurrence | FlagOccurrence;
 export interface BookmarkStoreType {
   get(id: string): Bookmark | undefined;
-  load(path: string): void;
+  loadRegistry(path: string): void;
   save(): void;
-  create(ctx: EstateContext, opts: CreateBookmarkOptions, bookmark: Partial<Bookmark>): Bookmark;
+  create(
+    ctx: EstateContext,
+    opts: CreateBookmarkOptions,
+    bookmark: Partial<Bookmark>,
+  ): Partial<Bookmark>;
   update(id: string, patch: Partial<Bookmark>): void;
   delete(id: string): void;
-  find(text: string, line: number): BookmarkOccurrence[] | FlagOccurrence[];
+  find(file: vscode.Uri, text: string, line: number): Occurrence[];
   list(): Bookmark[];
   hasFlag(id: string): boolean;
   getFlag(id: string): EstateFlag | undefined;
 }
-
 export class BookmarkStore implements BookmarkStoreType {
   private items = new Map<string, Bookmark>();
+  private fileIndex = new Map<string, Bookmark[]>();
+  // 1. Add to items and fileIndex when creating
+  // 2. Use fileIndex for embedded(or over all, so we dont have to do "row by row scan")
   private flags = new Map<string, EstateFlag>();
   private registryPath = path.join(os.homedir(), '.estate', 'bookmark.json');
+  public roots: any[] = [];
   private bookmarkDecoration = vscode.window.createTextEditorDecorationType({
     gutterIconPath: vscode.Uri.file('/path/to/bookmark.svg'),
     overviewRulerColor: '#888888',
     overviewRulerLane: vscode.OverviewRulerLane.Right,
     after: {
-      contentText: ' 🔖',
+      contentText: 'Hi there! 🔖',
     },
   });
   private decorateBookmarks(editor: vscode.TextEditor): void {
     const uri = editor.document.uri.fsPath;
     const ranges: vscode.Range[] = [];
     for (const bookmark of this.list()) {
-      if (!bookmark?.source) {
+      if (!bookmark?.src) {
         continue;
       }
-      if (bookmark.source.uri !== uri) {
+      if (bookmark.src.uri !== uri) {
         continue;
       }
       ranges.push(
         new vscode.Range(
-          bookmark.source.startLine,
-          bookmark.source.startCharacter ?? 0,
-          bookmark.source.endLine,
-          bookmark.source.endCharacter ?? 0,
+          bookmark.src.startLine,
+          bookmark.src.startCharacter ?? 0,
+          bookmark.src.endLine,
+          bookmark.src.endCharacter ?? 0,
         ),
       );
     }
     editor.setDecorations(this.bookmarkDecoration, ranges);
   }
-  constructor(app: AppStore) {
-    this.init();
-    app.activity.subscribe(() => {
-      console.log('Bookmark store... activity detcted');
+  constructor(public app: AppStore) {
+    this.bookmarkDecoration = vscode.window.createTextEditorDecorationType({
+      before: {
+        margin: '0 0 0 1rem',
+        color: new vscode.ThemeColor('descriptionForeground'),
+        fontStyle: 'italic',
+      },
     });
-  }
-
-  init(): void {
-    // @context
-    // ⚠️ Must bind to capture lexical scope when registering commands.
-    // vscode.commands.registerCommand('bookmark.create', this.addBookmark);
-    // vscode.commands.registerCommand('bookmark.create', (ctx) => this.addBookmark(ctx, this.app));
     const estates = this.findEstates();
     for (const estate of estates) {
       this.loadRegistry(path.join(estate, 'bookmark.json'));
     }
-    this.initFlagsIntrinsic();
-  }
-
-  private findEstates(): string[] {
-    const estates: string[] = [];
-    const homeEstate = path.join(os.homedir(), '.estate');
-    if (fs.existsSync(homeEstate)) {
-      estates.push(homeEstate);
-    }
-    return estates;
-  }
-
-  //   private findEstate(startPath: string): string | undefined {
-  //     let current = path.resolve(startPath);
-  //     while (true) {
-  //       const candidate = path.join(current, '.estate');
-  //       if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
-  //         return candidate;
-  //       }
-  //       const parent = path.dirname(current);
-  //       if (parent === current) {
-  //         break;
-  //       }
-  //       current = parent;
-  //     }
-  //     return undefined;
-  //   }
-
-  create(ctx: EstateContext, opts: CreateBookmarkOptions, bookmark: Partial<Bookmark>): Bookmark {
-    const now = new Date().toISOString();
-    return {
-      tags: [],
-      type: bookmark.type ?? 'concept',
-      label: opts.label,
-      description: opts.description ?? '',
-      privacy: opts.privacy ?? 'personal',
-      body: bookmark.body ?? '',
-      context: bookmark.context ?? '',
-      code: bookmark.code ?? '',
-      repo: bookmark.repo ?? '',
-      commit: bookmark.commit ?? '',
-      scope: bookmark.scope ?? 'unknown',
-      source: bookmark.source,
-      createdAt: now,
-      updatedAt: now,
-    };
-  }
-  async addBookmark(ctx: vscode.ExtensionContext, app: AppStore) {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-      return;
-    }
-    // app.bookmarks.
-    const selection = editor.selection;
-    if (selection.isEmpty) {
-      vscode.window.showWarningMessage('Select something to bookmark first');
-      return;
-    }
-    const document = editor.document;
-    const selectedText = document.getText(selection);
-    const id = `@${Date.now()}`;
-    const bookmark = this.create(
-      {
-        bookmark: id,
-        uri: document.uri,
-        selection,
-      },
-      {
-        label: `Bookmark ${id}`,
-        description: 'Captured source block',
-        privacy: 'workspace',
-      },
-      {
-        type: 'code',
-        body: selectedText,
-        code: selectedText,
-        context: selectedText,
-
-        scope: 'source.selection',
-
-        source: {
-          uri: document.uri.fsPath,
-          startLine: selection.start.line,
-          endLine: selection.end.line,
-          startCharacter: selection.start.character,
-          endCharacter: selection.end.character,
-          languageId: document.languageId,
-        },
-      },
+    this.initIntrinsic();
+    this.initializeRegistry();
+    // ⚠️ Careful!
+    // - Pass app, ctx, or a 3rd argument to have it later. Otherwise the properties of this will be lost
+    app.ctx.subscriptions.push(
+      vscode.commands.registerCommand(CMD.bookmark.create, this.addBookmark, this),
+      vscode.commands.registerCommand(CMD.bookmark.edit, this.update, this),
     );
-    this.register(id, bookmark);
-    await this.save();
-
-    // await editor.edit((edit) => {
-    //   edit.insert(
-    //     new vscode.Position(selection.start.line, 0),
-    //     `// ${id} linked estate bookmark\n`,
-    //   );
-    // });
-
-    vscode.window.showInformationMessage(`Created ${id}`);
+    app.activity.subscribe(() => {
+      console.log('Bookmark store... activity detcted');
+      //   this.decorateBookmarks();
+    });
   }
-  register(id: string, bookmark: Bookmark): void {
-    this.items.set(id, bookmark);
+  private initIntrinsic(): EstateFlag[] {
+    for (const f of flags) {
+      this.registerFlag(f);
+    }
+    for (const c of capability) {
+      this.registerFlag(c);
+    }
+    return flags;
   }
-  async save(): Promise<void> {
-    const data = {
-      items: Object.fromEntries(this.items),
-    };
-    await fsPromise.mkdir(path.dirname(this.registryPath), { recursive: true });
-    await fsPromise.writeFile(this.registryPath, JSON.stringify(data, null, 2), 'utf8');
-  }
-  load(): void {
-    const estate = this.resolveEstate();
+  initializeRegistry(): void {
+    const estate = this.resolveRegistry();
     if (!estate) {
       return;
     }
@@ -232,66 +178,33 @@ export class BookmarkStore implements BookmarkStoreType {
       this.items.set(id, bookmark as Bookmark);
     }
   }
-  //   static fromPath(filePath: string): BookmarkStore {
-  //     const store = new BookmarkStore();
-  //     store.loadFsPath(filePath);
-  //     return store;
-  //   }
-  loadFsPath(filePath: string): void {
-    const estates = this.findEstatesFs(filePath);
-    for (const estate of estates) {
-      this.loadRegistry(path.join(estate, 'bookmark.json'));
-    }
-
-    // for (const flag of flags) {
-    //   this.registerFlags();
-    // }
-  }
-  get(id: string) {
-    return this.items.get(id);
-  }
-  has(id: string) {
-    return this.items.has(id);
-  }
-  hasSource(id: string) {
-    return this.items.has(id);
-  }
-  getFlag(id: string): EstateFlag | undefined {
-    return this.flags.get(id);
-  }
-  hasFlag(id: string) {
-    return this.flags.has(id);
-  }
-  ids() {
-    return [...this.items.keys()];
-  }
-  list() {
-    return [...this.items.values()];
-  }
-  find(text: string, line: number): BookmarkOccurrence[] | FlagOccurrence[] {
-    return [...findBookmarks(text, this, line), ...findFlags(text, this, line)];
-  }
-  update(
-    id: string,
-    patch: Partial<Bookmark>,
-    // opts: CreateBookmarkOptions,
-  ): Bookmark {
-    throw new Error('BookmarkStore.create() has not been implemented.');
-  }
-  delete(id: string) {
-    throw new Error('TODO');
-  }
-  private loadRegistry(file: string): void {
+  public loadRegistry(file: string): void {
     if (!fs.existsSync(file)) {
       console.log('Missing registry:', file);
       return;
     }
     const raw = fs.readFileSync(file, 'utf8');
     const json = JSON.parse(raw);
-    for (const [id, bookmark] of Object.entries(json.items ?? {})) {
-      console.log('ADDING:', id);
-      this.items.set(id, bookmark as Bookmark);
+    const items = json.items ?? {};
+
+    for (const [id, bookmark] of Object.entries(items as Record<string, Partial<Bookmark>>)) {
+      const b = new Bookmark(id, bookmark);
+      this.register(id, b);
     }
+  }
+  loadFsPath(filePath: string): void {
+    const estates = this.findEstatesFs(filePath);
+    for (const estate of estates) {
+      this.loadRegistry(path.join(estate, 'bookmark.json'));
+    }
+  }
+  private findEstates(): string[] {
+    const estates: string[] = [];
+    const homeEstate = path.join(os.homedir(), '.estate');
+    if (fs.existsSync(homeEstate)) {
+      estates.push(homeEstate);
+    }
+    return estates;
   }
   private findEstatesFs(filePath: string): string[] {
     const estates: string[] = [];
@@ -309,17 +222,200 @@ export class BookmarkStore implements BookmarkStoreType {
     }
     return estates.reverse();
   }
+  //   private findEstate(startPath: string): string | undefined {
+  //     let current = path.resolve(startPath);
+  //
+  //
+  //
+  //    while (true) {
+  //       const candidate = path.join(current, '.estate');
+  //       if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
+  //         return candidate;
+  //       }
+  //       const parent = path.dirname(current);
+  //       if (parent === current) {
+  //         break;
+  //       }
+  //       current = parent;
+  //     }
+  //     return undefined;
+  //   }
+  create(ctx: EstateContext, opts: CreateBookmarkOptions, bookmark: Partial<Bookmark>): Bookmark {
+    const now = new Date().toISOString();
+    let id = randomUUID();
+    let b = new Bookmark(id, {
+      id,
+      tags: [],
+      type: bookmark.type ?? 'concept',
+      label: opts.label,
+      description: bookmark.description ?? '',
+      privacy: opts.privacy ?? 'personal',
+      body: bookmark.body ?? '',
+      context: bookmark.context ?? '',
+      code: bookmark.code ?? '',
+      repo: bookmark.repo ?? '',
+      commit: bookmark.commit ?? '',
+      scope: bookmark.scope ?? 'unknown',
+      src: bookmark.src,
+      anchors: [],
+      origin: 'personal',
+      createdAt: now,
+      updatedAt: now,
+    });
+    this.register(id, b);
+    return b;
+  }
+  async addBookmark(ctx: vscode.ExtensionContext, app: AppStore) {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      return;
+    }
+    const selection = editor.selection;
+    if (selection.isEmpty) {
+      vscode.window.showWarningMessage('Select something to bookmark first');
+      return;
+    }
+    const document = editor.document;
+    const selectedText = document.getText(selection);
+    const id = `@${Date.now()}`;
+    this.create(
+      {
+        bookmark: id,
+        uri: document.uri,
+        selection,
+      },
+      {
+        label: `Bookmark ${id}`,
+        description: 'Captured source block',
+        privacy: 'workspace',
+      },
+      {
+        type: 'code',
+        body: selectedText,
+        scope: 'source.selection',
+        src: {
+          uri: document.uri.fsPath,
+          startLine: selection.start.line,
+          endLine: selection.end.line,
+          startCharacter: selection.start.character,
+          endCharacter: selection.end.character,
+          languageId: document.languageId,
+        },
+      },
+    );
 
+    // await editor.edit((edit) => {
+    //   edit.insert(
+    //     new vscode.Position(selection.start.line, 0),
+    //     `// ${id} linked estate bookmark\n`,
+    //   );
+    // });
+    await this.save();
+
+    vscode.window.showInformationMessage(`Created ${id}`);
+  }
+  register(id: string, bookmark: Bookmark) {
+    try {
+      this.items.set(id, bookmark);
+      const key = bookmark.uri().toString();
+      const list = this.fileIndex.get(key) ?? [];
+      list.push(bookmark);
+      list.sort((a, b) => a.src.startLine - b.src.startLine);
+      this.fileIndex.set(key, list);
+    } catch (error) {
+      vscode.window.showErrorMessage(`Error saving.`);
+    }
+  }
+  async save(): Promise<void> {
+    const data = {
+      items: Object.fromEntries(this.items),
+    };
+    await fsPromise.mkdir(path.dirname(this.registryPath), { recursive: true });
+    await fsPromise.writeFile(this.registryPath, JSON.stringify(data, null, 2), 'utf8');
+  }
+  get(id: string) {
+    return this.items.get(id);
+  }
+  has(id: string) {
+    return this.items.has(id);
+  }
+  hasSource(id: string) {
+    return this.items.has(id);
+  }
+  getFlag(id: string): EstateFlag | undefined {
+    return this.flags.get(id);
+  }
+  hasFlag(id: string) {
+    return this.flags.has(id);
+  }
+  getUri(b: Bookmark): vscode.Uri {
+    if (!b?.src?.uri) {
+      throw Error('Invalid Uri');
+    }
+    return vscode.Uri.file(b.src.uri);
+  }
+  ids() {
+    return [...this.items.keys()];
+  }
+  list(): Bookmark[] {
+    return [...this.items.values()];
+  }
+  inFile(b: Bookmark, file: vscode.Uri) {
+    return file == this.getUri(b);
+  }
+  find(file: vscode.Uri, text: string, line: number): Occurrence[] {
+    const results = [...findBookmarks(text, this, line), ...findFlags(text, this, line)];
+    for (const bookmark of this.findSortedIndex(file, line)) {
+      console.log('bookmarkbookmark', bookmark);
+      console.log('bookmarkbookmark', bookmark.id);
+      results.push({
+        id: bookmark.id,
+        line,
+        start: bookmark.src!.startCharacter ?? 0,
+        end: bookmark.src!.endCharacter ?? 0,
+      });
+    }
+    return results;
+  }
+  findInFile(file: vscode.Uri): Bookmark[] {
+    return this.list().filter((b) => this.inFile(b, file));
+  }
+  findSortedIndex(file: vscode.Uri, line: number): Bookmark[] {
+    return this.findInIndex(file).filter(
+      (b) => b.src && line >= b.src.startLine && line <= b.src.endLine,
+    );
+  }
+  findInIndex(file: vscode.Uri): Bookmark[] {
+    return this.fileIndex.get(file.toString()) ?? [];
+  }
+  update(
+    id: string,
+    patch: Partial<Bookmark>,
+    // opts: CreateBookmarkOptions,
+  ): Bookmark {
+    throw new Error('BookmarkStore.create() has not been implemented.');
+  }
+  delete(id: string) {
+    throw new Error('TODO');
+  }
   // @connected
   // Globals available as u type
-  private initFlagsIntrinsic(): EstateFlag[] {
-    for (const f of flags) {
-      this.registerFlag(f);
-    }
-    return flags;
-  }
   registerFlag(flag: EstateFlag): void {
     this.flags.set(flag.id, flag);
+  }
+  getRange(b: Bookmark) {
+    try {
+      let { src } = b;
+      if (!src) throw Error('Invalid Bookmark');
+      return new vscode.Range(
+        src.startLine,
+        src.startCharacter ?? 0,
+        src.endLine,
+        src.endCharacter ?? 0,
+      );
+    } catch (error) {
+      console.log('Get Range Error: ', error);
+    }
   }
   private registerFlagsUser(filePath: string): EstateFlag[] {
     const flags: EstateFlag[] = [
@@ -334,17 +430,17 @@ export class BookmarkStore implements BookmarkStoreType {
     ];
     return flags;
   }
-  private resolveEstate(): string | undefined {
-    // for (const root of this.roots) {
-    //   let current = root;
-    //   while (current !== path.dirname(current)) {
-    //     const candidate = path.join(current, '.estate');
-    //     if (fs.existsSync(candidate)) {
-    //       return candidate;
-    //     }
-    //     current = path.dirname(current);
-    //   }
-    // }
+  private resolveRegistry(): string | undefined {
+    for (const root of this.roots) {
+      let current = root;
+      while (current !== path.dirname(current)) {
+        const candidate = path.join(current, '.estate');
+        if (fs.existsSync(candidate)) {
+          return candidate;
+        }
+        current = path.dirname(current);
+      }
+    }
     return undefined;
   }
 }
@@ -354,7 +450,6 @@ export enum BookmarkLocation {
   Project,
 }
 export interface CreateBookmarkOptions {
-  id?: string;
   label?: string;
   description?: string;
   privacy: 'personal' | 'repo' | 'workspace';
@@ -373,258 +468,77 @@ export interface Result<T> {
   value?: T;
   error?: string;
 }
-export interface FlagOccurrence {
+export interface Anchor {
   id: string;
   line: number;
   start: number;
   end: number;
-  flag: EstateFlag;
+}
+
+export function findAnchors(text: string, line: number): Anchor[] {
+  const results: Anchor[] = [];
+  const regex = /@[A-Za-z0-9_-]+/g;
+
+  for (const match of text.matchAll(regex)) {
+    results.push({
+      id: match[0],
+      line,
+      start: match.index!,
+      end: match.index! + match[0].length,
+    });
+  }
+
+  return results;
 }
 export function findBookmarks(
   text: string,
   store: BookmarkStore,
   line: number,
 ): BookmarkOccurrence[] {
-  const results: BookmarkOccurrence[] = [];
-  const regex = /@[A-Za-z0-9_-]+/g;
-  for (const match of text.matchAll(regex)) {
-    const id = match[0];
-    if (!store.has(id)) {
-      continue;
-    }
-    console.log(`findBookmarks, {id}`, id);
-    results.push({
-      id,
-      line,
-      start: match.index!,
-      end: match.index! + id.length,
-    });
-  }
-
-  return results;
+  return findAnchors(text, line)
+    .filter((t) => store.has(t.id))
+    .map((t) => ({ ...t }));
 }
 export function findFlags(text: string, store: BookmarkStore, line: number): FlagOccurrence[] {
-  const results: FlagOccurrence[] = [];
-  const regex = /@[A-Za-z0-9_-]+/g;
-
-  for (const match of text.matchAll(regex)) {
-    // console.log(`Flag: ${match}`);
-    const id = match[0];
-    const flag = store.getFlag(id);
-    if (!flag) {
-      continue;
-    }
-    results.push({
-      id,
-      line,
-      start: match.index!,
-      end: match.index! + id.length,
-      flag,
-    });
-  }
-  return results;
+  return findAnchors(text, line).flatMap((t) => {
+    const flag = store.getFlag(t.id);
+    return flag ? [{ ...t, flag }] : [];
+  });
 }
-
-export interface BookmarkSource {
-  uri: string;
-  startLine: number;
-  endLine: number;
-  startCharacter?: number;
-  endCharacter?: number;
-  languageId?: string;
-}
-
-function getHtml(bookmark: Bookmark): string {
-  return /* html */ `
-
-<!DOCTYPE html>
-
-<html>
-
-<head>
-
-<style>
-
-body{
-    font-family: sans-serif;
-    padding:24px;
-}
-
-label{
-    display:block;
-    margin-top:16px;
-    font-weight:bold;
-}
-
-input,
-select,
-textarea{
-
-    width:100%;
-    box-sizing:border-box;
-    padding:8px;
-    margin-top:6px;
-
-}
-
-textarea{
-
-    height:180px;
-
-}
-
-.tags{
-
-    margin-top:8px;
-
-}
-
-.tag{
-
-    display:block;
-    margin:4px 0;
-
-}
-
-button{
-
-    margin-top:24px;
-    padding:10px 24px;
-
-}
-
-</style>
-
-</head>
-
-<body>
-
-<label>Label</label>
-
-<input id="label"
-value="${bookmark.label}">
-
-<label>Description</label>
-
-<input id="description"
-value="${bookmark.description}">
-
-<label>Scope</label>
-
-<select id="scope">
-
-<option>workspace</option>
-<option>package</option>
-<option>module</option>
-<option>file</option>
-<option selected>markdown.heading</option>
-<option>function</option>
-
-</select>
-
-<label>Privacy</label>
-
-<select id="privacy">
-
-<option selected>personal</option>
-<option>workspace</option>
-<option>public</option>
-
-</select>
-
-<label>Tags</label>
-
-<div class="tags">
-
-${renderTag('architecture', bookmark.tags)}
-${renderTag('parser', bookmark.tags)}
-${renderTag('compiler', bookmark.tags)}
-${renderTag('rust', bookmark.tags)}
-${renderTag('vscode', bookmark.tags)}
-
-</div>
-
-<label>Body</label>
-
-<textarea id="body">${bookmark.body}</textarea>
-
-<button id="save">
-Save Bookmark
-</button>
-
-<script>
-
-const vscode = acquireVsCodeApi();
-
-document
-.getElementById("save")
-.onclick = () => {
-
-    const tags =
-        [...document.querySelectorAll(".tag input")]
-            .filter(x=>x.checked)
-            .map(x=>x.value);
-
-    vscode.postMessage({
-
-        type:"save",
-
-        bookmark:{
-
-            label:
-                document.getElementById("label").value,
-
-            description:
-                document.getElementById("description").value,
-
-            scope:
-                document.getElementById("scope").value,
-
-            privacy:
-                document.getElementById("privacy").value,
-
-            body:
-                document.getElementById("body").value,
-
-            tags
-
-        }
-
-    });
-
-};
-
-</script>
-
-</body>
-
-</html>
-
-`;
-}
-
-function renderTag(tag: string, selected: string[]) {
-  const checked = selected?.includes(tag) ? 'checked' : '';
-  return `
-<label class="tag">
-<input
-type="checkbox"
-value="${tag}"
-${checked}>
-${tag}
-</label>
-`;
-}
-
 export class BookmarkSeries {}
-
 export class BookmarkPresenter {
-  constructor(private app: AppStore) {}
-  init() {
-    vscode.commands.registerCommand('bookmark.edit', this.present);
+  constructor(public app: AppStore) {
+    app.ctx.subscriptions.push(
+      vscode.commands.registerCommand(CMD.bookmark.open, this.showPagePane, this),
+      vscode.commands.registerCommand(
+        CMD.bookmark.present,
+        async (ctx, bookmark: Bookmark) => {
+          await this.present(ctx, bookmark);
+        },
+        this,
+      ),
+    );
+    // TODO: Doesn't Work
+    app.activity.subscribe((a: Activity) => {
+      if (!a.editor) return;
+      console.log(
+        'this.findInFile(app.activity.current().editor.uri)',
+        app.bookmarks.findInFile(a.editor.uri),
+      );
+    });
   }
-  async present(ctx: vscode.ExtensionContext) {
-    console.log('Bookmark Present present');
+  // - Hover
+  // - Preview
+  // - Full
+  // - Panel
+
+  showPagePane() {
+    const panel = vscode.window.createWebviewPanel('wikiPopup', 'Wiki', vscode.ViewColumn.Active, {
+      enableScripts: true,
+    });
+    panel.webview.html = bookmarkShowPage;
+  }
+  async present(ctx: vscode.ExtensionContext, bookmark: Bookmark) {
     const panel = vscode.window.createWebviewPanel(
       'estateBookmark',
       'Edit Bookmark',
@@ -633,21 +547,24 @@ export class BookmarkPresenter {
         enableScripts: true,
       },
     );
-    console.log('Bookmark Present present');
-    const bookmark = this.app.bookmarks.get('@1785496399347');
     if (!bookmark) return;
-    console.log('Bookmark Present present');
     panel.webview.html = getHtml(bookmark);
-    console.log('Bookmark Present present');
     panel.webview.onDidReceiveMessage((msg) => {
       if (msg.type === 'save') {
-        console.log('Bookmark Present present onDidReceiveMessage');
         this.app.bookmarks.update(bookmark?.id || '', msg.bookmark);
-        console.log('Bookmark Present present update');
         this.app.tree.refresh();
         vscode.window.showInformationMessage('Bookmark saved.');
       }
     });
   }
-  // Messages
+}
+
+export interface BookmarkAnchor {
+  uri: vscode.Uri;
+  line: number;
+  // optional placement info
+  start?: number;
+  end?: number;
+  // why it exists
+  source: 'reference' | 'position';
 }

@@ -7,12 +7,8 @@ import { innerRange } from '../core/parser/refRange';
 import { resolveTarget } from '../core/resolver/resolveTarget';
 
 import { IndexService } from './indexService';
-import { BookmarkStore } from './bookmarkService';
-import { AnalysisStore } from '../analysis';
 
 const DEBOUNCE_MS = 250;
-
-const EXT_PATH = '/Users/future/KB/project/app/markdown-wiki-links';
 
 // Colours `[[...]]` / `![[...]]` in the editor by whether the resolver can actually resolve
 // the target — resolved links take the editor link colour, unresolved ones are dimmed.
@@ -65,6 +61,7 @@ export class WikiDecorations {
     editor.setDecorations(decoration, ranges);
   }
   private markLines(editor: vscode.TextEditor, icon: string, lines: number[]) {
+    console.log('markLines');
     const decoration = this.decorations.get(icon);
     if (!decoration) {
       console.warn(`Missing decoration: ${icon}`);
@@ -95,6 +92,7 @@ export class WikiDecorations {
     this.applyState(editor, 'selected', [subjectLine]);
   }
   private previewIconStack(editor: vscode.TextEditor) {
+    console.log('previewIconStack');
     const startLine = editor.selection.active.line;
     this.clearDecorations(editor);
     icons.forEach((icon, index) => {
@@ -128,16 +126,6 @@ export class WikiDecorations {
     private idx: IndexService,
   ) {
     console.log('Hi Decorations');
-    app.analysis.subscribe(() => {
-      console.log('Click Decoration');
-      const result = app.analysis.get();
-      const lines = app.analysis.getRelatedLines();
-      if (!result) return;
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) return;
-      this.previewIconStack(editor);
-      this.applyDecorations(editor, lines);
-    });
     app.ctx.subscriptions.push(
       this.resolved,
       this.unresolved,
@@ -147,6 +135,16 @@ export class WikiDecorations {
     );
     this.initIcons();
     this.initStateIcons();
+    app.activity.subscribe(() => {
+      console.log('click Decoration Subscribe');
+      const result = app.analysis.get();
+      const lines = app.analysis.getRelatedLines();
+      if (!result) return;
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) return;
+      this.previewIconStack(editor);
+      this.applyDecorations(editor, lines);
+    });
   }
 
   register(ctx: vscode.ExtensionContext): void {
@@ -177,7 +175,7 @@ export class WikiDecorations {
     }, DEBOUNCE_MS);
   }
   private decorate(editor: vscode.TextEditor): void {
-    if (editor.document.languageId !== 'markdown') return;
+    if (!supportedLanguages.includes(editor.document.languageId)) return;
     const doc = editor.document;
     const text = doc.getText();
     const mask = buildFenceMask(text);
@@ -271,6 +269,7 @@ export class WikiDecorations {
   //     this.previewIconStack(editor);
   //   }
   private applyDecorations(editor: vscode.TextEditor, relatedLines: any[]) {
+    console.log('Hi plz go');
     const doc = editor.document;
 
     const scopeLines = new Set<number>();
@@ -733,6 +732,7 @@ function isProbablyVisible(editor: vscode.TextEditor, line: number) {
 
 import { icons } from '../ownership';
 import { AppStore } from '../app';
+import { EXT_PATH, supportedLanguages } from '../consts';
 
 // export class DecorationService {
 //   private unrelatedDecorationType = vscode.window.createTextEditorDecorationType({

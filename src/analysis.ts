@@ -15,18 +15,21 @@ export class AnalysisStore {
   private listeners = new Set<() => void>();
   constructor(private app: AppStore) {}
 
-  async analyzeLine(activity: Activity): Promise<void> {
+  async analyzeLine(activity: Activity, analysisMode = 'default'): Promise<void> {
     console.log('AnalysisStore handler for click');
     this.currentActivity = activity;
     const editor = vscode.window.activeTextEditor;
+
     if (!editor) {
       return;
     }
 
-    let item = {
-      file: activity.editor.uri.toString(),
-      column: activity.editor.column.toString(),
-      line: (Number(activity.editor.line) + 1).toString(),
+    const doc = editor?.document;
+
+    const item = {
+      file: activity.editor.uri.fsPath,
+      column: activity.editor.column,
+      line: activity.editor.line,
       text: activity.editor.lineText,
       scope: activity.scope,
     };
@@ -38,11 +41,13 @@ export class AnalysisStore {
     console.log('[EXT click] scope', item.scope);
     console.log('[EXT text] scope', item.text);
     console.log('[EXT click] scope', item.scope);
-
+    console.log(item);
+    const config = vscode.workspace.getConfiguration('flowify');
+    const defaultMode = config.get<string>('defaultAnalysisMode', 'default');
     try {
       const { stdout, stderr } = await execFileAsync(
         binaryPath,
-        ['analyze', item.file, '--line', item.line, '--column', item.column],
+        ['analyze', item.file, '--line', item.line + 1, '--column', item.column],
         { cwd: cratePath },
       );
 

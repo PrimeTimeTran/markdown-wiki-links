@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 
 import { ActivityStore } from './activity';
 import { AnalysisStore } from './analysis';
-import { Presenter } from './presenter';
 import { BookmarkPresenter, BookmarkStore } from './adapters/bookmarkService';
 import { EstateTreeProvider } from './estate';
 
@@ -25,7 +24,7 @@ export class AppStore {
     this.presenter = new BookmarkPresenter(this);
     this.tree = new EstateTreeProvider(this);
     this.activity.init(this.ctx);
-    this.presenter.init()
+    
   }
 
   init() {

@@ -101,6 +101,4 @@ between Markdown files.
 
 [0.1.0]: https://github.com/ltvan/markdown-wiki-links/releases/tag/v0.1.0
 
-
-
 @note

@@ -1,21 +1,20 @@
 import * as vscode from 'vscode';
 
-import { BookmarkOccurrence } from './bookmarkService';
+import { Bookmark, BookmarkOccurrence, BookmarkSource } from './bookmarkService';
 import { Activity, captureScope } from '../activity';
 import { EstateContext } from '../estate';
 import { icons } from '../ownership';
 import { AppStore } from '../app';
+import { capability, CMD, flags } from '../cmds';
 
 export class WikiCodeLensProvider implements vscode.CodeLensProvider {
   private readonly _onDidChangeCodeLenses = new vscode.EventEmitter<void>();
   readonly onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
   public refresh(): void {
-    console.log('Refreshing the wikicodelens provider.');
     this._onDidChangeCodeLenses.fire();
   }
   constructor(private app: AppStore) {
     app.activity.subscribe((activity) => {
-      console.log('Wikicodelens Provider');
       this.analyzeLine(activity);
       this.refresh();
     });
@@ -24,16 +23,16 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
     console.log('analyzeLine WikiCodeLensProvider event', activity);
   }
 
-  //   init(context: vscode.ExtensionContext) {
-  //     icons;
-  //     context.subscriptions.push(
-  //       this.activity.subscribe((a) => {
-  //         const editor = vscode.window.activeTextEditor;
-  //         if (!editor) return;
-  //         this.update(editor, a);
-  //       }),
-  //     );
-  //   }
+  init(context: vscode.ExtensionContext) {
+    icons;
+    context.subscriptions.push(
+      this.app.activity.subscribe((a) => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) return;
+        this.update(editor, a);
+      }),
+    );
+  }
 
   private update(editor: vscode.TextEditor, activity: Activity) {
     console.log('decorate based on', activity.scope);
@@ -90,22 +89,129 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
 
   addIcon() {}
 
+  //   provideCodeLenses(doc: vscode.TextDocument): vscode.CodeLens[] {
+  //     const lenses: vscode.CodeLens[] = [];
+  //     for (let line = 0; line < doc.lineCount; line++) {
+  //       const text = doc.lineAt(line).text;
+  //       const matches = this.app.bookmarks.find(text, line);
+  //       for (const match of matches) {
+  //         const range = new vscode.Range(line, match.start, line, match.end);
+  //         const bookmark = this.app.bookmarks.get(match.id);
+  //         if (bookmark) {
+  //           lenses.push(
+  //             new vscode.CodeLens(range, {
+  //               title: `🏠 Open ${bookmark?.label ?? match.id}`,
+  //               command: CMD.bookmark.open,
+  //               arguments: [this.makeCtx(doc, match, range)],
+  //             }),
+  //           );
+  //           lenses.push(
+  //             new vscode.CodeLens(range, {
+  //               title: `🔖 Present ${bookmark?.label ?? match.id}`,
+  //               command: CMD.bookmark.present,
+  //               arguments: [this.makeCtx(doc, match, range), bookmark],
+  //             }),
+  //           );
+  //         }
+  //       }
+  //     }
+  //     const line = vscode.window.activeTextEditor?.selection.start.line ?? 0;
+  //     const range = new vscode.Range(line, 0, line, 0);
+  //     return lenses;
+  //   }
+
+  //   provideCodeLenses(doc: vscode.TextDocument): vscode.CodeLens[] {
+  //     const lenses: vscode.CodeLens[] = [];
+  //     const { list, getRange } = this.app.bookmarks;
+  //     for (const b of list()) {
+  //       lenses.push(
+  //         new vscode.CodeLens(b.source, {
+  //           title: `✨ Easy Task`,
+  //           command: CMD.bookmark.present,
+  //           arguments: [this.makeCtx(doc, b, getRange(b)), b],
+  //         }),
+  //       );
+  //     }
+  //     return lenses;
+  //     // const lenses: vscode.CodeLens[] = [];
+  //     // let uri = doc.uri.toString();
+  //     // const { list, isInThisFile, getRange } = this.app.bookmarks;
+  //     // for (const b of list()) {
+  //     //   if (isInThisFile(b, uri)) continue;
+  //     //   for (const tag of b.tags) {
+  //     //     lenses.push(
+  //     //       // this.renderBookmark(b),
+  //     //       new vscode.CodeLens(b.source, {
+  //     //         title: `✨ Easy Task`,
+  //     //         command: tag.action,
+  //     //         arguments: [this.makeCtx(doc, b, getRange(b)), b],
+  //     //       }),
+  //     //     );
+  //     //   }
+  //     // }
+  //     // return lenses;
+  //   }
+  //   private findBookmarkRange(doc: vscode.TextDocument, bookmark: Bookmark): Bookmark[] {
+  //     let bookmarks: Bookmark[] = this.app.bookmarks.list();
+  //     return bookmarks.filter((b) => this.app.bookmarks.isInThisFile(b, doc.uri));
+  //   }
+  //   private findBookmarkRange(
+  //     doc: vscode.TextDocument,
+  //     bookmark: Bookmark,
+  //   ): vscode.Range | undefined {
+  //     let bookmarks: Bookmark[] = this.app.bookmarks.list();
+  //     for (const bookmark in bookmarks) {
+  //       for (const tag in bookmark.tags) {
+  //         capability.find((c) => c.id == tag);
+  //         if (bookmark.source.uri !== doc.uri.fsPath) continue;
+  //         return new vscode.Range(
+  //           bookmark.source.startLine,
+  //           bookmark.source.startCharacter,
+  //           bookmark.source.endLine,
+  //           bookmark.source.endCharacter,
+  //         );
+  //       }
+  //     }
+  //   }
+  //   private findBookmarkRange(
+  //     doc: vscode.TextDocument,
+  //     bookmark: Bookmark,
+  //   ): vscode.Range | undefined {
+  //     let bookmarks: Bookmark[] = this.app.bookmarks.list();
+  //     for (const bookmark in bookmarks) {
+  //       for (const tag in bookmark.tags) {
+  //         capability.find((i) => i.id == tag.);
+  //         if (bookmark.source.uri !== doc.uri.fsPath) continue;
+  //         return new vscode.Range(
+  //           bookmark.source.startLine,
+  //           bookmark.source.startCharacter,
+  //           bookmark.source.endLine,
+  //           bookmark.source.endCharacter,
+  //         );
+  //       }
+  //     }
+  //   }
   provideCodeLenses(doc: vscode.TextDocument): vscode.CodeLens[] {
     const lenses: vscode.CodeLens[] = [];
     for (let line = 0; line < doc.lineCount; line++) {
       const text = doc.lineAt(line).text;
-      const matches = this.app.bookmarks.find(text, line);
+      const matches = this.app.bookmarks.find(doc.uri, text, line);
       for (const match of matches) {
         const range = new vscode.Range(line, match.start, line, match.end);
-        // let item = this.addLabel(match, doc, range);
         const bookmark = this.app.bookmarks.get(match.id);
-        // console.log('bookmark', bookmark?.label);
         if (bookmark) {
           lenses.push(
             new vscode.CodeLens(range, {
-              title: `🏠 Personal ${bookmark?.label ?? match.id}`,
-              command: 'bookmark.edit',
+              title: `🏠 Open ${bookmark?.label ?? match.id}`,
+              command: CMD.bookmark.open,
               arguments: [this.makeCtx(doc, match, range)],
+            }),
+          );
+          lenses.push(
+            new vscode.CodeLens(range, {
+              title: `🔖 Present ${bookmark?.label ?? match.id}`,
+              command: CMD.bookmark.present,
+              arguments: [this.makeCtx(doc, match, range), bookmark],
             }),
           );
           new vscode.CodeLens(range, {
@@ -131,6 +237,36 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
           //   );
         }
         const flag = this.app.bookmarks.getFlag(match.id);
+        if (flag?.id == '@easy') {
+          // TODO: Identify how to properly differenrite between intrinsic vs user defined.
+          lenses.push(
+            new vscode.CodeLens(range, {
+              title: '🗂 Easy',
+              command: 'ui.openInNewEditorGroup',
+              arguments: [this.makeCtx(doc, match, range)],
+            }),
+          );
+        }
+        if (flag?.id == '@medium') {
+          // TODO: Identify how to properly differenrite between intrinsic vs user defined.
+          lenses.push(
+            new vscode.CodeLens(range, {
+              title: '🗂 medium',
+              command: 'ui.openInNewEditorGroup',
+              arguments: [this.makeCtx(doc, match, range)],
+            }),
+          );
+        }
+        if (flag?.id == '@hard') {
+          // TODO: Identify how to properly differenrite between intrinsic vs user defined.
+          lenses.push(
+            new vscode.CodeLens(range, {
+              title: '🗂 Hard',
+              command: 'ui.openInNewEditorGroup',
+              arguments: [this.makeCtx(doc, match, range)],
+            }),
+          );
+        }
         if (flag?.id == '@context') {
           // TODO: Identify how to properly differenrite between intrinsic vs user defined.
           lenses.push(
@@ -186,7 +322,6 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
             }),
           );
         }
-
         if (flag?.id == '@inline') {
           lenses.push(
             new vscode.CodeLens(range, {
@@ -251,14 +386,13 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
         //     arguments: [this.makeCtx(doc, match, range)],
         //   }),
         // );
-
-        lenses.push(
-          new vscode.CodeLens(range, {
-            title: '💾 Save Bookmark',
-            command: 'estate.contentSave',
-            arguments: [this.makeCtx(doc, match, range)],
-          }),
-        );
+        // lenses.push(
+        //   new vscode.CodeLens(range, {
+        //     title: '💾 Save Bookmark',
+        //     command: 'estate.contentSave',
+        //     arguments: [this.makeCtx(doc, match, range)],
+        //   }),
+        // );
         // lenses.push(
         //   new vscode.CodeLens(range, {
         //     title: '🔄 Cycle Variants', // Move through saved bookmark variations/options
@@ -281,17 +415,17 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
     //   command: 'flowify.showScope',
     // });
     // lenses.push(addHeader);
-    const line = vscode.window.activeTextEditor?.selection.start.line ?? 0;
-    const range = new vscode.Range(line, 0, line, 0);
-    icons.forEach((icon) => {
-      lenses.push(
-        new vscode.CodeLens(range, {
-          title: `🔹 ${icon}`,
-          command: 'flowify.previewIcon',
-          arguments: [icon, line],
-        }),
-      );
-    });
+    // const line = vscode.window.activeTextEditor?.selection.start.line ?? 0;
+    // const range = new vscode.Range(line, 0, line, 0);
+    // icons.forEach((icon) => {
+    //   lenses.push(
+    //     new vscode.CodeLens(range, {
+    //       title: `🔹 ${icon}`,
+    //       command: 'flowify.previewIcon',
+    //       arguments: [icon, line],
+    //     }),
+    //   );
+    // });
     lenses.push(...this.provideBookmarkLenses(doc));
     return lenses;
   }
@@ -299,35 +433,30 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
     const lenses: vscode.CodeLens[] = [];
     const bookmarks = this.app.bookmarks.list();
     for (const bookmark of bookmarks) {
-      const source = bookmark.source;
-      if (!source) {
+      const { src } = bookmark;
+      if (!src) {
         continue;
       }
-      if (source.uri !== doc.uri.fsPath) {
+      if (vscode.Uri.file(src.uri) !== doc.uri) {
         continue;
       }
-      const range = new vscode.Range(
-        source.startLine,
-        source.startCharacter ?? 0,
-        source.endLine,
-        source.endCharacter ?? 0,
-      );
-      lenses.push(
-        new vscode.CodeLens(range, {
-          title: `🔖 ${bookmark.label ?? 'Bookmark'}`,
-          command: 'bookmark.edit',
-          arguments: [
-            {
-              uri: doc.uri,
-              selection: range,
-              bookmark: bookmark.label,
-            },
-          ],
-        }),
-      );
+      lenses.push(this.renderBookmark(bookmark));
     }
-
     return lenses;
+  }
+  renderBookmark(b: Bookmark) {
+    const range = this.app.bookmarks.getRange(b);
+    return new vscode.CodeLens(range, {
+      title: `🔖 ${b.label ?? 'Bookmark'}`,
+      command: 'bookmark.edit',
+      arguments: [
+        {
+          uri: b.src,
+          selection: range,
+          bookmark: b.label,
+        },
+      ],
+    });
   }
   makeCtx(document: vscode.TextDocument, match: BookmarkOccurrence, range: vscode.Range) {
     let ctx: EstateContext = {
@@ -338,4 +467,10 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
     };
     return ctx;
   }
+}
+
+function getBookmarksForDocument(registry: Record<string, Bookmark>, uri: vscode.Uri): Bookmark[] {
+  return Object.values(registry).filter((b) => {
+    return b.uri() === uri.fsPath;
+  });
 }

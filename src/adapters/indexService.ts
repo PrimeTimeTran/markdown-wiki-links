@@ -11,11 +11,11 @@ import {
 } from '../core/resolver/resolveTarget';
 import { isExcludedPath, buildExcludeGlob } from '../core/pathFilter';
 
-const GLOB = '**/*.{md,markdown,png,jpg,jpeg,gif,webp,svg}';
+const GLOB = '**/*.{md,markdown,png,jpg,jpeg,gif,webp,svg,rs,ts,js,py}';
 // The same extension set as GLOB. add() must enforce it directly: rename events are not
 // filtered by the watcher glob, so without this a renamed folder (or a .md renamed to .txt)
 // would be inserted into the index as a link target.
-const INDEXABLE_RE = /\.(md|markdown|png|jpe?g|gif|webp|svg)$/i;
+const INDEXABLE_RE = /\.(rs|js|ts|py|md|markdown|png|jpe?g|gif|webp|svg)$/i;
 
 const DEFAULT_EXCLUDED_FOLDERS = [
   '.git',

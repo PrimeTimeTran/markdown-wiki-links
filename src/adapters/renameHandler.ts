@@ -21,10 +21,10 @@ import { IndexEntry } from '../core/types';
 import { excludedFolders } from './indexService';
 
 // Files a wiki-link can target: Markdown documents plus embeddable media.
-const LINKABLE_RE = /\.(md|markdown|png|jpe?g|gif|webp|svg)$/i;
+const LINKABLE_RE = /\.(md|markdown|png|jpe?g|gif|webp|svg|rs|js|ts|py)$/i;
 // Files that can *contain* wiki-links — only these are scanned and rewritten.
-const MARKDOWN_RE = /\.(md|markdown)$/i;
-const INDEX_GLOB = '**/*.{md,markdown,png,jpg,jpeg,gif,webp,svg}';
+const MARKDOWN_RE = /\.(md|markdown|rs|js|ts|py)$/i;
+const INDEX_GLOB = '**/*.{md,markdown,png,jpg,jpeg,gif,webp,svg,rs,js,ts,py}';
 
 // The rename participant blocks VSCode's file operation until the edit is built (waitUntil),
 // so this path must stay fast even in multi-thousand-file workspaces: referrers are read in

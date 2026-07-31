@@ -1,3 +1,7 @@
+// @context
+// @bar
+//
+// @foo
 import * as vscode from 'vscode';
 
 import { IndexService } from './adapters/indexService';
@@ -8,7 +12,8 @@ import { WikiDocumentLinkProvider } from './adapters/documentLinkProvider';
 import { WikiDiagnostics } from './adapters/diagnostics';
 import { WikiCompletionProvider } from './adapters/completionProvider';
 import { WikiCodeLensProvider } from './adapters/codelens';
-import { BookmarkPresenter } from './adapters/bookmarkService';
+
+import { longLangs, supportedLanguages } from './consts';
 import {
   extendMarkdownIt as wireMarkdownIt,
   setResolver,
@@ -18,6 +23,7 @@ import { EstateContext, EstateNode } from './estate';
 import { AppStore } from './app';
 import { WikiDecorations } from './adapters/decorations';
 import { OwnershipInlayProvider } from './ownership';
+import { BookmarkPresenter } from './adapters/bookmarkService';
 
 let indexService: IndexService | undefined;
 
@@ -37,31 +43,28 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   context.subscriptions.push(view);
 
   const codeLens = new WikiCodeLensProvider(app);
-  let langs = [{ language: 'markdown' }, { language: 'rust' }, { language: 'ts' }]
   context.subscriptions.push(
-    vscode.languages.registerCodeLensProvider(
-      langs,
-      codeLens,
-    ),
+    vscode.languages.registerCodeLensProvider(longLangs, codeLens),
     vscode.languages.registerDocumentLinkProvider(
-      langs,
+      longLangs,
       new WikiDocumentLinkProvider(indexService),
     ),
   );
 
   let store = app.bookmarks;
-  context.subscriptions.push(
+  (context.subscriptions.push(
     vscode.commands.registerCommand('ui.addInlinePanel', (ctx: { id: string }) => {
       const bookmark = app.bookmarks.get(ctx.id);
       if (!bookmark) return;
       vscode.window.showInformationMessage(`Inline: ${bookmark.label}`);
     }),
-    // vscode.commands.registerCommand('bookmark.create', (ctx) =>
-    //   new BookmarkPresenter(app).present(ctx, store, tree),
-    ),
-    // vscode.commands.registerCommand('bookmark.edit', (ctx) =>
-    //   new BookmarkPresenter(app).present(ctx, store, tree),
-    // ),
+    // vscode.commands.registerCommand('bookmark.create', (ctx) => {
+    //   new BookmarkPresenter(ctx).present();
+    // }),
+    // vscode.commands.registerCommand('bookmark.edit', (ctx) => {
+    //     new BookmarkPresenter(app).present(ctx, store, tree),
+    // }
+  ),
     // vscode.commands.registerCommand('ui.openInNewEditorGroup', async (ctx: EstateContext) => {
     //   const bookmark = store.get(ctx.bookmark);
     //   if (!bookmark) {
@@ -109,15 +112,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
 
       vscode.window.showInformationMessage(`Replace using ${bookmark.label}`);
     }),
-
-    vscode.commands.registerCommand(
-      'bookmark.create',
-      async (uri: vscode.Uri, range: vscode.Range) => {
-        console.log('ADD BOOKMARK', { uri, range });
-        await store.create(context);
-        codeLens.refresh();
-      },
-    ),
+    // vscode.commands.registerCommand(
+    //   'bookmark.create',
+    //   async (uri: vscode.Uri, range: vscode.Range) => {
+    //     console.log('ADD BOOKMARK', { uri, range });
+    //     await store.create(context);
+    //     codeLens.refresh();
+    //   },
+    // ),
 
     // vscode.commands.registerCommand(
     //   'estate.toggleFold',
@@ -162,43 +164,38 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
     vscode.commands.registerCommand('ui.toggleMDPreview', async () => {
       app.toggleMdPreview();
       const editor = vscode.window.activeTextEditor;
+
       if (editor && editor.document.languageId === 'markdown' && app.isMdPreviewEnabled()) {
         await vscode.commands.executeCommand('markdown.togglePreview', editor.document.uri);
       }
     }),
-    vscode.languages.registerHoverProvider(
-      { language: 'markdown' },
-      {
-        provideHover(document, position) {
-          const line = document.lineAt(position.line).text;
-          if (line.includes('@hover')) {
-            const md = new vscode.MarkdownString();
-            md.isTrusted = true;
-            md.appendMarkdown(newEditorGroupTabContent);
-            return new vscode.Hover(md);
-          }
-        },
+    vscode.languages.registerHoverProvider(longLangs, {
+      provideHover(document, position) {
+        const line = document.lineAt(position.line).text;
+        if (line.includes('@hover')) {
+          const md = new vscode.MarkdownString();
+          md.isTrusted = true;
+          md.appendMarkdown(newEditorGroupTabContent);
+          return new vscode.Hover(md);
+        }
       },
-    ),
-    vscode.languages.registerHoverProvider(
-      { language: 'markdown' },
-      new WikiHoverProvider(indexService),
-    ),
+    }),
+    vscode.languages.registerHoverProvider(longLangs, new WikiHoverProvider(indexService)),
     vscode.languages.registerCompletionItemProvider(
-      { language: 'markdown' },
+      longLangs,
       new WikiCompletionProvider(indexService),
       '[',
       '/',
       '#',
       '^',
     ),
-  );
-  vscode.window.onDidChangeActiveTextEditor(async (editor) => {
-    if (!editor) return;
-    if (!app.isMdPreviewEnabled()) return;
-    if (editor.document.languageId !== 'markdown') return;
-    await vscode.commands.executeCommand('markdown.togglePreview', editor.document.uri);
-  });
+    vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+      if (!editor) return;
+      if (!app.isMdPreviewEnabled()) return;
+
+      if (!supportedLanguages.includes(editor.document.languageId)) return;
+      await vscode.commands.executeCommand('markdown.togglePreview', editor.document.uri);
+    }));
 
   context.subscriptions.push(indexService);
   new RenameHandler().register(context);
@@ -246,6 +243,10 @@ const newEditorGroupTabContent = `
 ## 🏠 Foo Architecture
 
 Foo desc
+
+@spam
+@foo
+@ham
 
 **Context**
 

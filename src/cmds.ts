@@ -1,0 +1,303 @@
+import { EstateFlag } from './estate';
+
+const COMMANDS = [
+  {
+    command: 'bookmark.create',
+    title: 'Estate: Create Bookmark',
+  },
+  {
+    command: 'bookmark.read',
+    title: 'Estate: Read Bookmark',
+  },
+  {
+    command: 'bookmark.update',
+    title: 'Estate: Update Bookmark',
+  },
+  {
+    command: 'bookmark.delete',
+    title: 'Estate: Delete Bookmark',
+  },
+  {
+    command: 'bookmark.open',
+    title: 'Estate: Open Bookmark',
+  },
+  {
+    command: 'bookmark.present',
+    title: 'Estate: Present Bookmark',
+  },
+
+  {
+    command: 'wikiLinks.rebuildIndex',
+    title: 'Wiki Links: Rebuild Index',
+  },
+  {
+    command: 'ui.toggleMDPreview',
+    title: 'Wiki Links: Preview Mode (Toggle)',
+  },
+  {
+    command: 'flowify.analyzeLine',
+    title: 'Estate: Analyze Subject',
+  },
+];
+
+function printCmds() {
+  const groups = {};
+
+  for (const { command } of COMMANDS) {
+    const [prefix, name] = command.split('.');
+
+    if (!groups[prefix]) {
+      groups[prefix] = {};
+    }
+
+    groups[prefix][name] = command;
+  }
+
+  console.log(
+    'export const CMD = ' +
+      JSON.stringify(groups, null, 2).replace(/"([^"]+)":/g, '$1:') +
+      ' as const;',
+  );
+}
+
+export const CMD = {
+  bookmark: {
+    create: 'bookmark.create',
+    read: 'bookmark.read',
+    update: 'bookmark.update',
+    delete: 'bookmark.delete',
+    open: 'bookmark.open',
+    present: 'bookmark.present',
+    edit: 'bookmark.edit',
+  },
+  estate: {
+    open: 'estate.open',
+    refresh: 'estate.refresh',
+  },
+} as const;
+
+export const capability: EstateFlag[] = [
+  {
+    id: '@easy',
+    label: 'Easy',
+    description: 'Easy',
+    scope: 'language',
+    capabilities: [],
+    action: 'estate.easy',
+  },
+  {
+    id: '@medium',
+    label: 'Medium',
+    description: 'Medium',
+    scope: 'language',
+    capabilities: [],
+    action: 'estate.medium',
+  },
+  {
+    id: '@hard',
+    label: 'Hard',
+    description: 'Hard',
+    scope: 'language',
+    capabilities: [],
+    action: 'estate.hard',
+  },
+];
+export const flags: EstateFlag[] = [
+  {
+    id: '@save',
+    label: 'Save',
+    description: 'Save',
+    scope: 'language',
+    capabilities: [],
+    action: 'estate.save',
+  },
+  {
+    id: '@capture',
+    label: 'Capture',
+    description: 'Capture',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.click',
+  },
+  {
+    id: '@note',
+    label: 'Note',
+    description: 'Note...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.branch',
+  },
+  {
+    id: '@fold',
+    label: 'Fold',
+    description: 'Fold....',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.branch',
+  },
+  {
+    id: '@preserve',
+    label: 'Preserve',
+    description: 'Preserve...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.branch',
+  },
+  {
+    id: '@option',
+    label: 'Option',
+    description: 'Option...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.branch',
+  },
+  {
+    id: '@inline',
+    label: 'Inline',
+    description: 'Inline...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.branch',
+  },
+  {
+    id: '@context',
+    label: 'Option',
+    description: 'Option...',
+    scope: 'language',
+    capabilities: [],
+    action: 'ui.openInNewEditorGroup',
+  },
+  {
+    id: '@connected',
+    label: 'Connected',
+    description: 'Connected...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.branch',
+  },
+  {
+    id: '@branch',
+    label: 'Branch',
+    description: 'Branch...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.branch',
+  },
+  {
+    id: '@hoverable',
+    label: 'Hoverable',
+    description: 'Hoverable...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.hoverable',
+  },
+  {
+    id: '@pinnable',
+    label: 'Pinnable',
+    description: 'Pinnable...',
+    capabilities: [],
+    scope: 'language',
+    action: 'ui.pinnable',
+  },
+  {
+    id: '@pick',
+    label: 'Pick',
+    description: 'Pick...',
+    scope: 'language',
+    capabilities: [],
+    action: 'wiki.ui.pick',
+  },
+];
+export const flag = [
+  {
+    id: '@save',
+    label: 'Save',
+    description: 'Save',
+    scope: 'language',
+    action: 'wiki.click',
+  },
+  {
+    id: '@capture',
+    label: 'Capture',
+    description: 'Capture',
+    scope: 'language',
+    action: 'wiki.click',
+  },
+  {
+    id: '@note',
+    label: 'Note',
+    description: 'Note...',
+    scope: 'language',
+    action: 'wiki.branch',
+  },
+  {
+    id: '@fold',
+    label: 'Fold',
+    description: 'Fold....',
+    scope: 'language',
+    action: 'wiki.branch',
+  },
+  {
+    id: '@preserve',
+    label: 'Preserve',
+    description: 'Preserve...',
+    scope: 'language',
+    action: 'wiki.branch',
+  },
+  {
+    id: '@option',
+    label: 'Option',
+    description: 'Option...',
+    scope: 'language',
+    action: 'wiki.branch',
+  },
+  {
+    id: '@inline',
+    label: 'Inline',
+    description: 'Inline...',
+    scope: 'language',
+    action: 'wiki.branch',
+  },
+  {
+    id: '@context',
+    label: 'Option',
+    description: 'Option...',
+    scope: 'language',
+    action: 'ui.openInNewEditorGroup',
+  },
+  {
+    id: '@connected',
+    label: 'Connected',
+    description: 'Connected...',
+    scope: 'language',
+    action: 'wiki.branch',
+  },
+  {
+    id: '@branch',
+    label: 'Branch',
+    description: 'Branch...',
+    scope: 'language',
+    action: 'wiki.branch',
+  },
+  {
+    id: '@hoverable',
+    label: 'Hoverable',
+    description: 'Hoverable...',
+    scope: 'language',
+    action: 'wiki.hoverable',
+  },
+  {
+    id: '@pinnable',
+    label: 'Pinnable',
+    description: 'Pinnable...',
+    scope: 'language',
+    action: 'ui.pinnable',
+  },
+  {
+    id: '@pick',
+    label: 'Pick',
+    description: 'Pick...',
+    scope: 'language',
+    action: 'wiki.ui.pick',
+  },
+];
