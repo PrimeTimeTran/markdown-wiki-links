@@ -32,6 +32,8 @@ export interface EditorActivity {
   // immediate text context
   line: number;
   lineText: string;
+  column: number;
+  displayColumn: number;
 
   // file context
   languageId: string;
@@ -103,6 +105,8 @@ export class ActivityStore implements ActivityStoreType {
         cursor: position,
         selection: editor.selection,
         line: position.line,
+        column: position.character, // 0-based column
+        displayColumn: position.character + 1, // 1-based column (status bar style)
         lineText: document.lineAt(position.line).text,
         languageId: document.languageId,
         fileName: document.fileName,
@@ -145,7 +149,9 @@ export function captureScope(
   //     line: range.start.line,
   //     text: document.lineAt(range.start.line).text,
   //   });
-  if (line < 0 || line >= document.lineCount) {
+  const maxLines = document.lineCount;
+  let safeLineNumber = line;
+  if (safeLineNumber < 0 || safeLineNumber >= document.lineCount) {
     return undefined;
   }
   if (insideCodeFence(document, range.start.line)) {
@@ -174,6 +180,8 @@ export function captureHeading(document: vscode.TextDocument, startLine: number)
   //   });
 
   let endLine = document.lineCount - 1;
+  const maxLines = document.lineCount;
+  let safeLineNumber = endLine;
   //   for (let i = startLine + 1; i < document.lineCount; i++) {
   //     const text = document.lineAt(i).text;
   //     const nextLevel = getHeadingLevel(text);
@@ -198,7 +206,7 @@ export function captureHeading(document: vscode.TextDocument, startLine: number)
     // }
 
     if (nextLevel !== undefined && nextLevel <= level) {
-      endLine = i - 1;
+      safeLineNumber = i - 1;
       break;
     }
   }

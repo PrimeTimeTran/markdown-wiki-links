@@ -3,34 +3,46 @@ import * as vscode from 'vscode';
 import { BookmarkOccurrence, BookmarkStore, FlagOccurrence } from './bookmarkService';
 import { Activity, ActivityStore, captureScope } from './activityService';
 import { EstateContext } from './estate';
+import { icons } from '../ownership';
 
 export class WikiCodeLensProvider implements vscode.CodeLensProvider {
+  private readonly _onDidChangeCodeLenses = new vscode.EventEmitter<void>();
+  readonly onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
+  public refresh(): void {
+    console.log('Refreshing the wikicodelens provider.');
+    this._onDidChangeCodeLenses.fire();
+  }
   constructor(
+    private ctx: vscode.ExtensionContext,
     private store: BookmarkStore,
-    private activity: ActivityStore,
-  ) {}
-  init(context: vscode.ExtensionContext) {
-    context.subscriptions.push(
-      this.activity.subscribe((a) => {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) return;
-        this.update(editor, a);
-      }),
-    );
+    private activityStore: ActivityStore,
+  ) {
+    activityStore.subscribe((activity) => {
+      this.analyzeLine(activity);
+      this.refresh();
+    });
+  }
+  private analyzeLine(activity: Activity) {
+    console.log('analyzeLine');
   }
 
-  register() {}
+  //   init(context: vscode.ExtensionContext) {
+  //     icons;
+  //     context.subscriptions.push(
+  //       this.activity.subscribe((a) => {
+  //         const editor = vscode.window.activeTextEditor;
+  //         if (!editor) return;
+  //         this.update(editor, a);
+  //       }),
+  //     );
+  //   }
 
   private update(editor: vscode.TextEditor, activity: Activity) {
     console.log('decorate based on', activity.scope);
   }
   public folded = new Set<string>();
   public renderedFoldAll: boolean = false;
-  private readonly _onDidChangeCodeLenses = new vscode.EventEmitter<void>();
-  readonly onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
-  public refresh(): void {
-    this._onDidChangeCodeLenses.fire();
-  }
+
   public foldKey(uri: vscode.Uri, range: vscode.Range): string {
     return `${uri.fsPath}:${range.start.line}`;
   }
@@ -50,36 +62,36 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
     }
   }
 
-//   addLabel(
-//     match: BookmarkOccurrence | FlagOccurrence,
-//     doc: vscode.TextDocument,
-//     range: vscode.Range,
-//   ) {
-//     switch (match) {
-//       case '@connected':
-//         return {
-//           title: '🏘️ Connected',
-//           command: 'ui.openInNewEditorGroup',
-//           arguments: [this.makeCtx(doc, match, range)],
-//         };
+  //   addLabel(
+  //     match: BookmarkOccurrence | FlagOccurrence,
+  //     doc: vscode.TextDocument,
+  //     range: vscode.Range,
+  //   ) {
+  //     switch (match) {
+  //       case '@connected':
+  //         return {
+  //           title: '🏘️ Connected',
+  //           command: 'ui.openInNewEditorGroup',
+  //           arguments: [this.makeCtx(doc, match, range)],
+  //         };
 
-//       default:
-//         break;
-//     }
-//   }
+  //       default:
+  //         break;
+  //     }
+  //   }
   // Add inline link with click actions()
+  //   [
+  //     'ui.addInlinePanel', // Give more content
+  //     'ui.openInNewEditorGroup', // Open the context in new tab so I dont lose it when I click/scroll
+  //     'estate.addPersistentNotification', // Another form of persisnt storage
+  //     'estate.openTextAndIconPanel', // Open inline like "search panel"
+  //     'ui.openQuickpickDropdown', // Reveal options
+  //     'estate.contentSave', // Create bookmark
+  //     'estate.contentCycle', // Select from bookmark(go through a list of options)
+  //     'estate.contentReplace', // Select from bookmark(after having captured/saved I any to apply)
+  //   ];
+  addIcon() {}
   provideCodeLenses(doc: vscode.TextDocument): vscode.CodeLens[] {
-    //   [
-    //     'ui.addInlinePanel', // Give more content
-    //     'ui.openInNewEditorGroup', // Open the context in new tab so I dont lose it when I click/scroll
-    //     'estate.addPersistentNotification', // Another form of persisnt storage
-    //     'estate.openTextAndIconPanel', // Open inline like "search panel"
-    //     'ui.openQuickpickDropdown', // Reveal options
-    //     'estate.contentSave', // Create bookmark
-    //     'estate.contentCycle', // Select from bookmark(go through a list of options)
-    //     'estate.contentReplace', // Select from bookmark(after having captured/saved I any to apply)
-    //   ];
-    // @connected
     const lenses: vscode.CodeLens[] = [];
     for (let line = 0; line < doc.lineCount; line++) {
       const text = doc.lineAt(line).text;
@@ -88,7 +100,7 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
         const range = new vscode.Range(line, match.start, line, match.end);
         // let item = this.addLabel(match, doc, range);
         const bookmark = this.store.get(match.id);
-
+        // console.log('bookmark', bookmark?.label);
         if (bookmark) {
           lenses.push(
             new vscode.CodeLens(range, {
@@ -97,6 +109,20 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
               arguments: [this.makeCtx(doc, match, range)],
             }),
           );
+          new vscode.CodeLens(range, {
+            title: '🔖 Bookmark',
+            command: 'estate.addBookmark',
+            arguments: [doc.uri, range],
+          });
+          //   const hasBookmark = this.store.hasSource(doc.uri.fsPath, range);
+
+          //   lenses.push(
+          //     new vscode.CodeLens(range, {
+          //       title: hasBookmark ? '🔖 Saved' : '➕ Bookmark',
+          //       command: hasBookmark ? 'estate.removeBookmark' : 'estate.addBookmark',
+          //       arguments: [doc.uri, range],
+          //     }),
+          //   );
           //   lenses.push(
           //     new vscode.CodeLens(range, {
           //       title: '🕸 Graph',
@@ -251,6 +277,63 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
         // );
       }
     }
+    // const addHeader = new vscode.CodeLens(new vscode.Range(scopeStartLine, 0, scopeStartLine, 0), {
+    //   title: '🔒 Scope: main',
+    //   command: 'flowify.showScope',
+    // });
+    // lenses.push(addHeader);
+    const line = vscode.window.activeTextEditor?.selection.start.line ?? 0;
+    const range = new vscode.Range(line, 0, line, 0);
+    icons.forEach((icon) => {
+      lenses.push(
+        new vscode.CodeLens(range, {
+          title: `🔹 ${icon}`,
+          command: 'flowify.previewIcon',
+          arguments: [icon, line],
+        }),
+      );
+    });
+    lenses.push(...this.provideBookmarkLenses(doc));
+    return lenses;
+  }
+  private provideBookmarkLenses(doc: vscode.TextDocument): vscode.CodeLens[] {
+    const lenses: vscode.CodeLens[] = [];
+
+    const bookmarks = this.store.list();
+
+    for (const bookmark of bookmarks) {
+      const source = bookmark.source;
+
+      if (!source) {
+        continue;
+      }
+
+      if (source.uri !== doc.uri.fsPath) {
+        continue;
+      }
+
+      const range = new vscode.Range(
+        source.startLine,
+        source.startCharacter ?? 0,
+        source.endLine,
+        source.endCharacter ?? 0,
+      );
+
+      lenses.push(
+        new vscode.CodeLens(range, {
+          title: `🔖 ${bookmark.label ?? 'Bookmark'}`,
+          command: 'wiki.openEstate',
+          arguments: [
+            {
+              bookmark: bookmark.label,
+              uri: doc.uri,
+              selection: range,
+            },
+          ],
+        }),
+      );
+    }
+
     return lenses;
   }
   makeCtx(document: vscode.TextDocument, match: BookmarkOccurrence, range: vscode.Range) {

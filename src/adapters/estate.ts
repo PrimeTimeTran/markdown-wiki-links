@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ScopeInfo } from './activityService';
-import { Bookmark } from './bookmarkService';
+import { Bookmark, BookmarkStore } from './bookmarkService';
 
 export interface EstateContext {
   bookmark: string;
@@ -12,7 +12,7 @@ export interface EstateFlag {
   id: string;
   label: string;
   description?: string;
-  scope: 'language' | 'workspace' | 'personal';
+  scope: 'language' | 'workspace';
   action: string;
 }
 export interface EstateScope {
@@ -118,4 +118,83 @@ export async function showEstatePanel(bookmark: Bookmark) {
       </body>
     </html>
   `;
+}
+
+export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
+  constructor(private readonly store: BookmarkStore) {}
+
+  private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<
+    EstateNode | null | undefined
+  >();
+  readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
+  icons: any;
+
+  refresh(): void {
+    this.onDidChangeTreeDataEmitter.fire();
+  }
+  refreshNode(node: EstateNode): void {
+    this.onDidChangeTreeDataEmitter.fire(node);
+  }
+  getTreeItem(node: EstateNode): vscode.TreeItem {
+    return node;
+  }
+
+  getChildren(node?: EstateNode): EstateNode[] {
+    if (!node) {
+      return [new EstateNode('Favorites'), new EstateNode('Flags')];
+    }
+
+    if (node.label === 'Favorites') {
+      return this.store.list().map((id) => {
+        const bookmark = this.store.get(id);
+
+        return new EstateNode(bookmark?.label ?? id, undefined);
+      });
+    }
+
+    return [];
+  }
+  //   getChildren(node?: EstateNode): EstateNode[] {
+  //     if (!node) {
+  //       return [new EstateNode('Files'), new EstateNode('Bookmarks')];
+  //     }
+
+  //     if (node.label === 'Files') {
+  //       return [
+  //         new EstateNode(
+  //           'ownership.md',
+  //           undefined,
+  //           vscode.Uri.file(
+  //             '/Users/future/KB/project/app/loi/crates/learn/design-decisions/pipeline/ownership.md',
+  //           ),
+  //         ),
+  //       ];
+  //     }
+
+  //     return [];
+  //   }
+}
+
+// export class EstateNode extends vscode.TreeItem {
+//   constructor(
+//     readonly label: string,
+//     readonly collapsibleState = vscode.TreeItemCollapsibleState.Collapsed,
+//   ) {
+//     super(label, collapsibleState);
+
+//     this.id = label;
+//     this.tooltip = label;
+//     this.contextValue = 'estate';
+//   }
+// }
+export class EstateNode extends vscode.TreeItem {
+  constructor(label: string, icon?: vscode.Uri) {
+    super(label, vscode.TreeItemCollapsibleState.Collapsed);
+    this.id = label;
+    this.tooltip = label;
+    this.contextValue = 'estate';
+    if (icon) {
+      this.iconPath = icon;
+    }
+  }
 }

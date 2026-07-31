@@ -1,0 +1,9 @@
+[
+  {
+    "id": "@mdPreviewMode",
+    "label": "MD Preview Mode",
+    "description": "View rendered .md files ",
+    "scope": "language",
+    "action": "ui.toggleMDPreview"
+  }
+]

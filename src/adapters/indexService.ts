@@ -144,7 +144,7 @@ export class IndexService {
     return [
       // Local file
       new vscode.DocumentLink(
-        new vscode.Range(70, 0, 70, 12),
+        new vscode.Range(0, 0, 70, 0),
         vscode.Uri.file('/Users/future/KB/project/app/loi/crates/learn/public/wikilinks.md'),
       ),
 

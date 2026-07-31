@@ -2,7 +2,7 @@
   "name": "markdown-wiki-links",
   "displayName": "Markdown Wiki Links",
   "publisher": "ltvan",
-  "version": "0.2.5",
+  "version": "0.2.12",
   "description": "Obsidian-style [[wiki-links]] between Markdown files in the workspace.",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -47,7 +47,9 @@
   },
   "activationEvents": [
     "onLanguage:markdown",
-    "workspaceContains:**/*.{md,markdown}"
+    "onLanguage:rust",
+    "workspaceContains:**/*.{md,markdown}",
+    "workspaceContains:**/*.rs"
   ],
   "capabilities": {
     "untrustedWorkspaces": {
@@ -57,10 +59,31 @@
   },
   "contributes": {
     "markdown.markdownItPlugins": true,
+    "menus": {
+      "editor/context": [
+        {
+          "command": "flowify.analyzeLine",
+          "group": "navigation",
+          "when": "editorTextFocus"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "wikiLinks.rebuildIndex",
         "title": "Wiki Links: Rebuild Index"
+      },
+      {
+        "command": "ui.toggleMDPreview",
+        "title": "Wiki Links: Preview Mode (Toggle)"
+      },
+      {
+        "command": "flowify.analyzeLine",
+        "title": "Estate: Analyze Subject"
+      },
+      {
+        "command": "estate.addBookmark",
+        "title": "Estate: Add Bookmark"
       }
     ],
     "configuration": {
@@ -97,6 +120,69 @@
           "description": "Folder names excluded from the wiki-link index. Any file inside a folder with one of these names is not indexed, so wiki-links never resolve into vendor or VCS directories. Match is on the folder name, at any depth. Rename link-rewriting skips these folders too."
         }
       }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "estate",
+          "title": "Estate",
+          "icon": "resources/estate.svg"
+        },
+        {
+          "id": "alias",
+          "title": "Alias",
+          "icon": "resources/alias.svg"
+        },
+        {
+          "id": "binding",
+          "title": "Binding",
+          "icon": "resources/binding.svg"
+        },
+        {
+          "id": "identifer",
+          "title": "Identifer",
+          "icon": "resources/identifier.svg"
+        },
+        {
+          "id": "shadow",
+          "title": "Shadow",
+          "icon": "resources/shadow.svg"
+        },
+        {
+          "id": "symbol",
+          "title": "Symbol",
+          "icon": "resources/symbol.svg"
+        },
+        {
+          "id": "declaration",
+          "title": "Declaration",
+          "icon": "resources/declaration.svg"
+        },
+        {
+          "id": "binding",
+          "title": "Binding",
+          "icon": "resources/binding.svg"
+        },
+        {
+          "id": "shadowing",
+          "title": "Shadowing",
+          "icon": "resources/shadowing.svg"
+        },
+        {
+          "id": "memory",
+          "title": "Memory",
+          "icon": "resources/memory.svg"
+        }
+      ]
+    },
+    "views": {
+      "estate": [
+        {
+          "icon": "resources/estate.svg",
+          "id": "estateExplorer",
+          "name": "Workspace"
+        }
+      ]
     }
   },
   "devDependencies": {
@@ -104,7 +190,7 @@
     "@types/markdown-it": "^14.1.2",
     "@types/mocha": "^10.0.10",
     "@types/node": "^25.9.1",
-    "@types/vscode": "^1.90.0",
+    "@types/vscode": "^1.125.0",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.9.1",

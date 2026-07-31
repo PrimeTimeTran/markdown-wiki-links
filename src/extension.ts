@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 
 import { IndexService } from './adapters/indexService';
-import { WikiDocumentLinkProvider } from './adapters/documentLinkProvider';
-import { WikiHoverProvider } from './adapters/hoverProvider';
 import { RenameHandler } from './adapters/renameHandler';
 import { createPreviewResolver } from './adapters/previewResolver';
+import { WikiHoverProvider } from './adapters/hoverProvider';
+import { WikiDocumentLinkProvider } from './adapters/documentLinkProvider';
 import { WikiDiagnostics } from './adapters/diagnostics';
 import { WikiCompletionProvider } from './adapters/completionProvider';
 import { WikiCodeLensProvider } from './adapters/codelens';
@@ -15,7 +15,10 @@ import {
   resetResolver,
 } from './markdownItPlugin/index';
 import { ActivityStore } from './adapters/activityService';
-import { EstateContext, showEstatePanel } from './adapters/estate';
+import { EstateContext, EstateNode, EstateTreeProvider, showEstatePanel } from './adapters/estate';
+import { StateStore } from './adapters/stateService';
+import { WikiDecorations } from './adapters/decorations';
+import { OwnershipInlayProvider } from './ownership';
 
 let indexService: IndexService | undefined;
 
@@ -23,15 +26,24 @@ let indexService: IndexService | undefined;
 type WikiLinksApi = { extendMarkdownIt(md: any): any };
 
 export async function activate(context: vscode.ExtensionContext): Promise<WikiLinksApi> {
+  const state = new StateStore();
   indexService = new IndexService();
   await indexService.initialize();
   const store = new BookmarkStore();
   store.init();
   const activityStore = new ActivityStore();
   activityStore.init(context);
-  const codeLens = new WikiCodeLensProvider(store, activityStore);
+  const codeLens = new WikiCodeLensProvider(context, store, activityStore);
+  const tree = new EstateTreeProvider(store);
+  const view = vscode.window.createTreeView<EstateNode>('estateExplorer', {
+    treeDataProvider: tree,
+  });
+  context.subscriptions.push(view);
   context.subscriptions.push(
-    vscode.languages.registerCodeLensProvider({ language: 'markdown' }, codeLens),
+    vscode.languages.registerCodeLensProvider(
+      [{ language: 'markdown' }, { language: 'rust' }],
+      codeLens,
+    ),
     vscode.languages.registerDocumentLinkProvider(
       { language: 'markdown' },
       new WikiDocumentLinkProvider(indexService),
@@ -91,27 +103,36 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
       vscode.window.showInformationMessage(`Replace using ${bookmark.label}`);
     }),
     vscode.commands.registerCommand(
-      'estate.toggleFold',
+      'estate.addBookmark',
       async (uri: vscode.Uri, range: vscode.Range) => {
-        const editor = vscode.window.visibleTextEditors.find(
-          (e) => e.document.uri.toString() === uri.toString(),
-        );
-        if (!editor) {
-          return;
-        }
-        await vscode.window.showTextDocument(editor.document, editor.viewColumn);
-        const folded = codeLens.isFolded(uri, range);
-        editor.selection = new vscode.Selection(range.start, range.start);
-        editor.revealRange(range);
-        if (folded) {
-          await vscode.commands.executeCommand('editor.unfold');
-        } else {
-          await vscode.commands.executeCommand('editor.fold');
-        }
-        codeLens.setFolded(uri, range, !folded);
+        console.log('ADD BOOKMARK', { uri, range });
+        await store.addBookmark(context);
         codeLens.refresh();
       },
     ),
+
+    // vscode.commands.registerCommand(
+    //   'estate.toggleFold',
+    //   async (uri: vscode.Uri, range: vscode.Range) => {
+    //     const editor = vscode.window.visibleTextEditors.find(
+    //       (e) => e.document.uri.toString() === uri.toString(),
+    //     );
+    //     if (!editor) {
+    //       return;
+    //     }
+    //     await vscode.window.showTextDocument(editor.document, editor.viewColumn);
+    //     const folded = codeLens.isFolded(uri, range);
+    //     editor.selection = new vscode.Selection(range.start, range.start);
+    //     editor.revealRange(range);
+    //     if (folded) {
+    //       await vscode.commands.executeCommand('editor.unfold');
+    //     } else {
+    //       await vscode.commands.executeCommand('editor.fold');
+    //     }
+    //     codeLens.setFolded(uri, range, !folded);
+    //     codeLens.refresh();
+    //   },
+    // ),
     vscode.commands.registerCommand('wikiLinks.rebuildIndex', () => indexService?.refresh()),
     vscode.commands.registerCommand('wiki.showGraph', (ctx: EstateContext) => {
       vscode.window.showInformationMessage(`Graph for ${ctx.bookmark}`);
@@ -130,7 +151,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
         '🌿 Branches',
       ]);
     }),
-    // Hover item
+    vscode.commands.registerCommand('ui.toggleMDPreview', async () => {
+      state.toggleMdPreview();
+
+      const editor = vscode.window.activeTextEditor;
+
+      if (editor && editor.document.languageId === 'markdown' && state.isMdPreviewEnabled()) {
+        await vscode.commands.executeCommand('markdown.togglePreview', editor.document.uri);
+      }
+    }),
     vscode.languages.registerHoverProvider(
       { language: 'markdown' },
       {
@@ -158,23 +187,38 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
       '^',
     ),
   );
+  vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+    if (!editor) return;
+    if (!state.isMdPreviewEnabled()) return;
+    if (editor.document.languageId !== 'markdown') return;
+    await vscode.commands.executeCommand('markdown.togglePreview', editor.document.uri);
+  });
 
   context.subscriptions.push(indexService);
-  activityStore.subscribe((activity) => {
-    let item = {
-      file: activity.editor.fileName,
-      line: activity.editor.line,
-      text: activity.editor.lineText,
-      scope: activity.scope,
-    };
-    console.log('ACTIVITY:');
-    console.log('ACTIVITY file', item.file);
-    console.log('ACTIVITY line', item.line);
-    console.log('ACTIVITY scope', item.scope);
-  });
   new RenameHandler().register(context);
   new WikiDiagnostics(indexService).register(context);
-  //  new WikiDecorations(indexService).register(context);
+  const decorations = new WikiDecorations(indexService, store, context, activityStore);
+  decorations.register(context);
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('flowify.analyzeLine', decorations.analyzeLine),
+  );
+
+  //   context.subscriptions.push(
+  //     vscode.languages.registerCodeLensProvider(
+  //       [{ language: 'markdown' }, { language: 'rust' }],
+  //       codeLens,
+  //     ),
+  //     vscode.languages.registerDocumentLinkProvider(
+  //       { language: 'markdown' },
+  //       new WikiDocumentLinkProvider(indexService),
+  //     ),
+  //   );
+
+  let inlineProvider = new OwnershipInlayProvider(context, state, activityStore, store);
+  context.subscriptions.push(
+    vscode.languages.registerInlayHintsProvider({ language: 'rust' }, inlineProvider),
+  );
 
   // VSCode reads `extendMarkdownIt` off the extension's exports — i.e. activate's return value.
   return {
@@ -218,3 +262,22 @@ Foo context
 
 [Open Graph](command:wiki.showGraph)
       `;
+export function logAnalysis(
+  outputChannel: vscode.OutputChannel,
+  filePath: string,
+  lineNumber: string,
+  result: any,
+) {
+  const timestamp = new Date().toLocaleTimeString();
+  const fileName = filePath.split('/').pop() || filePath;
+
+  outputChannel.appendLine(`[⚡ xxx FLOWIFY] ${timestamp} — Analysis Complete`);
+  outputChannel.appendLine(`  💡 File   : ${fileName}`);
+  outputChannel.appendLine(`  📂 Path   : ${filePath}`);
+  outputChannel.appendLine(`  📍 Line   : ${lineNumber}`);
+  outputChannel.appendLine(`  🚀 Action : ${result.action || 'N/A'}`);
+  outputChannel.appendLine(`  📊 METRICS:`);
+  outputChannel.appendLine(`     ├── Complexity : ${result.metrics?.complexity ?? 0}`);
+  outputChannel.appendLine(`     └── AST Nodes  : ${result.metrics?.ast_nodes ?? 0}`);
+  outputChannel.appendLine(``);
+}

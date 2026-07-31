@@ -1,6 +1,8 @@
 import * as fs from 'fs';
+import * as fsPromise from 'node:fs/promises';
 import * as os from 'os';
 import * as path from 'path';
+import * as vscode from 'vscode';
 
 import { EstateContext, EstateFlag } from './estate';
 
@@ -14,6 +16,7 @@ export interface Bookmark {
   commit?: string;
   scope?: string;
   privacy?: string;
+  source?: BookmarkSource;
   body?: string;
   updatedAt?: string;
   createdAt?: string;
@@ -22,7 +25,7 @@ export interface BookmarkStoreType {
   load(path: string): void;
   save(): void;
   get(id: string): Bookmark | undefined;
-  create(ctx: EstateContext, opts: CreateBookmarkOptions): Bookmark;
+  create(ctx: EstateContext, opts: CreateBookmarkOptions, bookmark: Partial<Bookmark>): Bookmark;
   update(id: string, patch: Partial<Bookmark>): void;
   delete(id: string): void;
   find(text: string, line: number): BookmarkOccurrence[] | FlagOccurrence[];
@@ -33,8 +36,38 @@ export interface BookmarkStoreType {
 export class BookmarkStore implements BookmarkStoreType {
   private items = new Map<string, Bookmark>();
   private flags = new Map<string, EstateFlag>();
-
+  private registryPath = path.join(os.homedir(), '.estate', 'bookmark.json');
+  private bookmarkDecoration = vscode.window.createTextEditorDecorationType({
+    gutterIconPath: vscode.Uri.file('/path/to/bookmark.svg'),
+    overviewRulerColor: '#888888',
+    overviewRulerLane: vscode.OverviewRulerLane.Right,
+    after: {
+      contentText: ' 🔖',
+    },
+  });
+  private decorateBookmarks(editor: vscode.TextEditor): void {
+    const uri = editor.document.uri.fsPath;
+    const ranges: vscode.Range[] = [];
+    for (const bookmark of this.list()) {
+      if (!bookmark?.source) {
+        continue;
+      }
+      if (bookmark.source.uri !== uri) {
+        continue;
+      }
+      ranges.push(
+        new vscode.Range(
+          bookmark.source.startLine,
+          bookmark.source.startCharacter ?? 0,
+          bookmark.source.endLine,
+          bookmark.source.endCharacter ?? 0,
+        ),
+      );
+    }
+    editor.setDecorations(this.bookmarkDecoration, ranges);
+  }
   constructor(private roots: string[] = []) {}
+
   init(): void {
     const estates = this.findEstates();
     for (const estate of estates) {
@@ -67,6 +100,91 @@ export class BookmarkStore implements BookmarkStoreType {
   //     return undefined;
   //   }
 
+  create(ctx: EstateContext, opts: CreateBookmarkOptions, bookmark: Partial<Bookmark>): Bookmark {
+    const now = new Date().toISOString();
+    return {
+      type: bookmark.type ?? 'concept',
+      label: opts.label,
+      description: opts.description ?? '',
+      privacy: opts.privacy ?? 'personal',
+      body: bookmark.body ?? '',
+      context: bookmark.context ?? '',
+      code: bookmark.code ?? '',
+      repo: bookmark.repo ?? '',
+      commit: bookmark.commit ?? '',
+      scope: bookmark.scope ?? 'unknown',
+      source: bookmark.source,
+      createdAt: now,
+      updatedAt: now,
+    };
+  }
+  async addBookmark(ctx: vscode.ExtensionContext) {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      return;
+    }
+    const selection = editor.selection;
+    if (selection.isEmpty) {
+      vscode.window.showWarningMessage('Select something to bookmark first');
+      return;
+    }
+
+    const document = editor.document;
+    const selectedText = document.getText(selection);
+
+    const id = `@${Date.now()}`;
+
+    const bookmark = this.create(
+      {
+        bookmark: id,
+        uri: document.uri,
+        selection,
+      },
+      {
+        label: `Bookmark ${id}`,
+        description: 'Captured source block',
+        privacy: 'workspace',
+      },
+      {
+        type: 'code',
+        body: selectedText,
+        code: selectedText,
+        context: selectedText,
+
+        scope: 'source.selection',
+
+        source: {
+          uri: document.uri.fsPath,
+          startLine: selection.start.line,
+          endLine: selection.end.line,
+          startCharacter: selection.start.character,
+          endCharacter: selection.end.character,
+          languageId: document.languageId,
+        },
+      },
+    );
+    this.register(id, bookmark);
+    await this.save();
+
+    // await editor.edit((edit) => {
+    //   edit.insert(
+    //     new vscode.Position(selection.start.line, 0),
+    //     `// ${id} linked estate bookmark\n`,
+    //   );
+    // });
+
+    vscode.window.showInformationMessage(`Created ${id}`);
+  }
+  register(id: string, bookmark: Bookmark): void {
+    this.items.set(id, bookmark);
+  }
+  async save(): Promise<void> {
+    const data = {
+      items: Object.fromEntries(this.items),
+    };
+    await fsPromise.mkdir(path.dirname(this.registryPath), { recursive: true });
+    await fsPromise.writeFile(this.registryPath, JSON.stringify(data, null, 2), 'utf8');
+  }
   load(): void {
     const estate = this.resolveEstate();
     if (!estate) {
@@ -96,13 +214,14 @@ export class BookmarkStore implements BookmarkStoreType {
     //   this.registerFlags();
     // }
   }
-  save() {
-    // TODO
-  }
+
   get(id: string) {
     return this.items.get(id);
   }
   has(id: string) {
+    return this.items.has(id);
+  }
+  hasSource(id: string) {
     return this.items.has(id);
   }
   getFlag(id: string): EstateFlag | undefined {
@@ -119,15 +238,6 @@ export class BookmarkStore implements BookmarkStoreType {
   }
   find(text: string, line: number): BookmarkOccurrence[] | FlagOccurrence[] {
     return [...findBookmarks(text, this, line), ...findFlags(text, this, line)];
-  }
-  create(ctx: EstateContext, opts: CreateBookmarkOptions): Bookmark {
-    return {
-      label: opts.label,
-      description: opts.description,
-      privacy: opts.privacy,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
   }
   update(
     id: string,
@@ -171,99 +281,6 @@ export class BookmarkStore implements BookmarkStoreType {
   // @connected
   // Globals available as u type
   private initFlagsIntrinsic(): EstateFlag[] {
-    const flags: EstateFlag[] = [
-      {
-        id: '@save',
-        label: 'Save',
-        description: 'Save',
-        scope: 'language',
-        action: 'wiki.click',
-      },
-      {
-        id: '@capture',
-        label: 'Capture',
-        description: 'Capture',
-        scope: 'language',
-        action: 'wiki.click',
-      },
-      {
-        id: '@note',
-        label: 'Note',
-        description: 'Note...',
-        scope: 'language',
-        action: 'wiki.branch',
-      },
-      {
-        id: '@fold',
-        label: 'Fold',
-        description: 'Fold....',
-        scope: 'language',
-        action: 'wiki.branch',
-      },
-      {
-        id: '@preserve',
-        label: 'Preserve',
-        description: 'Preserve...',
-        scope: 'language',
-        action: 'wiki.branch',
-      },
-      {
-        id: '@option',
-        label: 'Option',
-        description: 'Option...',
-        scope: 'language',
-        action: 'wiki.branch',
-      },
-      {
-        id: '@inline',
-        label: 'Inline',
-        description: 'Inline...',
-        scope: 'language',
-        action: 'wiki.branch',
-      },
-      {
-        id: '@context',
-        label: 'Option',
-        description: 'Option...',
-        scope: 'language',
-        action: 'ui.openInNewEditorGroup',
-      },
-      {
-        id: '@connected',
-        label: 'Connected',
-        description: 'Connected...',
-        scope: 'language',
-        action: 'wiki.branch',
-      },
-      {
-        id: '@branch',
-        label: 'Branch',
-        description: 'Branch...',
-        scope: 'language',
-        action: 'wiki.branch',
-      },
-      {
-        id: '@hoverable',
-        label: 'Hoverable',
-        description: 'Hoverable...',
-        scope: 'language',
-        action: 'wiki.hoverable',
-      },
-      {
-        id: '@pinnable',
-        label: 'Pinnable',
-        description: 'Pinnable...',
-        scope: 'language',
-        action: 'ui.pinnable',
-      },
-      {
-        id: '@pick',
-        label: 'Pick',
-        description: 'Pick...',
-        scope: 'language',
-        action: 'wiki.ui.pick',
-      },
-    ];
     for (const f of flags) {
       this.registerFlag(f);
     }
@@ -298,7 +315,7 @@ export enum BookmarkLocation {
   Project,
 }
 export interface CreateBookmarkOptions {
-  id: string;
+  id?: string;
   label?: string;
   description?: string;
   privacy: 'personal' | 'repo' | 'workspace';
@@ -336,6 +353,7 @@ export function findBookmarks(
     if (!store.has(id)) {
       continue;
     }
+    console.log(`findBookmarks, {id}`, id);
     results.push({
       id,
       line,
@@ -351,7 +369,7 @@ export function findFlags(text: string, store: BookmarkStore, line: number): Fla
   const regex = /@[A-Za-z0-9_-]+/g;
 
   for (const match of text.matchAll(regex)) {
-    console.log(`Flag: ${match}`);
+    // console.log(`Flag: ${match}`);
     const id = match[0];
     const flag = store.getFlag(id);
     if (!flag) {
@@ -366,4 +384,107 @@ export function findFlags(text: string, store: BookmarkStore, line: number): Fla
     });
   }
   return results;
+}
+
+const flags: EstateFlag[] = [
+  {
+    id: '@save',
+    label: 'Save',
+    description: 'Save',
+    scope: 'language',
+    action: 'wiki.click',
+  },
+  {
+    id: '@capture',
+    label: 'Capture',
+    description: 'Capture',
+    scope: 'language',
+    action: 'wiki.click',
+  },
+  {
+    id: '@note',
+    label: 'Note',
+    description: 'Note...',
+    scope: 'language',
+    action: 'wiki.branch',
+  },
+  {
+    id: '@fold',
+    label: 'Fold',
+    description: 'Fold....',
+    scope: 'language',
+    action: 'wiki.branch',
+  },
+  {
+    id: '@preserve',
+    label: 'Preserve',
+    description: 'Preserve...',
+    scope: 'language',
+    action: 'wiki.branch',
+  },
+  {
+    id: '@option',
+    label: 'Option',
+    description: 'Option...',
+    scope: 'language',
+    action: 'wiki.branch',
+  },
+  {
+    id: '@inline',
+    label: 'Inline',
+    description: 'Inline...',
+    scope: 'language',
+    action: 'wiki.branch',
+  },
+  {
+    id: '@context',
+    label: 'Option',
+    description: 'Option...',
+    scope: 'language',
+    action: 'ui.openInNewEditorGroup',
+  },
+  {
+    id: '@connected',
+    label: 'Connected',
+    description: 'Connected...',
+    scope: 'language',
+    action: 'wiki.branch',
+  },
+  {
+    id: '@branch',
+    label: 'Branch',
+    description: 'Branch...',
+    scope: 'language',
+    action: 'wiki.branch',
+  },
+  {
+    id: '@hoverable',
+    label: 'Hoverable',
+    description: 'Hoverable...',
+    scope: 'language',
+    action: 'wiki.hoverable',
+  },
+  {
+    id: '@pinnable',
+    label: 'Pinnable',
+    description: 'Pinnable...',
+    scope: 'language',
+    action: 'ui.pinnable',
+  },
+  {
+    id: '@pick',
+    label: 'Pick',
+    description: 'Pick...',
+    scope: 'language',
+    action: 'wiki.ui.pick',
+  },
+];
+
+export interface BookmarkSource {
+  uri: string;
+  startLine: number;
+  endLine: number;
+  startCharacter?: number;
+  endCharacter?: number;
+  languageId?: string;
 }
