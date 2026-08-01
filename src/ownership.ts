@@ -41,14 +41,14 @@ export class OwnershipInlayProvider implements vscode.InlayHintsProvider {
   ) {
     console.log('OwnershipInlayProvider constructor');
     app.activity.subscribe((activity) => {
-      console.log('click', activity);
+      //   console.log('click', activity);
       this.currentLine = activity.editor.line;
       this.refresh();
     });
   }
 
   public refresh() {
-    console.log('Refreshing inlay hints');
+    // console.log('Refreshing inlay hints');
     this._onDidChangeInlayHints.fire();
   }
 

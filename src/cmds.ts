@@ -2,6 +2,10 @@ import { EstateFlag } from './estate';
 
 const COMMANDS = [
   {
+    command: 'refPanel.open',
+    title: 'Estate: Open Reference Panel',
+  },
+  {
     command: 'bookmark.create',
     title: 'Estate: Create Bookmark',
   },
@@ -73,6 +77,11 @@ export const CMD = {
   estate: {
     open: 'estate.open',
     refresh: 'estate.refresh',
+  },
+  refPanel: {
+    open: 'refPanel.open',
+    register: 'refPanel.register',
+    test: 'refPanel.test',
   },
 } as const;
 

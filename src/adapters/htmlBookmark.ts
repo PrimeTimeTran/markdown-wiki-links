@@ -1,4 +1,4 @@
-import { Bookmark } from "./bookmarkService";
+import { Bookmark } from './bookmarkService';
 
 export const bookmarkShowPage = `
 <!DOCTYPE html>

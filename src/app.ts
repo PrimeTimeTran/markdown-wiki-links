@@ -7,7 +7,9 @@ import { EstateTreeProvider } from './estate';
 
 export interface EstateState {
   mdPreviewMode: boolean;
+  focushistory: FocusTarget[];
 }
+type FocusTarget = 'editor' | 'sidebar' | 'panel' | 'outline' | 'terminal';
 
 export class AppStore {
   public outputChannel = vscode.window.createOutputChannel('Flowify');
@@ -24,18 +26,18 @@ export class AppStore {
     this.presenter = new BookmarkPresenter(this);
     this.tree = new EstateTreeProvider(this);
     this.activity.init(this.ctx);
-    
   }
 
   init() {
     this.activity.subscribe((activity) => {
-      console.log('activityStore handler for click');
+    //   console.log('activityStore handler for click');
       this.analysis.analyzeLine(activity);
     });
   }
 
-  private state: EstateState = {
+  public state: EstateState = {
     mdPreviewMode: false,
+    focushistory: [],
   };
 
   get previewMode() {

@@ -1,7 +1,3 @@
-// @context
-// @bar
-//
-// @foo
 import * as vscode from 'vscode';
 
 import { IndexService } from './adapters/indexService';
@@ -23,7 +19,9 @@ import { EstateContext, EstateNode } from './estate';
 import { AppStore } from './app';
 import { WikiDecorations } from './adapters/decorations';
 import { OwnershipInlayProvider } from './ownership';
-import { BookmarkPresenter } from './adapters/bookmarkService';
+import { BookmarkPresenter, registerGiantQuickPickCommand } from './adapters/bookmarkService';
+import { OwnershipCodeActionProvider } from './adapters/codeAction';
+import { OwnershipContentProvider, OwnershipEngine, showOwnershipView } from './diff';
 
 let indexService: IndexService | undefined;
 
@@ -35,6 +33,103 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   await indexService.initialize();
   const app = new AppStore(context);
   app.init();
+
+  const ownershipEngine = new OwnershipEngine();
+  const ownershipProvider = new OwnershipContentProvider(ownershipEngine);
+
+  context.subscriptions.push(
+    vscode.workspace.registerTextDocumentContentProvider('estate', ownershipProvider),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('estate.showOwnership', showOwnershipView),
+  );
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeTextDocument((e) => {
+      const ownershipUri = vscode.Uri.parse(`estate://ownership${e.document.uri.path}`);
+      ownershipProvider.refresh(ownershipUri);
+    }),
+  );
+
+  //   await vscode.commands.executeCommand('vscode.open', annotationUri, {
+  //     viewColumn: vscode.ViewColumn.Beside,
+  //     preview: true,
+  //   });
+
+  registerGiantQuickPickCommand(context, app);
+
+  //   vscode.languages.registerCodeActionsProvider('rust', new OwnershipCodeActionProvider(), {
+  //     providedCodeActionKinds: [vscode.CodeActionKind.Refactor, vscode.CodeActionKind.Source],
+  //   });
+  //   const provider = vscode.languages.registerCodeActionsProvider(
+  //     'rust',
+  //     new OwnershipCodeActionProvider(),
+  //     {
+  //       providedCodeActionKinds: [vscode.CodeActionKind.QuickFix, vscode.CodeActionKind.Refactor],
+  //     },
+  //   );
+  //   context.subscriptions.push(
+  //     vscode.commands.registerCommand(
+  //       'estate.showOwnership',
+  //       (uri: string, line: number, column: number) => {
+  //         console.log('ownership requested', uri, line, column);
+  //       },
+  //     ),
+  //   );
+  //   context.subscriptions.push(
+  //     vscode.languages.registerCodeActionsProvider(
+  //       'rust',
+  //       () => {
+  //         console.log("Providing code actions for 'rust' language");
+  //         new OwnershipCodeActionProvider();
+  //       },
+  //       {
+  //         providedCodeActionKinds: [vscode.CodeActionKind.Refactor, vscode.CodeActionKind.Source],
+  //       },
+  //     ),
+  //   );
+
+  // Code Action provider
+  context.subscriptions.push(
+    vscode.languages.registerCodeActionsProvider('rust', new OwnershipCodeActionProvider()),
+  );
+  //   context.subscriptions.push(
+  //     vscode.commands.registerCommand('estate.showOwnership', (...args) => {
+  //       console.log('OWNERSHIP ARGS:', args);
+  //     }),
+  //   );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('estate.testOwnershipAction', (...args) => {
+      console.log('COMMAND FIRED', args);
+      vscode.window.showInformationMessage('Ownership command fired');
+    }),
+  );
+
+  //   vscode.workspace.registerTextDocumentContentProvider('estate', provider);
+  // j
+
+  // Commands
+  const commands = [
+    'estate.ownership.lineage',
+    'estate.ast.ancestors',
+    'estate.ast.children',
+    'estate.ast.siblings',
+    'estate.node.pin',
+    'estate.node.recent',
+    'estate.symbol.references',
+    'estate.value.lineage',
+    'estate.scope.show',
+    'estate.graph.open',
+    'estate.symbol.rename',
+  ];
+
+  commands.forEach((command) => {
+    context.subscriptions.push(
+      vscode.commands.registerCommand(command, (ctx) => {
+        console.log('[ESTATE COMMAND]', command, ctx);
+      }),
+    );
+  });
 
   const view = vscode.window.createTreeView<EstateNode>('estateExplorer', {
     treeDataProvider: app.tree,

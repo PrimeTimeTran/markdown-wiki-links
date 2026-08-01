@@ -3,17 +3,14 @@ import * as fsPromise from 'node:fs/promises';
 import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
-
 import { EstateContext, EstateFlag, EstateTreeProvider } from '../estate';
 import { randomUUID } from 'node:crypto';
 import { AppStore } from '../app';
 import { capability, CMD, flags } from '../cmds';
 import { bookmarkShowPage, getHtml } from './htmlBookmark';
 import { Activity } from '../activity';
-
 // # Flag
 // - Fold flags: show prevent 'above' from 'unfolding' no matter how many depths I've unfolded. Think about how I might want to 'ignore' tests of rust or imports or 'first impl'
-
 // # Bookmark capabilities
 // seed: a bookmark which is saved to disk with no other capabilities attached
 //  - personal
@@ -27,7 +24,6 @@ import { Activity } from '../activity';
 //  - 1. lexer, 2. parser, 3, type checking
 // option: enables picking one of more
 //  - graph problems: dfs, bfs, etc.
-
 // interface augments types
 export interface Bookmark {
   type?: string;
@@ -50,12 +46,10 @@ export class Bookmark {
   label?: string;
   src?: BookmarkSource;
   tags: EstateFlag[] = [];
-
   constructor(id: string, data: Partial<Bookmark>) {
     this.id = id;
     Object.assign(this, data);
   }
-
   uri(): string {
     if (!this.src?.uri) {
       throw new Error('Invalid URI');
@@ -151,7 +145,7 @@ export class BookmarkStore implements BookmarkStoreType {
       vscode.commands.registerCommand(CMD.bookmark.edit, this.update, this),
     );
     app.activity.subscribe(() => {
-      console.log('Bookmark store... activity detcted');
+    //   console.log('Bookmark store... activity detcted');
       //   this.decorateBookmarks();
     });
   }
@@ -186,7 +180,6 @@ export class BookmarkStore implements BookmarkStoreType {
     const raw = fs.readFileSync(file, 'utf8');
     const json = JSON.parse(raw);
     const items = json.items ?? {};
-
     for (const [id, bookmark] of Object.entries(items as Record<string, Partial<Bookmark>>)) {
       const b = new Bookmark(id, bookmark);
       this.register(id, b);
@@ -303,7 +296,6 @@ export class BookmarkStore implements BookmarkStoreType {
         },
       },
     );
-
     // await editor.edit((edit) => {
     //   edit.insert(
     //     new vscode.Position(selection.start.line, 0),
@@ -311,7 +303,6 @@ export class BookmarkStore implements BookmarkStoreType {
     //   );
     // });
     await this.save();
-
     vscode.window.showInformationMessage(`Created ${id}`);
   }
   register(id: string, bookmark: Bookmark) {
@@ -474,11 +465,9 @@ export interface Anchor {
   start: number;
   end: number;
 }
-
 export function findAnchors(text: string, line: number): Anchor[] {
   const results: Anchor[] = [];
   const regex = /@[A-Za-z0-9_-]+/g;
-
   for (const match of text.matchAll(regex)) {
     results.push({
       id: match[0],
@@ -487,7 +476,6 @@ export function findAnchors(text: string, line: number): Anchor[] {
       end: match.index! + match[0].length,
     });
   }
-
   return results;
 }
 export function findBookmarks(
@@ -510,6 +498,7 @@ export class BookmarkPresenter {
   constructor(public app: AppStore) {
     app.ctx.subscriptions.push(
       vscode.commands.registerCommand(CMD.bookmark.open, this.showPagePane, this),
+      //   vscode.commands.registerCommand(CMD.refPanel.open, (ctx) => this.showRef(ctx, app), this),
       vscode.commands.registerCommand(
         CMD.bookmark.present,
         async (ctx, bookmark: Bookmark) => {
@@ -531,7 +520,6 @@ export class BookmarkPresenter {
   // - Preview
   // - Full
   // - Panel
-
   showPagePane() {
     const panel = vscode.window.createWebviewPanel('wikiPopup', 'Wiki', vscode.ViewColumn.Active, {
       enableScripts: true,
@@ -557,8 +545,78 @@ export class BookmarkPresenter {
       }
     });
   }
+  showRef(ctx: vscode.ExtensionContext, app: AppStore) {
+    // vscode.languages.registerHoverProvider('your-language', {
+    //   provideHfover(document, position, token) {
+    //     // Return markdown or text that floats dynamically
+    //     return new vscode.Hover();
+    //   },
+    // });
+    registerGiantQuickPickCommand(ctx, app);
+    function createStatusBar() {
+      // 1. Create a status bar item aligned to the right (or left)
+      const refStatusBar = vscode.window.createStatusBarItem(
+        vscode.StatusBarAlignment.Right,
+        100, // Priority
+      );
+      // 2. Style it to stand out slightly as a notification/reference
+      refStatusBar.text = '$(info) Reference: Keep typing...';
+      refStatusBar.tooltip = 'This stays out of your way and auto-hides.';
+      refStatusBar.show();
+      // 3. Make it automatically close/hide after a few seconds or when an action completes
+      let hideTimeout: NodeJS.Timeout;
+      function showTransientReference(message: string, durationMs = 3000) {
+        refStatusBar.text = `$(info) ${message}`;
+        refStatusBar.show();
+        // Clear any existing timer
+        if (hideTimeout) clearTimeout(hideTimeout);
+        // Auto-dismiss after the duration
+        hideTimeout = setTimeout(() => {
+          refStatusBar.hide();
+        }, durationMs);
+      }
+      // Example usage: trigger this when a specific action happens
+      showTransientReference('Action complete - reference updated', 4000);
+    }
+    // createStatusBar();
+    // const panel = vscode.window.createWebviewPanel(
+    //   'giantPalette',
+    //   'Command Palette View',
+    //   vscode.ViewColumn.One,
+    //   {
+    //     enableScripts: true,
+    //     retainContextWhenHidden: true,
+    //   },
+    // );
+    // panel.webview.html = getModalHtml();
+    // vscode.window.createQuickPick().show();
+    // const panel = vscode.window.createWebviewPanel(
+    //   'estateRecent',
+    //   'Reference',
+    //   vscode.ViewColumn.One,
+    //   {
+    //     retainContextWhenHidden: true,
+    //     enableScripts: true,
+    //   },
+    // );
+    //     panel.webview.html = `
+    // <html>
+    // <body>
+    // <h1>Recent Semantic Nodes</h1>
+    // <div>
+    //   1. OwnershipVisitor::visit_local
+    // </div>
+    // <div>
+    //   2. NodeResolver::resolve
+    // </div>
+    // <div>
+    //   3. Workspace::analyze
+    // </div>
+    // </body>
+    // </html>
+    // `;
+  }
 }
-
 export interface BookmarkAnchor {
   uri: vscode.Uri;
   line: number;
@@ -567,4 +625,152 @@ export interface BookmarkAnchor {
   end?: number;
   // why it exists
   source: 'reference' | 'position';
+}
+function getModalHtml(): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style>
+        /* Reset and fill the entire webview tab area */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4); /* Dim the editor behind it */
+            font-family: var(--vscode-font-family);
+            color: var(--vscode-editor-foreground);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        /* The Giant Centered "Command Palette" Box */
+        .modal-container {
+            width: 70vw;          /* Takes up 70% of your screen width */
+            height: 60vh;         /* Takes up 60% of your screen height */
+            background-color: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-widget-border, #444);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: fadeIn 0.15s ease-out;
+        }
+        /* Subtle scale-up animation */
+        @keyframes fadeIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        /* Palette Input Header */
+        .palette-input {
+            width: 100%;
+            padding: 16px;
+            font-size: 18px;
+            background: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: none;
+            border-bottom: 1px solid var(--vscode-widget-border, #444);
+            outline: none;
+            box-sizing: border-box;
+        }
+        /* Results Area */
+        .palette-results {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        .palette-item {
+            padding: 10px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .palette-item:hover, .palette-item.active {
+            background-color: var(--vscode-list-activeSelectionBackground);
+            color: var(--vscode-list-activeSelectionForeground);
+        }
+    </style>
+</head>
+<body>
+    <div class="modal-container">
+        <input type="text" class="palette-input" placeholder="Type a command or search reference..." autofocus />
+        <div class="palette-results">
+            <div class="palette-item active">First giant suggestion item</div>
+            <div class="palette-item">Second reference module</div>
+            <div class="palette-item">Third option block</div>
+        </div>
+    </div>
+    <script>
+        // Close automatically when user hits Escape
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                // Send message back to extension to close panel
+                const vscode = acquireVsCodeApi();
+                vscode.postMessage({ command: 'close' });
+            }
+        });
+    </script>
+</body>
+</html>`;
+}
+// Define a custom interface extending QuickPickItem to hold extra data
+interface ReferenceItem extends vscode.QuickPickItem {
+  id: string;
+  details?: string;
+}
+export function registerGiantQuickPickCommand(context: vscode.ExtensionContext, app: AppStore) {
+  let disposable = vscode.commands.registerCommand(CMD.refPanel.open, async () => {
+    const quickPick = vscode.window.createQuickPick<ReferenceItem>();
+    quickPick.title = '🚀 Reference & Command Hub';
+    quickPick.placeholder = 'Type to search references, snippets, or actions...';
+    quickPick.matchOnDescription = true;
+    quickPick.matchOnDetail = true;
+    quickPick.items = [
+      {
+        label: '$(book) Core Documentation Reference',
+        description: 'Module 01 • Architecture overview',
+        detail:
+          'Detailed explanation of the compilation pipeline, lexer rules, and syntax tree nodes.',
+        id: 'doc_1',
+      },
+      {
+        label: '$(code) Active Workspace Snippets',
+        description: 'Module 02 • Boilerplate code',
+        detail: 'Quick injection templates for state management, hooks, and lifecycle events.',
+        id: 'doc_2',
+      },
+      {
+        label: '$(terminal) Build & Test Automation',
+        description: 'Module 03 • Scripts',
+        detail:
+          'Trigger hot module reloading, validation checks, and target architecture emitter tests.',
+        id: 'doc_3',
+      },
+      {
+        label: '$(settings) Configuration Dashboard',
+        description: 'Module 04 • Settings',
+        detail: 'Adjust workspace behavior, sandboxing properties, and path resolutions.',
+        id: 'doc_4',
+      },
+    ];
+    quickPick.onDidAccept(() => {
+      const selection = quickPick.selectedItems[0];
+      if (selection) {
+        vscode.window.showInformationMessage(`Selected: ${selection.label} (ID: ${selection.id})`);
+      }
+      quickPick.dispose();
+    });
+    quickPick.onDidHide(() => {
+      quickPick.dispose();
+    });
+    quickPick.show();
+  });
+  if (app) {
+    app.ctx.subscriptions.push(disposable);
+  } else if (context) {
+    context.subscriptions.push(disposable);
+  } else {
+    vscode.window.showErrorMessage('No context provided for registering the command.');
+  }
 }

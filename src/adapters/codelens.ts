@@ -1,12 +1,10 @@
 import * as vscode from 'vscode';
-
 import { Bookmark, BookmarkOccurrence, BookmarkSource } from './bookmarkService';
 import { Activity, captureScope } from '../activity';
 import { EstateContext } from '../estate';
 import { icons } from '../ownership';
 import { AppStore } from '../app';
 import { capability, CMD, flags } from '../cmds';
-
 export class WikiCodeLensProvider implements vscode.CodeLensProvider {
   private readonly _onDidChangeCodeLenses = new vscode.EventEmitter<void>();
   readonly onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
@@ -20,9 +18,8 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
     });
   }
   private analyzeLine(activity: Activity) {
-    console.log('analyzeLine WikiCodeLensProvider event', activity);
+    // console.log('analyzeLine WikiCodeLensProvider event', activity);
   }
-
   init(context: vscode.ExtensionContext) {
     icons;
     context.subscriptions.push(
@@ -33,13 +30,11 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
       }),
     );
   }
-
   private update(editor: vscode.TextEditor, activity: Activity) {
     console.log('decorate based on', activity.scope);
   }
   public folded = new Set<string>();
   public renderedFoldAll: boolean = false;
-
   public foldKey(uri: vscode.Uri, range: vscode.Range): string {
     return `${uri.fsPath}:${range.start.line}`;
   }
@@ -70,7 +65,6 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
   //           command: 'ui.openInNewEditorGroup',
   //           arguments: [this.makeCtx(doc, match, range)],
   //         };
-
   //       default:
   //         break;
   //     }
@@ -86,9 +80,7 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
   //     'estate.contentCycle', // Select from bookmark(go through a list of options)
   //     'estate.contentReplace', // Select from bookmark(after having captured/saved I any to apply)
   //   ];
-
   addIcon() {}
-
   //   provideCodeLenses(doc: vscode.TextDocument): vscode.CodeLens[] {
   //     const lenses: vscode.CodeLens[] = [];
   //     for (let line = 0; line < doc.lineCount; line++) {
@@ -119,7 +111,6 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
   //     const range = new vscode.Range(line, 0, line, 0);
   //     return lenses;
   //   }
-
   //   provideCodeLenses(doc: vscode.TextDocument): vscode.CodeLens[] {
   //     const lenses: vscode.CodeLens[] = [];
   //     const { list, getRange } = this.app.bookmarks;
@@ -220,7 +211,6 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
             arguments: [doc.uri, range],
           });
           //   const hasBookmark = this.store.hasSource(doc.uri.fsPath, range);
-
           //   lenses.push(
           //     new vscode.CodeLens(range, {
           //       title: hasBookmark ? '🔖 Saved' : '➕ Bookmark',
@@ -370,7 +360,6 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
         //     arguments: [this.makeCtx(doc, match, range)],
         //   }),
         // );
-
         // lenses.push(
         //   new vscode.CodeLens(range, {
         //     title: '🔎 Reveal Panel', // Show searchable context/options for this estate item
@@ -378,7 +367,6 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
         //     arguments: [this.makeCtx(doc, match, range)],
         //   }),
         // );
-
         // lenses.push(
         //   new vscode.CodeLens(range, {
         //     title: '⚡ Actions', // Open available operations for this context
@@ -400,7 +388,6 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
         //     arguments: [this.makeCtx(doc, match, range)],
         //   }),
         // );
-
         // lenses.push(
         //   new vscode.CodeLens(range, {
         //     title: '♻️ Replace Content', // Apply captured bookmark content into the current scope
@@ -468,7 +455,6 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
     return ctx;
   }
 }
-
 function getBookmarksForDocument(registry: Record<string, Bookmark>, uri: vscode.Uri): Bookmark[] {
   return Object.values(registry).filter((b) => {
     return b.uri() === uri.fsPath;

@@ -5,16 +5,12 @@ import { parseEmbeds } from '../core/parser/embedParser';
 import { buildFenceMask } from '../core/fenceMask';
 import { innerRange } from '../core/parser/refRange';
 import { resolveTarget } from '../core/resolver/resolveTarget';
-
 import { IndexService } from './indexService';
-
 const DEBOUNCE_MS = 250;
-
 // Colours `[[...]]` / `![[...]]` in the editor by whether the resolver can actually resolve
 // the target — resolved links take the editor link colour, unresolved ones are dimmed.
 // This reflects real resolution (spaces, Unicode, every character the parser accepts),
 // unlike a TextMate grammar that pattern-matches the link text.
-
 export class WikiDecorations {
   private decorations = new Map<string, vscode.TextEditorDecorationType>();
   private stateDecorations = new Map<string, vscode.TextEditorDecorationType>();
@@ -25,7 +21,6 @@ export class WikiDecorations {
         opacity: '1',
       }),
     );
-
     this.stateDecorations.set(
       'focused',
       vscode.window.createTextEditorDecorationType({
@@ -47,7 +42,6 @@ export class WikiDecorations {
         gutterIconPath: iconPath,
         gutterIconSize: 'contain',
       });
-
       this.decorations.set(icon, decoration);
     }
   }
@@ -68,7 +62,6 @@ export class WikiDecorations {
       return;
     }
     const ranges = lines.map((line) => editor.document.lineAt(line).range);
-
     editor.setDecorations(decoration, ranges);
   }
   private clearDecorations(editor: vscode.TextEditor) {
@@ -85,10 +78,8 @@ export class WikiDecorations {
     this.markLines(editor, 'binding', [subjectLine]);
     // related symbols
     this.markLines(editor, 'shadowing', children);
-
     // visual states
     this.applyState(editor, 'muted', children);
-
     this.applyState(editor, 'selected', [subjectLine]);
   }
   private previewIconStack(editor: vscode.TextEditor) {
@@ -97,11 +88,9 @@ export class WikiDecorations {
     this.clearDecorations(editor);
     icons.forEach((icon, index) => {
       const line = startLine + index;
-
       if (line >= editor.document.lineCount) {
         return;
       }
-
       this.markLines(editor, icon, [line]);
     });
   }
@@ -136,7 +125,7 @@ export class WikiDecorations {
     this.initIcons();
     this.initStateIcons();
     app.activity.subscribe(() => {
-      console.log('click Decoration Subscribe');
+    //   console.log('click Decoration Subscribe');
       const result = app.analysis.get();
       const lines = app.analysis.getRelatedLines();
       if (!result) return;
@@ -146,7 +135,6 @@ export class WikiDecorations {
       this.applyDecorations(editor, lines);
     });
   }
-
   register(ctx: vscode.ExtensionContext): void {
     ctx.subscriptions.push(
       this.resolved,
@@ -160,7 +148,6 @@ export class WikiDecorations {
       vscode.window.onDidChangeVisibleTextEditors(() => {}),
       vscode.workspace.onDidChangeTextDocument((event) => {
         const editor = vscode.window.visibleTextEditors.find((e) => e.document === event.document);
-
         if (editor) {
           this.decorate(editor);
         }
@@ -200,18 +187,14 @@ export class WikiDecorations {
     const selection = editor.selection;
     const currentLine = selection.start.line;
     const doc = editor.document;
-
     const targetRanges: vscode.Range[] = [];
-
     // Calculate line numbers: one above, current, one below
     const linesToHighlight = [currentLine - 1, currentLine, currentLine + 1];
-
     for (const lineIdx of linesToHighlight) {
       if (lineIdx >= 0 && lineIdx < doc.lineCount) {
         targetRanges.push(doc.lineAt(lineIdx).range);
       }
     }
-
     // Apply decorations using your existing usage decoration type
     editor.setDecorations(this.usageDecorationType, targetRanges);
     console.log(`Highlighted lines: ${linesToHighlight.join(', ')}`);
@@ -224,7 +207,6 @@ export class WikiDecorations {
         retainContextWhenHidden: true,
       },
     );
-
     panel.webview.html = `
         <!DOCTYPE html>
         <html>
@@ -233,16 +215,13 @@ export class WikiDecorations {
         <div id="content">
         Waiting...
         </div>
-
         <script>
         const vscode = acquireVsCodeApi();
-
         window.addEventListener('message', event => {
             document.getElementById('content').innerHTML =
                 event.data.html;
         });
         </script>
-
         </body>
         </html>
         `;
@@ -271,17 +250,13 @@ export class WikiDecorations {
   private applyDecorations(editor: vscode.TextEditor, relatedLines: any[]) {
     console.log('Hi plz go');
     const doc = editor.document;
-
     const scopeLines = new Set<number>();
     const influenceLines = new Set<number>();
-
     for (const item of relatedLines) {
       const line = item.line - 1;
-
       if (item.relation_type === 'Scope') {
         scopeLines.add(line);
       }
-
       if (
         item.relation_type === 'ImmutableBorrow' ||
         item.relation_type === 'Assignment' ||
@@ -290,22 +265,17 @@ export class WikiDecorations {
         influenceLines.add(line);
       }
     }
-
     const greyRanges: vscode.Range[] = [];
     const activeRanges: vscode.Range[] = [];
-
     for (const line of scopeLines) {
       const range = doc.lineAt(line).range;
-
       if (influenceLines.has(line)) {
         activeRanges.push(range);
       } else {
         greyRanges.push(range);
       }
     }
-
     editor.setDecorations(this.unrelatedDecorationType, greyRanges);
-
     editor.setDecorations(this.ownershipMarkerDecoration, activeRanges);
   }
   private mutedDecoration = vscode.window.createTextEditorDecorationType({
@@ -332,9 +302,7 @@ export class WikiDecorations {
   }
   private findEstateBookmarks(document: vscode.TextDocument): EstateNode[] {
     const nodes: EstateNode[] = [];
-
     // @connected
-
     for (let i = 0; i < document.lineCount; i++) {
       const text = document.lineAt(i).text;
       let range = new vscode.Range(i, 0, i, text.length);
@@ -577,25 +545,19 @@ export class WikiDecoration {
   });
   private timer?: ReturnType<typeof setTimeout>;
 }
-
 export interface Annotation {
   range: vscode.Range;
-
   // Human-facing projection
   label?: string;
   icon?: string;
-
   // Rendering
   placement?: AnnotationPlacement;
   style?: AnnotationStyle;
-
   // Behavior
   action?: AnnotationAction;
-
   // Source / identity / graph data
   metadata?: AnnotationMetadata;
 }
-
 export interface AnnotationStyle {
   color?: string;
   background?: string;
@@ -603,7 +565,6 @@ export interface AnnotationStyle {
   fontWeight?: string;
   opacity?: number;
 }
-
 export type AnnotationPlacement =
   // attached to source
   | 'highlight'
@@ -611,18 +572,15 @@ export type AnnotationPlacement =
   | 'gutter'
   | 'overview'
   | 'codelens'
-
   // discovery/navigation
   | 'sidebar'
   | 'panel';
-
 export interface AnnotationAction {
   kind: 'navigate' | 'command' | 'open' | 'reveal';
   target?: string;
   command?: string;
   args?: unknown[];
 }
-
 export interface AnnotationMetadata {
   type: string;
   id?: string;
@@ -640,7 +598,6 @@ type Placement =
   | {
       kind: 'gutter';
     };
-
 type Action =
   | {
       kind: 'navigate';
@@ -649,23 +606,18 @@ type Action =
   | {
       kind: 'showDetails';
     };
-
 type Style = {
   color?: string;
   background?: string;
   emphasis?: 'bold' | 'italic';
   underline?: boolean;
 };
-
 // type Estate = {
 //   range: vscode.Range;
-
 //   icon?: string;
 //   label?: string;
-
 //   interaction: Interaction;
 // };
-
 // type Interaction =
 //   | { kind: 'file'; path: string }
 //   | { kind: 'url'; url: string }
@@ -676,19 +628,14 @@ type Style = {
 //   | { kind: 'peek'; symbol: string }
 //   | { kind: 'bookmark'; id: string }
 //   | { kind: 'search'; query: string };
-
 type EstateNode = {
   id: string;
   range: vscode.Range;
-
   kind: string;
-
   icon?: string;
   label?: string;
-
   actions: EstateAction[];
 };
-
 type EstateAction =
   | {
       kind: 'file';
@@ -722,41 +669,32 @@ type EstateAction =
       args?: unknown[];
       label: string;
     };
-
 function isLineVisible(editor: vscode.TextEditor, line: number): boolean {
   return editor.visibleRanges.some((range) => line >= range.start.line && line <= range.end.line);
 }
 function isProbablyVisible(editor: vscode.TextEditor, line: number) {
   return editor.visibleRanges.some((range) => line >= range.start.line && line <= range.end.line);
 }
-
 import { icons } from '../ownership';
 import { AppStore } from '../app';
 import { EXT_PATH, supportedLanguages } from '../consts';
-
 // export class DecorationService {
 //   private unrelatedDecorationType = vscode.window.createTextEditorDecorationType({
 //     opacity: '0.35', // Greys out unrelated code
 //   });
-
 //   private declarationDecorationType = vscode.window.createTextEditorDecorationType({
 //     after: { contentText: ' 📌 [Declaration]', color: '#007acc', fontStyle: 'italic' },
 //   });
-
 //   private usageDecorationType = vscode.window.createTextEditorDecorationType({
 //     after: { contentText: ' ⚡ [Flow]', color: '#28a745', fontStyle: 'italic' },
 //   });
-
 //   private resolved = vscode.window.createTextEditorDecorationType({
 //     color: new vscode.ThemeColor('textLink.foreground'),
 //   });
-
 //   private unresolved = vscode.window.createTextEditorDecorationType({
 //     color: new vscode.ThemeColor('descriptionForeground'),
 //   });
-
 //   constructor(private outputChannel: vscode.OutputChannel) {}
-
 //   public getDisposables() {
 //     return [
 //       this.unrelatedDecorationType,
@@ -766,7 +704,6 @@ import { EXT_PATH, supportedLanguages } from '../consts';
 //       this.unresolved,
 //     ];
 //   }
-
 //   public async analyzeAndDecorate(
 //     uri?: vscode.Uri,
 //     range?: vscode.Range,
@@ -778,58 +715,46 @@ import { EXT_PATH, supportedLanguages } from '../consts';
 //       vscode.window.showErrorMessage('No active file found to analyze.');
 //       return;
 //     }
-
 //     const filePath = targetUri.fsPath;
 //     const targetRange = range || editor?.selection;
 //     const lineNumber = targetRange ? targetRange.start.line + 1 : 1;
-
 //     const config = vscode.workspace.getConfiguration('flowify');
 //     const defaultMode = config.get<string>('defaultAnalysisMode', 'default');
 //     const mode = analysisMode !== 'default' ? analysisMode : defaultMode;
-
 //     try {
 //       const cratePath = '/Users/future/KB/project/app/loi/crates/learn';
 //       const binaryPath = '/Users/future/KB/project/app/loi/target/debug/loi';
-
 //       const { stdout, stderr } = await execFileAsync(
 //         binaryPath,
 //         ['analyze', filePath, '--line', lineNumber.toString(), '--mode', mode],
 //         { cwd: cratePath },
 //       );
-
 //       if (stderr) console.error('Daemon error:', stderr);
-
 //       const result = JSON.parse(stdout.trim());
 //       if (result.status === 'ok' && result.related_lines) {
 //         const activeEditor = vscode.window.activeTextEditor;
 //         if (activeEditor && activeEditor.document.uri.fsPath === filePath) {
 //           const doc = activeEditor.document;
-
 //           const declarationRanges: vscode.Range[] = [];
 //           const usageRanges: vscode.Range[] = [];
 //           const allRelatedLineNumbers = new Set<number>();
-
 //           for (const item of result.related_lines) {
 //             const lineIdx = item.line - 1;
 //             if (lineIdx < 0 || lineIdx >= doc.lineCount) continue;
-
 //             allRelatedLineNumbers.add(lineIdx);
 //             const lineRange = doc.lineAt(lineIdx).range;
-
 //             if (item.relation_type === 'Declaration' || item.relation_type === 'Assignment') {
 //               declarationRanges.push(lineRange);
 //             } else {
 //               usageRanges.push(lineRange);
 //             }
 //           }
-
 //           const unrelatedRanges: vscode.Range[] = [];
 //           for (let i = 0; i < doc.lineCount; i++) {
 //             if (!allRelatedLineNumbers.has(i)) {
 //               unrelatedRanges.push(doc.lineAt(i).range);
 //             }
 //           }
-
 //           activeEditor.setDecorations(this.unrelatedDecorationType, unrelatedRanges);
 //           activeEditor.setDecorations(this.declarationDecorationType, declarationRanges);
 //           activeEditor.setDecorations(this.usageDecorationType, usageRanges);

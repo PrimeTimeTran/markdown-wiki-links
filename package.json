@@ -92,6 +92,26 @@
         "title": "Estate: Create Bookmark"
       },
       {
+        "command": "refPanel.open",
+        "title": "Estate: Open Reference Panel"
+      },
+      {
+        "command": "refPanel.register",
+        "title": "Estate: Register Reference Panel"
+      },
+      {
+        "command": "refPanel.test",
+        "title": "Estate: Test Reference Panel"
+      },
+      {
+        "command": "estate.testOwnershipAction",
+        "title": "Estate: Test Ownership"
+      },
+      {
+        "command": "estate.showOwnership",
+        "title": "Estate: Show Ownership"
+      },
+      {
         "command": "bookmark.edit",
         "title": "Estate: Edit Bookmark"
       }
@@ -99,6 +119,126 @@
     "configuration": {
       "title": "Wiki Links",
       "properties": {
+        "wikiLinks.showInOutputChannel": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show output messages in the extension output channel."
+        },
+        "wikiLinks.level": {
+          "type": "string",
+          "default": "info",
+          "enum": [
+            "info",
+            "warn",
+            "error"
+          ],
+          "description": "Sets the logging or display level for wiki links."
+        },
+        "wikiLinks.show": {
+          "type": "boolean",
+          "default": true,
+          "description": "Controls whether wiki links are enabled or shown."
+        },
+        "wikiLinks.showInStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Toggles the status bar indicator for wiki links."
+        },
+        "wikiLinks.showInNotifications": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show notifications for events and status updates."
+        },
+        "wikiLinks.showInProblems": {
+          "type": "boolean",
+          "default": true,
+          "description": "Report diagnostics in the VS Code Problems panel."
+        },
+        "wikiLinks.showInDebugConsole": {
+          "type": "boolean",
+          "default": false,
+          "description": "Log runtime details to the Debug Console."
+        },
+        "wikiLinks.showInTerminal": {
+          "type": "boolean",
+          "default": false,
+          "description": "Print outputs directly to the integrated terminal."
+        },
+        "wikiLinks.showInEditor": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable features inside the main text editor view."
+        },
+        "wikiLinks.showInEditorGutter": {
+          "type": "boolean",
+          "default": true,
+          "description": "Display indicators in the editor gutter."
+        },
+        "wikiLinks.showInEditorInline": {
+          "type": "boolean",
+          "default": false,
+          "description": "Render details inline directly inside source text."
+        },
+        "wikiLinks.showInEditorHover": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show rich contents on mouse hover in the editor."
+        },
+        "wikiLinks.showInEditorPeek": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable support for Peek views."
+        },
+        "wikiLinks.showInEditorCodeLens": {
+          "type": "boolean",
+          "default": false,
+          "description": "Display CodeLens action lines above symbols."
+        },
+        "wikiLinks.showInEditorInlayHints": {
+          "type": "boolean",
+          "default": false,
+          "description": "Render subtle inlay hints inside the editor."
+        },
+        "wikiLinks.showInEditorDecorations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Apply text and background highlighting decorations."
+        },
+        "wikiLinks.showInEditorMinimap": {
+          "type": "boolean",
+          "default": false,
+          "description": "Highlight markers inside the editor minimap."
+        },
+        "wikiLinks.showInEditorOverviewRuler": {
+          "type": "boolean",
+          "default": false,
+          "description": "Display indicators on the right-side overview ruler."
+        },
+        "wikiLinks.showInEditorGlyphMargin": {
+          "type": "boolean",
+          "default": false,
+          "description": "Render glyph icons in the far left margin."
+        },
+        "wikiLinks.showInEditorLineNumbers": {
+          "type": "boolean",
+          "default": false,
+          "description": "Alter line number displays or highlights."
+        },
+        "wikiLinks.showInEditorWhitespace": {
+          "type": "boolean",
+          "default": false,
+          "description": "Control whitespace visualization options."
+        },
+        "wikiLinks.showInEditorIndentGuides": {
+          "type": "boolean",
+          "default": false,
+          "description": "Control indentation guide visibility settings."
+        },
+        "wikiLinks.embed.maxDepthx": {
+          "type": "number",
+          "default": 3,
+          "description": "Maximum recursion depth when embedding wiki links."
+        },
         "wikiLinks.embed.maxDepth": {
           "type": "number",
           "default": 3,

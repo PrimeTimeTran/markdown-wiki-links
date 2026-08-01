@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { EstateFocus } from './estate';
 import { AppStore } from './app';
-
 // Right now store the cursor here.
 // - I have other ideas on how this could be used in compostion with event to do more interesting things.
 // Current user context.
@@ -67,28 +66,35 @@ export class ActivityStore implements ActivityStoreType {
   constructor(private app: AppStore) {}
   init(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-      vscode.window.onDidChangeActiveTextEditor((editor) => {
-        if (!editor) return;
-        console.log('Activity onDidChangeActiveTextEditor');
-        console.log(editor.document.fileName, editor.document.languageId);
-      }),
-    );
-    context.subscriptions.push(
       vscode.window.onDidChangeTextEditorSelection((event) => {
-        console.log('Activity onDidChangeTextEditorSelection');
+        console.log('[Activity].onDidChangeTextEditorSelection click!');
         this.update(event.textEditor);
       }),
     );
     context.subscriptions.push(
+      vscode.window.onDidChangeActiveTextEditor((editor) => {
+        // vscode.window.showInformationMessage('Activity onDidChangeActiveTextEditor');
+        if (!editor) return;
+        // 1. How do i properly let it know when i go between othr panels?
+        this.app.state.focushistory.push('editor');
+        // console.log.clear();
+        console.log('[Activity].onDidChangeActiveTextEditor focus!');
+        // console.log('editor.selection.active', editor.selection.active);
+        // console.log('Activity onDidChangeActiveTextEditor');
+        // console.log(editor.document.fileName, editor.document.languageId);
+      }),
+    );
+    context.subscriptions.push(
       vscode.workspace.onDidChangeTextDocument((event) => {
-        console.log('Activity onDidChangeTextDocument');
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
+          console.log('[Activity].onDidChangeTextDocument no active editor');
           return;
         }
         if (editor.document.uri.toString() !== event.document.uri.toString()) {
           return;
         }
+        console.log('[Activity].onDidChangeTextDocument edit! ');
         this.update(editor);
       }),
     );
