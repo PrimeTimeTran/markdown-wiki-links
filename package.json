@@ -107,7 +107,7 @@
           "group": "navigation"
         },
         {
-          "command": "estate.snippet.preview",
+          "command": "estate.anchor.pipeline",
           "group": "navigation"
         },
         {
@@ -136,7 +136,7 @@
           "group": "navigation"
         },
         {
-          "command": "estate.snippet.preview",
+          "command": "estate.anchor.pipeline",
           "group": "navigation"
         },
         {
@@ -202,8 +202,8 @@
         "title": "Estate: Snippet Maker"
       },
       {
-        "command": "estate.snippet.preview",
-        "title": "Estate: Snippet Preview"
+        "command": "estate.anchor.pipeline",
+        "title": "Estate: Flow"
       },
       {
         "command": "estate.snippet.save",

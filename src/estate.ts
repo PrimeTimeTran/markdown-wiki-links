@@ -1,6 +1,8 @@
+import * as os from 'os';
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { ScopeInfo } from './activity';
-import { Bookmark } from './adapters/bookmarkService';
+import { Anchor } from './adapters/bookmarkService';
 import { AppStore } from './app';
 import { CMD } from './cmds';
 
@@ -287,13 +289,26 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
         return [];
     }
   }
+  async ensureEditorOpen() {
+    const editors = vscode.window.visibleTextEditors;
+    if (editors.length > 0) {
+      return;
+    }
+    let rootpath = path.join(os.homedir(), '.estate', 'hello-world.html');
+    const uri = vscode.Uri.file('/');
+    const doc = await vscode.workspace.openTextDocument(uri);
+    await vscode.window.showTextDocument(doc, {
+      viewColumn: vscode.ViewColumn.Active,
+      preview: false,
+    });
+  }
 }
 
 export class EstateNode extends vscode.TreeItem {
   constructor(
     public readonly type: 'folder' | 'bookmark',
     public readonly label: string,
-    public readonly bookmark?: Bookmark,
+    public readonly bookmark?: Anchor,
   ) {
     super(
       label,
@@ -316,12 +331,12 @@ export class EstateNode extends vscode.TreeItem {
     if (bookmark) {
       //   sections.includes(capitalizeFirstLetter(label));
       this.resourceUri = vscode.Uri.parse(`estate://${bookmark.id}`);
-      this.applyBookmarkStyle(bookmark);
+      this.applyAnchorStyle(bookmark);
     }
     // this.applyCommand(bookmark);
     // this.command = {
     //   command: CMD.bookmark.open,
-    //   title: 'Open Bookmark',
+    //   title: 'Open Anchor',
     //   arguments: [bookmark],
     // };
 
@@ -330,17 +345,17 @@ export class EstateNode extends vscode.TreeItem {
     } else {
       this.command = {
         command: CMD.bookmark.open,
-        title: 'Open Bookmark',
+        title: 'Open Anchor',
         arguments: [bookmark],
       };
     }
   }
-  private applyCommand(bookmark: Bookmark) {
+  private applyCommand(bookmark: Anchor) {
     // switch (bookmark.label) {
     //   case 'Main':
     //     this.command = {
     //       command: CMD.bookmark.open,
-    //       title: 'Open Bookmark',
+    //       title: 'Open Anchor',
     //       arguments: [bookmark],
     //     };
     //     break;
@@ -349,7 +364,7 @@ export class EstateNode extends vscode.TreeItem {
     //   //   .map((b) => new EstateNode('bookmark', b.label ?? '', b));
     // }
   }
-  private applyBookmarkStyle(bookmark: Bookmark) {
+  private applyAnchorStyle(bookmark: Anchor) {
     const uri = bookmark?.uri?.() || '';
     const isSettingsFile = /settings\.json$/i.test(uri);
     const tags = bookmark.tags ?? [];

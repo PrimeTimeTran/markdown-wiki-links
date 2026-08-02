@@ -7,11 +7,11 @@ import { EstateContext, EstateFlag } from '../estate';
 import { randomUUID } from 'node:crypto';
 import { AppStore } from '../app';
 import { capability, CMD, flags } from '../cmds';
-import { bookmarkShowPage, getHtml } from './htmlBookmark';
+import { anchorShowPage, getHtml } from './htmlBookmark';
 import { Activity } from '../activity';
 // # Flag
 // - Fold flags: show prevent 'above' from 'unfolding' no matter how many depths I've unfolded. Think about how I might want to 'ignore' tests of rust or imports or 'first impl'
-// # Bookmark capabilities
+// # Anchor capabilities
 // seed: a bookmark which is saved to disk with no other capabilities attached
 //  - personal
 //  - 'web bookmark' for code blocks
@@ -56,7 +56,7 @@ export interface Anchor {
   anchors: string[];
 
   // New: where this anchor came from
-  origin: BookmarkOrigin;
+  origin: AnchorOrigin;
 
   // New: source/code locations
   locations?: AnchorLocation[];
@@ -65,7 +65,7 @@ export interface Anchor {
   // Later this can become a proper relationship table/store
   lists?: string[];
 }
-export interface Bookmark {
+export interface Anchor {
   type?: string;
   description?: string;
   code?: string;
@@ -80,17 +80,17 @@ export interface Bookmark {
   updatedAt?: string;
   createdAt?: string;
   //   uri: String;
-  origin: BookmarkOrigin;
+  origin: AnchorOrigin;
   anchors: string[];
 }
 // Runtime
-export class Bookmark {
+export class Anchor {
   id: string;
   label?: string;
-  src?: BookmarkSource;
+  src?: AnchorSource;
   tags: string[] = [];
   capabilities: EstateFlag[] = [];
-  constructor(id: string, data: Partial<Bookmark>) {
+  constructor(id: string, data: Partial<Anchor>) {
     this.id = id;
     Object.assign(this, data);
   }
@@ -101,8 +101,8 @@ export class Bookmark {
     return this.src.uri.toString();
   }
 }
-export type BookmarkOrigin = 'system' | 'personal' | 'workspace';
-export interface BookmarkSource {
+export type AnchorOrigin = 'system' | 'personal' | 'workspace';
+export interface AnchorSource {
   uri: string;
   startLine: number;
   endLine: number;
@@ -110,36 +110,32 @@ export interface BookmarkSource {
   endCharacter?: number;
   languageId?: string;
 }
-export interface BookmarkOccurrence extends Anchor {}
+export interface AnchorOccurrence extends Anchor {}
 export interface FlagOccurrence extends Anchor {
   flag: EstateFlag;
 }
-export type Occurrence = BookmarkOccurrence | FlagOccurrence;
+export type Occurrence = AnchorOccurrence | FlagOccurrence;
 // CRUD
 // - [ ] Create
 // - [ ] Read
 // - [ ] Update
 // - [ ] Delete
-export interface BookmarkStoreType {
+export interface AnchorStoreType {
   //
-  get(id: string): Bookmark | undefined;
+  get(id: string): Anchor | undefined;
   loadRegistry(path: string): void;
   save(): void;
-  create(
-    ctx: EstateContext,
-    opts: CreateBookmarkOptions,
-    bookmark: Partial<Bookmark>,
-  ): Partial<Bookmark>;
-  update(id: string, patch: Partial<Bookmark>): void;
+  create(ctx: EstateContext, opts: CreateAnchorOptions, bookmark: Partial<Anchor>): Partial<Anchor>;
+  update(id: string, patch: Partial<Anchor>): void;
   delete(id: string): void;
-  find(file: vscode.Uri, text: string, line: number): Occurrence[];
-  list(): Bookmark[];
+  find(file: vscode.Uri, text: string, line: number): AnchorRef[];
+  list(): Anchor[];
   hasFlag(id: string): boolean;
   getFlag(id: string): EstateFlag | undefined;
 }
-export class BookmarkStore implements BookmarkStoreType {
-  private items = new Map<string, Bookmark>();
-  private fileIndex = new Map<string, Bookmark[]>();
+export class AnchorStore implements AnchorStoreType {
+  private items = new Map<string, Anchor>();
+  private fileIndex = new Map<string, Anchor[]>();
   // 1. Add to items and fileIndex when creating
   // 2. Use fileIndex for embedded(or over all, so we dont have to do "row by row scan")
   private flags = new Map<string, EstateFlag>();
@@ -153,7 +149,7 @@ export class BookmarkStore implements BookmarkStoreType {
       contentText: 'Hi there! 🔖',
     },
   });
-  private decorateBookmarks(editor: vscode.TextEditor): void {
+  private decorateAnchors(editor: vscode.TextEditor): void {
     const uri = editor.document.uri.fsPath;
     const ranges: vscode.Range[] = [];
     for (const bookmark of this.list()) {
@@ -191,12 +187,12 @@ export class BookmarkStore implements BookmarkStoreType {
     // ⚠️ Careful!
     // - Pass app, ctx, or a 3rd argument to have it later. Otherwise the properties of this will be lost
     app.ctx.subscriptions.push(
-      vscode.commands.registerCommand(CMD.bookmark.create, this.addBookmark, this),
+      vscode.commands.registerCommand(CMD.bookmark.create, this.addAnchor, this),
       vscode.commands.registerCommand(CMD.bookmark.edit, this.update, this),
     );
     app.activity.subscribe(() => {
-      //   console.log('Bookmark store... activity detcted');
-      //   this.decorateBookmarks();
+      //   console.log('Anchor store... activity detcted');
+      //   this.decorateAnchors();
     });
   }
   private initIntrinsic(): EstateFlag[] {
@@ -219,7 +215,7 @@ export class BookmarkStore implements BookmarkStoreType {
     }
     const json = JSON.parse(fs.readFileSync(registry, 'utf8'));
     for (const [id, bookmark] of Object.entries(json.items ?? {})) {
-      this.items.set(id, bookmark as Bookmark);
+      this.items.set(id, bookmark as Anchor);
     }
   }
   public loadRegistry(file: string): void {
@@ -230,8 +226,8 @@ export class BookmarkStore implements BookmarkStoreType {
     const raw = fs.readFileSync(file, 'utf8');
     const json = JSON.parse(raw);
     const items = json.items ?? {};
-    for (const [id, bookmark] of Object.entries(items as Record<string, Partial<Bookmark>>)) {
-      const b = new Bookmark(id, bookmark);
+    for (const [id, bookmark] of Object.entries(items as Record<string, Partial<Anchor>>)) {
+      const b = new Anchor(id, bookmark);
       this.register(id, b);
     }
   }
@@ -265,12 +261,12 @@ export class BookmarkStore implements BookmarkStoreType {
     }
     return estates.reverse();
   }
-  public async saveBookmark(patch: Partial<Bookmark>) {
+  public async saveAnchor(patch: Partial<Anchor>) {
     console.log('Hi');
-    // if (!this.currentBookmark) {
+    // if (!this.currentAnchor) {
     //   return;
     // }
-    // this.app.bookmarks.update(this.currentBookmark.id, patch);
+    // this.app.bookmarks.update(this.currentAnchor.id, patch);
     // this.app.bookmarks.save();
   }
   //   private findEstate(startPath: string): string | undefined {
@@ -291,10 +287,10 @@ export class BookmarkStore implements BookmarkStoreType {
   //     }
   //     return undefined;
   //   }
-  create(ctx: EstateContext, opts: CreateBookmarkOptions, bookmark: Partial<Bookmark>): Bookmark {
+  create(ctx: EstateContext, opts: CreateAnchorOptions, bookmark: Partial<Anchor>): Anchor {
     const now = new Date().toISOString();
     let id = randomUUID();
-    let b = new Bookmark(id, {
+    let b = new Anchor(id, {
       id,
       tags: [],
       type: bookmark.type ?? 'concept',
@@ -318,7 +314,7 @@ export class BookmarkStore implements BookmarkStoreType {
     this.register(id, b);
     return b;
   }
-  async addBookmark(ctx: vscode.ExtensionContext, app: AppStore) {
+  async addAnchor(ctx: vscode.ExtensionContext, app: AppStore) {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
       return;
@@ -339,7 +335,7 @@ export class BookmarkStore implements BookmarkStoreType {
         selection,
       },
       {
-        label: `Bookmark ${id}`,
+        label: `Anchor ${id}`,
         description: 'Captured source block',
         privacy: 'workspace',
       },
@@ -366,7 +362,8 @@ export class BookmarkStore implements BookmarkStoreType {
     await this.save();
     vscode.window.showInformationMessage(`Created ${id}`);
   }
-  register(id: string, bookmark: Bookmark) {
+  register(id: string, bookmark: Anchor) {
+    console.log('registering');
     try {
       this.items.set(id, bookmark);
       const key = bookmark.uri().toString();
@@ -400,7 +397,7 @@ export class BookmarkStore implements BookmarkStoreType {
   hasFlag(id: string) {
     return this.flags.has(id);
   }
-  getUri(b: Bookmark): vscode.Uri {
+  getUri(b: Anchor): vscode.Uri {
     if (!b?.src?.uri) {
       throw Error('Invalid Uri');
     }
@@ -409,14 +406,14 @@ export class BookmarkStore implements BookmarkStoreType {
   ids() {
     return [...this.items.keys()];
   }
-  list(): Bookmark[] {
+  list(): Anchor[] {
     return [...this.items.values()];
   }
-  inFile(b: Bookmark, file: vscode.Uri) {
+  inFile(b: Anchor, file: vscode.Uri) {
     return file == this.getUri(b);
   }
-  find(file: vscode.Uri, text: string, line: number): Occurrence[] {
-    const results = [...findBookmarks(text, this, line), ...findFlags(text, this, line)];
+  find(file: vscode.Uri, text: string, line: number): AnchorRef[] {
+    const results = [...findAnchors(text, this, line), ...findFlags(text, this, line)];
     for (const bookmark of this.findSortedIndex(file, line)) {
       console.log('bookmarkbookmark', bookmark);
       console.log('bookmarkbookmark', bookmark.id);
@@ -429,23 +426,23 @@ export class BookmarkStore implements BookmarkStoreType {
     }
     return results;
   }
-  findInFile(file: vscode.Uri): Bookmark[] {
+  findInFile(file: vscode.Uri): Anchor[] {
     return this.list().filter((b) => this.inFile(b, file));
   }
-  findSortedIndex(file: vscode.Uri, line: number): Bookmark[] {
+  findSortedIndex(file: vscode.Uri, line: number): Anchor[] {
     return this.findInIndex(file).filter(
       (b) => b.src && line >= b.src.startLine && line <= b.src.endLine,
     );
   }
-  findInIndex(file: vscode.Uri): Bookmark[] {
+  findInIndex(file: vscode.Uri): Anchor[] {
     return this.fileIndex.get(file.toString()) ?? [];
   }
   update(
     id: string,
-    patch: Partial<Bookmark>,
-    // opts: CreateBookmarkOptions,
-  ): Bookmark {
-    throw new Error('BookmarkStore.create() has not been implemented.');
+    patch: Partial<Anchor>,
+    // opts: CreateAnchorOptions,
+  ): Anchor {
+    throw new Error('AnchorStore.create() has not been implemented.');
   }
   delete(id: string) {
     throw new Error('TODO');
@@ -455,10 +452,10 @@ export class BookmarkStore implements BookmarkStoreType {
   registerFlag(flag: EstateFlag): void {
     this.flags.set(flag.id, flag);
   }
-  getRange(b: Bookmark) {
+  getRange(b: Anchor) {
     try {
       let { src } = b;
-      if (!src) throw Error('Invalid Bookmark');
+      if (!src) throw Error('Invalid Anchor');
       return new vscode.Range(
         src.startLine,
         src.startCharacter ?? 0,
@@ -496,12 +493,7 @@ export class BookmarkStore implements BookmarkStoreType {
     return undefined;
   }
 }
-export enum BookmarkLocation {
-  Personal,
-  Workspace,
-  Project,
-}
-export interface CreateBookmarkOptions {
+export interface CreateAnchorOptions {
   label?: string;
   description?: string;
   privacy: 'personal' | 'repo' | 'workspace';
@@ -509,7 +501,7 @@ export interface CreateBookmarkOptions {
   captureScope?: boolean;
   captureContext?: boolean;
 }
-export interface BookmarkOccurrence {
+export interface AnchorOccurrence {
   id: string;
   line: number;
   start: number;
@@ -527,23 +519,14 @@ export interface Anchor {
   end: number;
 }
 
-export function findBookmarks(
-  text: string,
-  store: BookmarkStore,
-  line: number,
-): BookmarkOccurrence[] {
-  return findAnchors(text, line)
-    .filter((t) => store.has(t.id))
-    .map((t) => ({ ...t }));
-}
-export function findFlags(text: string, store: BookmarkStore, line: number): FlagOccurrence[] {
-  return findAnchors(text, line).flatMap((t) => {
+export function findFlags(text: string, store: AnchorStore, line: number): AnchorRef[] {
+  return findAnchorsLocations(text, line).flatMap((t) => {
     const flag = store.getFlag(t.id);
     return flag ? [{ ...t, flag }] : [];
   });
 }
-export class BookmarkSeries {}
-export class BookmarkPresenter {
+export class AnchorSeries {}
+export class AnchorPresenter {
   private bookmarkPanels = new Map<string, vscode.WebviewPanel>();
   constructor(public app: AppStore) {
     app.ctx.subscriptions.push(
@@ -551,7 +534,7 @@ export class BookmarkPresenter {
       //   vscode.commands.registerCommand(CMD.refPanel.open, (ctx) => this.showRef(ctx, app), this),
       vscode.commands.registerCommand(
         CMD.bookmark.present,
-        async (ctx, bookmark: Bookmark) => {
+        async (ctx, bookmark: Anchor) => {
           await this.present(ctx, bookmark);
         },
         this,
@@ -570,7 +553,7 @@ export class BookmarkPresenter {
   // - Preview
   // - Full
   // - Panel
-  private async showBookmarkPane(bookmark: Bookmark) {
+  private async showAnchorPane(bookmark: Anchor) {
     const id = bookmark.id;
 
     //
@@ -587,7 +570,7 @@ export class BookmarkPresenter {
     //
     const panel = vscode.window.createWebviewPanel(
       'bookmark',
-      bookmark.label ?? 'Bookmark',
+      bookmark.label ?? 'Anchor',
       vscode.ViewColumn.Active,
       {
         enableScripts: true,
@@ -604,31 +587,33 @@ export class BookmarkPresenter {
     panel.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.type) {
-          case 'saveBookmark':
+          case 'saveAnchor':
             this.app.bookmarks.update(id, message.bookmark);
             this.app.bookmarks.save();
             break;
-
           case 'openSource':
-            this.openBookmarkSource(bookmark);
+            this.openAnchorSource(bookmark);
             break;
         }
       },
       undefined,
       this.app.ctx.subscriptions,
     );
+    console.log('SENDING TO WEBVIEW', {
+      id: bookmark.id,
+      codeLength: bookmark.code?.length,
+      bodyLength: bookmark.body?.length,
+    });
 
-    panel.webview.html = bookmarkShowPage(bookmark);
+    panel.webview.html = anchorShowPage(bookmark);
+    panel.webview.html = anchorShowPage(bookmark);
   }
-  private async openBookmarkSource(bookmark: Bookmark) {
+  private async openAnchorSource(bookmark: Anchor) {
     if (!bookmark.uri()) {
       return;
     }
-
     const uri = vscode.Uri.file(bookmark.uri());
-
     const doc = await vscode.workspace.openTextDocument(uri);
-
     const editor = await vscode.window.showTextDocument(doc, {
       preview: false,
     });
@@ -643,47 +628,35 @@ export class BookmarkPresenter {
     editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter);
   }
   private async showPagePane(
-    bookmark: Bookmark,
+    anchor: Anchor,
     options: {
       openSource?: boolean;
     } = {},
   ) {
-    const id = bookmark.id;
+    const id = anchor.id;
 
     //
-    // 1. Focus existing bookmark panel
+    // 1. Optionally open source file
     //
-    const existingPanel = this.bookmarkPanels.get(id);
-    if (existingPanel) {
-      existingPanel.reveal(vscode.ViewColumn.Active);
-      return;
-    }
-
-    //
-    // 2. Optionally open source file
-    //
-    if (options.openSource && bookmark.uri()) {
-      const uri = vscode.Uri.file(bookmark.uri());
+    if (options.openSource && anchor.uri()) {
+      const uri = vscode.Uri.file(anchor.uri());
 
       let editor = vscode.window.visibleTextEditors.find(
         (e) => e.document.uri.toString() === uri.toString(),
       );
 
-      if (editor) {
-        await vscode.window.showTextDocument(editor.document, editor.viewColumn);
-      } else {
+      if (!editor) {
         const doc = await vscode.workspace.openTextDocument(uri);
 
         editor = await vscode.window.showTextDocument(doc, {
           preview: false,
           preserveFocus: false,
         });
+      } else {
+        await vscode.window.showTextDocument(editor.document, editor.viewColumn);
       }
 
-      const pos = new vscode.Position(
-        bookmark.src?.startLine ?? 0,
-        bookmark.src?.startCharacter ?? 0,
-      );
+      const pos = new vscode.Position(anchor.src?.startLine ?? 0, anchor.src?.startCharacter ?? 0);
 
       editor.selection = new vscode.Selection(pos, pos);
 
@@ -693,11 +666,24 @@ export class BookmarkPresenter {
     }
 
     //
-    // 3. Create bookmark panel
+    // 2. Update existing panel
+    //
+    const existingPanel = this.bookmarkPanels.get(id);
+
+    if (existingPanel) {
+      existingPanel.reveal(vscode.ViewColumn.Active);
+
+      existingPanel.webview.html = anchorShowPage(anchor);
+
+      return;
+    }
+
+    //
+    // 3. Create new panel
     //
     const panel = vscode.window.createWebviewPanel(
-      'bookmark',
-      bookmark.label ?? 'Bookmark',
+      'anchor',
+      anchor.label ?? 'Anchor',
       vscode.ViewColumn.Active,
       {
         enableScripts: true,
@@ -714,13 +700,13 @@ export class BookmarkPresenter {
     panel.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.type) {
-          case 'saveBookmark':
-            this.app.bookmarks.update(id, message.bookmark);
+          case 'saveAnchor':
+            this.app.bookmarks.update(id, message.anchor);
             this.app.bookmarks.save();
             break;
 
           case 'openSource':
-            await this.showPagePane(bookmark, {
+            await this.showPagePane(anchor, {
               openSource: true,
             });
             break;
@@ -730,12 +716,18 @@ export class BookmarkPresenter {
       this.app.ctx.subscriptions,
     );
 
-    panel.webview.html = bookmarkShowPage(bookmark);
+    console.log('SENDING TO WEBVIEW', {
+      id: anchor.id,
+      codeLength: anchor.code?.length,
+      bodyLength: anchor.body?.length,
+    });
+
+    panel.webview.html = anchorShowPage(anchor);
   }
-  async present(ctx: vscode.ExtensionContext, bookmark: Bookmark) {
+  async present(ctx: vscode.ExtensionContext, bookmark: Anchor) {
     const panel = vscode.window.createWebviewPanel(
-      'estateBookmark',
-      'Edit Bookmark',
+      'estateAnchor',
+      'Edit Anchor',
       vscode.ViewColumn.Active,
       {
         enableScripts: true,
@@ -747,7 +739,7 @@ export class BookmarkPresenter {
       if (msg.type === 'save') {
         this.app.bookmarks.update(bookmark?.id || '', msg.bookmark);
         this.app.tree.refresh();
-        vscode.window.showInformationMessage('Bookmark saved.');
+        vscode.window.showInformationMessage('Anchor saved.');
       }
     });
   }
@@ -823,7 +815,7 @@ export class BookmarkPresenter {
     // `;
   }
 }
-export interface BookmarkAnchor {
+export interface AnchorAnchor {
   //   uri: vscode.Uri;
   //   line: number;
   //   // optional placement info
@@ -922,7 +914,7 @@ function getModalHtml(): string {
 }
 // Define a custom interface extending QuickPickItem to hold extra data
 
-function languageForBookmark(bookmark: Bookmark): string {
+function languageForAnchor(bookmark: Anchor): string {
   const ext = path.extname(bookmark.uri()).toLowerCase();
 
   switch (ext) {
@@ -945,32 +937,32 @@ function languageForBookmark(bookmark: Bookmark): string {
   }
 }
 
-export interface Anchor {
-  id: string;
-  label?: string;
+// export interface Anchor {
+//   id: string;
+//   label?: string;
 
-  // Organization
-  lists?: string[];
+//   // Organization
+//   lists?: string[];
 
-  // Source references
-  locations?: AnchorLocation[];
+//   // Source references
+//   locations?: AnchorLocation[];
 
-  // Content payload
-  type?: string;
-  body?: string;
-  code?: string;
-  context?: string;
-  scratchpadBody?: string;
+//   // Content payload
+//   type?: string;
+//   body?: string;
+//   code?: string;
+//   context?: string;
+//   scratchpadBody?: string;
 
-  // Metadata
-  repo?: string;
-  commit?: string;
-  scope?: string;
-  privacy?: string;
+//   // Metadata
+//   repo?: string;
+//   commit?: string;
+//   scope?: string;
+//   privacy?: string;
 
-  updatedAt?: string;
-  createdAt?: string;
-}
+//   updatedAt?: string;
+//   createdAt?: string;
+// }
 export interface AnchorList {
   id: string;
   label: string;
@@ -983,7 +975,7 @@ export interface AnchorRef {
   start: number;
   end: number;
 }
-export function findAnchors(text: string, line: number): AnchorRef[] {
+export function findAnchorsLocations(text: string, line: number): AnchorRef[] {
   const results: AnchorRef[] = [];
   const regex = /@[A-Za-z0-9_-]+/g;
   for (const match of text.matchAll(regex)) {
@@ -995,6 +987,11 @@ export function findAnchors(text: string, line: number): AnchorRef[] {
     });
   }
   return results;
+}
+export function findAnchors(text: string, store: AnchorStore, line: number): AnchorRef[] {
+  return findAnchorsLocations(text, line)
+    .filter((t) => store.has(t.id))
+    .map((t) => ({ ...t }));
 }
 export interface AnchorLocation {
   uri: string;

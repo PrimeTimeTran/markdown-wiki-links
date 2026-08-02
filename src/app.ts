@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 
 import { ActivityStore } from './activity';
 import { AnalysisStore } from './analysis';
-import { BookmarkPresenter, BookmarkStore } from './adapters/bookmarkService';
-import { VFSDecorator, EstateTreeProvider, VFSProvider } from './estate';
+import { AnchorPresenter, AnchorStore } from './adapters/bookmarkService';
+import { VFSDecorator, EstateTreeProvider, VFSProvider, EstateNode } from './estate';
 import { CMD } from './cmds';
 
 export interface EstateState {
@@ -19,17 +19,30 @@ export class AppStore {
   readonly vfsDecorator: VFSDecorator;
   readonly activity: ActivityStore;
   readonly analysis: AnalysisStore;
-  readonly bookmarks: BookmarkStore;
-  readonly presenter: BookmarkPresenter;
+  readonly bookmarks: AnchorStore;
+  readonly presenter: AnchorPresenter;
 
   constructor(public ctx: vscode.ExtensionContext) {
-    this.tree = new EstateTreeProvider(this);
     this.activity = new ActivityStore(this);
-    this.bookmarks = new BookmarkStore(this);
+    this.bookmarks = new AnchorStore(this);
     this.analysis = new AnalysisStore(this);
-    this.presenter = new BookmarkPresenter(this);
+    this.presenter = new AnchorPresenter(this);
+    this.tree = new EstateTreeProvider(this);
+
     this.vfs = new VFSProvider(ctx, this);
     this.vfsDecorator = new VFSDecorator(ctx, this);
+
+    const view = vscode.window.createTreeView<EstateNode>('estateExplorer', {
+      treeDataProvider: this.tree,
+    });
+    ctx.subscriptions.push(
+      view.onDidChangeVisibility(async (e) => {
+        if (e.visible) {
+          await this.tree.ensureEditorOpen();
+        }
+      }),
+      view,
+    );
     this.activity.init(this.ctx);
   }
 
@@ -40,7 +53,7 @@ export class AppStore {
     );
     this.activity.subscribe((activity) => {
       console.log('App Editor Click');
-    //   vscode.window.showInformationMessage(`app ${this.input}`);
+      //   vscode.window.showInformationMessage(`app ${this.input}`);
       this.analysis.analyzeLine(activity);
     });
   }
@@ -142,5 +155,3 @@ export function registerGiantQuickPickCommand(context: vscode.ExtensionContext, 
     vscode.window.showErrorMessage('No context provided for registering the command.');
   }
 }
-
-

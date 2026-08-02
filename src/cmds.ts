@@ -7,27 +7,27 @@ const COMMANDS = [
   },
   {
     command: 'bookmark.create',
-    title: 'Estate: Create Bookmark',
+    title: 'Estate: Create Anchor',
   },
   {
     command: 'bookmark.read',
-    title: 'Estate: Read Bookmark',
+    title: 'Estate: Read Anchor',
   },
   {
     command: 'bookmark.update',
-    title: 'Estate: Update Bookmark',
+    title: 'Estate: Update Anchor',
   },
   {
     command: 'bookmark.delete',
-    title: 'Estate: Delete Bookmark',
+    title: 'Estate: Delete Anchor',
   },
   {
     command: 'bookmark.open',
-    title: 'Estate: Open Bookmark',
+    title: 'Estate: Open Anchor',
   },
   {
     command: 'bookmark.present',
-    title: 'Estate: Present Bookmark',
+    title: 'Estate: Present Anchor',
   },
   {
     command: 'estate.snippet-maker',

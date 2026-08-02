@@ -97,12 +97,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
     );
   });
 
-  const view = vscode.window.createTreeView<EstateNode>('estateExplorer', {
-    treeDataProvider: app.tree,
-  });
-
-  context.subscriptions.push(view);
-
   const codeLens = new WikiCodeLensProvider(app);
   context.subscriptions.push(
     vscode.languages.registerCodeLensProvider(longLangs, codeLens),
@@ -122,10 +116,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
       vscode.window.showInformationMessage(`Inline: ${bookmark.label}`);
     }),
     // vscode.commands.registerCommand('bookmark.create', (ctx) => {
-    //   new BookmarkPresenter(ctx).present();
+    //   new AnchorPresenter(ctx).present();
     // }),
     // vscode.commands.registerCommand('bookmark.edit', (ctx) => {
-    //     new BookmarkPresenter(app).present(ctx, store, tree),
+    //     new AnchorPresenter(app).present(ctx, store, tree),
     // }
   ),
     // vscode.commands.registerCommand('bookmark.present', async (ctx: EstateContext) => {

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Bookmark, BookmarkOccurrence, BookmarkSource } from './bookmarkService';
+import { Anchor, AnchorOccurrence, AnchorSource } from './bookmarkService';
 import { Activity, captureScope } from '../activity';
 import { EstateContext } from '../estate';
 import { icons } from '../ownership';
@@ -54,7 +54,7 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
     }
   }
   //   addLabel(
-  //     match: BookmarkOccurrence | FlagOccurrence,
+  //     match: AnchorOccurrence | FlagOccurrence,
   //     doc: vscode.TextDocument,
   //     range: vscode.Range,
   //   ) {
@@ -131,7 +131,7 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
   //     //   if (isInThisFile(b, uri)) continue;
   //     //   for (const tag of b.tags) {
   //     //     lenses.push(
-  //     //       // this.renderBookmark(b),
+  //     //       // this.renderAnchor(b),
   //     //       new vscode.CodeLens(b.source, {
   //     //         title: `✨ Easy Task`,
   //     //         command: tag.action,
@@ -142,15 +142,15 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
   //     // }
   //     // return lenses;
   //   }
-  //   private findBookmarkRange(doc: vscode.TextDocument, bookmark: Bookmark): Bookmark[] {
-  //     let bookmarks: Bookmark[] = this.app.bookmarks.list();
+  //   private findAnchorRange(doc: vscode.TextDocument, bookmark: Anchor): Anchor[] {
+  //     let bookmarks: Anchor[] = this.app.bookmarks.list();
   //     return bookmarks.filter((b) => this.app.bookmarks.isInThisFile(b, doc.uri));
   //   }
-  //   private findBookmarkRange(
+  //   private findAnchorRange(
   //     doc: vscode.TextDocument,
-  //     bookmark: Bookmark,
+  //     bookmark: Anchor,
   //   ): vscode.Range | undefined {
-  //     let bookmarks: Bookmark[] = this.app.bookmarks.list();
+  //     let bookmarks: Anchor[] = this.app.bookmarks.list();
   //     for (const bookmark in bookmarks) {
   //       for (const tag in bookmark.tags) {
   //         capability.find((c) => c.id == tag);
@@ -164,11 +164,11 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
   //       }
   //     }
   //   }
-  //   private findBookmarkRange(
+  //   private findAnchorRange(
   //     doc: vscode.TextDocument,
-  //     bookmark: Bookmark,
+  //     bookmark: Anchor,
   //   ): vscode.Range | undefined {
-  //     let bookmarks: Bookmark[] = this.app.bookmarks.list();
+  //     let bookmarks: Anchor[] = this.app.bookmarks.list();
   //     for (const bookmark in bookmarks) {
   //       for (const tag in bookmark.tags) {
   //         capability.find((i) => i.id == tag.);
@@ -206,15 +206,15 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
             }),
           );
           new vscode.CodeLens(range, {
-            title: '🔖 Bookmark',
+            title: '🔖 Anchor',
             command: 'bookmark.edit',
             arguments: [doc.uri, range],
           });
-          //   const hasBookmark = this.store.hasSource(doc.uri.fsPath, range);
+          //   const hasAnchor = this.store.hasSource(doc.uri.fsPath, range);
           //   lenses.push(
           //     new vscode.CodeLens(range, {
-          //       title: hasBookmark ? '🔖 Saved' : '➕ Bookmark',
-          //       command: hasBookmark ? 'estate.removeBookmark' : 'bookmark.create',
+          //       title: hasAnchor ? '🔖 Saved' : '➕ Anchor',
+          //       command: hasAnchor ? 'estate.removeAnchor' : 'bookmark.create',
           //       arguments: [doc.uri, range],
           //     }),
           //   );
@@ -376,7 +376,7 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
         // );
         // lenses.push(
         //   new vscode.CodeLens(range, {
-        //     title: '💾 Save Bookmark',
+        //     title: '💾 Save Anchor',
         //     command: 'estate.contentSave',
         //     arguments: [this.makeCtx(doc, match, range)],
         //   }),
@@ -413,10 +413,10 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
     //     }),
     //   );
     // });
-    lenses.push(...this.provideBookmarkLenses(doc));
+    lenses.push(...this.provideAnchorLenses(doc));
     return lenses;
   }
-  private provideBookmarkLenses(doc: vscode.TextDocument): vscode.CodeLens[] {
+  private provideAnchorLenses(doc: vscode.TextDocument): vscode.CodeLens[] {
     const lenses: vscode.CodeLens[] = [];
     const bookmarks = this.app.bookmarks.list();
     for (const bookmark of bookmarks) {
@@ -427,14 +427,14 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
       if (vscode.Uri.file(src.uri) !== doc.uri) {
         continue;
       }
-      lenses.push(this.renderBookmark(bookmark));
+      lenses.push(this.renderAnchor(bookmark));
     }
     return lenses;
   }
-  renderBookmark(b: Bookmark) {
+  renderAnchor(b: Anchor) {
     const range = this.app.bookmarks.getRange(b);
     return new vscode.CodeLens(range, {
-      title: `🔖 ${b.label ?? 'Bookmark'}`,
+      title: `🔖 ${b.label ?? 'Anchor'}`,
       command: 'bookmark.edit',
       arguments: [
         {
@@ -445,7 +445,7 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
       ],
     });
   }
-  makeCtx(document: vscode.TextDocument, match: BookmarkOccurrence, range: vscode.Range) {
+  makeCtx(document: vscode.TextDocument, match: AnchorOccurrence, range: vscode.Range) {
     let ctx: EstateContext = {
       bookmark: match.id,
       uri: document.uri,
@@ -455,7 +455,7 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
     return ctx;
   }
 }
-function getBookmarksForDocument(registry: Record<string, Bookmark>, uri: vscode.Uri): Bookmark[] {
+function getAnchorsForDocument(registry: Record<string, Anchor>, uri: vscode.Uri): Anchor[] {
   return Object.values(registry).filter((b) => {
     return b.uri() === uri.fsPath;
   });

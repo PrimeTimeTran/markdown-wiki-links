@@ -3,7 +3,7 @@ import * as fsPromise from 'node:fs/promises';
 import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { Bookmark, BookmarkSeries, BookmarkStore } from './adapters/bookmarkService';
+import { Anchor, AnchorSeries, AnchorStore } from './adapters/bookmarkService';
 
 export interface Presenter<T> {
   present(value: T): Thenable<void>;
@@ -33,7 +33,7 @@ export interface Presenter<T> {
 
   // Panels
   showEditor(bookmark: T): Thenable<void>;
-  showSeries(series: BookmarkSeries): Thenable<void>;
+  showSeries(series: AnchorSeries): Thenable<void>;
 
   // Tree / Explorer
   reveal(id: string): Thenable<void>;
@@ -43,9 +43,9 @@ export interface Presenter<T> {
   openLocation(location: vscode.Location): Thenable<void>;
 }
 
-// export class BookmarkEditorPresenter implements Presenter<Bookmark> {}
-// export class SeriesPresenter implements Presenter<BookmarkSeries> {
-//   async present(series: BookmarkSeries) {}
+// export class AnchorEditorPresenter implements Presenter<Anchor> {}
+// export class SeriesPresenter implements Presenter<AnchorSeries> {
+//   async present(series: AnchorSeries) {}
 // }
 // export class SemanticGraph {}
 // export class GraphPresenter implements Presenter<SemanticGraph> {

@@ -125,7 +125,7 @@ export class WikiDecorations {
     this.initIcons();
     this.initStateIcons();
     app.activity.subscribe(() => {
-    //   console.log('click Decoration Subscribe');
+      //   console.log('click Decoration Subscribe');
       const result = app.analysis.get();
       const lines = app.analysis.getRelatedLines();
       if (!result) return;
@@ -177,7 +177,7 @@ export class WikiDecorations {
       bucket.push(range);
     }
     const estates = this.findEstateFlags(doc);
-    const estate = this.findEstateBookmarks(doc);
+    const estate = this.findEstateAnchors(doc);
     editor.setDecorations(this.resolved, [...estate.map((e) => e.range)]);
     editor.setDecorations(this.resolved, [...estates.map((e) => e.range)]);
     editor.setDecorations(this.resolved, resolvedRanges);
@@ -300,7 +300,7 @@ export class WikiDecorations {
     for (let line = 0; line < doc.lineCount; line++) {}
     return results;
   }
-  private findEstateBookmarks(document: vscode.TextDocument): EstateNode[] {
+  private findEstateAnchors(document: vscode.TextDocument): EstateNode[] {
     const nodes: EstateNode[] = [];
     // @connected
     for (let i = 0; i < document.lineCount; i++) {
@@ -365,13 +365,13 @@ export class WikiDecorations {
           range,
           kind: 'tag',
           id: '@bar',
-          label: 'Bar Bookmark',
+          label: 'Bar Anchor',
           icon: '🔖',
           actions: [
             {
               kind: 'bookmark',
               id: '@bar',
-              label: '🔖 Open Bookmark',
+              label: '🔖 Open Anchor',
             },
             {
               kind: 'command',

@@ -158,7 +158,7 @@ export class ActivityStore implements ActivityStoreType {
     const selectedText = document.getText(selection);
     // const id = `@${Date.now()}`;
     //   bookmark: id,
-    //   label: `Bookmark ${id}`,
+    //   label: `Anchor ${id}`,
     const bookmark = {
       scope: 'source.selection',
       uri: document.uri,
@@ -352,14 +352,14 @@ export function getHeadingLevel(text: string): number | undefined {
 // }
 
 // 1. Create 2nd field to index by file
-// export class BookmarkStore implements BookmarkStoreType {
-//   private items = new Map<string, Bookmark>();
-//   private fileIndex = new Map<string, Bookmark[]>();
+// export class AnchorStore implements AnchorStoreType {
+//   private items = new Map<string, Anchor>();
+//   private fileIndex = new Map<string, Anchor[]>();
 //   1. Add to items and fileIndex when creating
 //   2. Use fileIndex for embedded(or over all, so we dont have to do "row by row scan")
 
 // 2. Create register function for this logic, adding to that list
-//   register(id: string, b: Bookmark): void {
+//   register(id: string, b: Anchor): void {
 //     let uri = b.uri.toString();
 //     let index = this.fileIndex.get(uri) || [];
 //     index.push(b);
@@ -368,10 +368,10 @@ export function getHeadingLevel(text: string): number | undefined {
 //   }
 
 // 3. Ensure we use it in create.
-//   create(ctx: EstateContext, opts: CreateBookmarkOptions, bookmark: Partial<Bookmark>): Bookmark {
+//   create(ctx: EstateContext, opts: CreateAnchorOptions, bookmark: Partial<Anchor>): Anchor {
 //     const now = new Date().toISOString();
 //     let id = randomUUID();
-//     let b = new Bookmark(id, {
+//     let b = new Anchor(id, {
 //       id,
 //       tags: [],
 //         // ...
@@ -381,13 +381,13 @@ export function getHeadingLevel(text: string): number | undefined {
 //   }
 
 // 4. Add a findInIndex
-//   inFile(b: Bookmark, file: vscode.Uri) {
+//   inFile(b: Anchor, file: vscode.Uri) {
 //     return file == this.getUri(b);
 //   }
-//   find(text: string, line: number): BookmarkOccurrence[] | FlagOccurrence[] {
-//     return [...findBookmarks(text, this, line), ...findFlags(text, this, line)];
+//   find(text: string, line: number): AnchorOccurrence[] | FlagOccurrence[] {
+//     return [...findAnchors(text, this, line), ...findFlags(text, this, line)];
 //   }
-//   findInFile(file: vscode.Uri): Bookmark[] {
+//   findInFile(file: vscode.Uri): Anchor[] {
 //     return this.list().filter((b) => this.inFile(b, file));
 //   }
 //   // Now this one returns...
@@ -397,12 +397,12 @@ export function getHeadingLevel(text: string): number | undefined {
 
 // 5. Merge with this guy
 // Cause I know there's a method somewhere that were going row by row and rendering anchors so we ned them in order
-// export function findBookmarks(
+// export function findAnchors(
 //   text: string,
-//   store: BookmarkStore,
+//   store: AnchorStore,
 //   line: number,
-// ): BookmarkOccurrence[] {
-//   const results: BookmarkOccurrence[] = [];
+// ): AnchorOccurrence[] {
+//   const results: AnchorOccurrence[] = [];
 //   const regex = /@[A-Za-z0-9_-]+/g;
 //   for (const match of text.matchAll(regex)) {
 //     const id = match[0];
