@@ -37,6 +37,7 @@ export interface Bookmark {
   privacy?: string;
   updatedAt?: string;
   createdAt?: string;
+  //   uri: String;
   origin: BookmarkOrigin;
   anchors: BookmarkAnchor[];
 }
@@ -46,6 +47,7 @@ export class Bookmark {
   label?: string;
   src?: BookmarkSource;
   tags: EstateFlag[] = [];
+  capabilities: [] = [];
   constructor(id: string, data: Partial<Bookmark>) {
     this.id = id;
     Object.assign(this, data);
@@ -71,7 +73,13 @@ export interface FlagOccurrence extends Anchor {
   flag: EstateFlag;
 }
 export type Occurrence = BookmarkOccurrence | FlagOccurrence;
+// CRUD
+// - [ ] Create
+// - [ ] Read
+// - [ ] Update
+// - [ ] Delete
 export interface BookmarkStoreType {
+  //
   get(id: string): Bookmark | undefined;
   loadRegistry(path: string): void;
   save(): void;
@@ -145,7 +153,7 @@ export class BookmarkStore implements BookmarkStoreType {
       vscode.commands.registerCommand(CMD.bookmark.edit, this.update, this),
     );
     app.activity.subscribe(() => {
-    //   console.log('Bookmark store... activity detcted');
+      //   console.log('Bookmark store... activity detcted');
       //   this.decorateBookmarks();
     });
   }
@@ -214,6 +222,14 @@ export class BookmarkStore implements BookmarkStoreType {
       current = parent;
     }
     return estates.reverse();
+  }
+  public async saveBookmark(patch: Partial<Bookmark>) {
+    console.log('Hi');
+    // if (!this.currentBookmark) {
+    //   return;
+    // }
+    // this.app.bookmarks.update(this.currentBookmark.id, patch);
+    // this.app.bookmarks.save();
   }
   //   private findEstate(startPath: string): string | undefined {
   //     let current = path.resolve(startPath);
@@ -495,6 +511,7 @@ export function findFlags(text: string, store: BookmarkStore, line: number): Fla
 }
 export class BookmarkSeries {}
 export class BookmarkPresenter {
+  private bookmarkPanels = new Map<string, vscode.WebviewPanel>();
   constructor(public app: AppStore) {
     app.ctx.subscriptions.push(
       vscode.commands.registerCommand(CMD.bookmark.open, this.showPagePane, this),
@@ -520,11 +537,86 @@ export class BookmarkPresenter {
   // - Preview
   // - Full
   // - Panel
-  showPagePane() {
-    const panel = vscode.window.createWebviewPanel('wikiPopup', 'Wiki', vscode.ViewColumn.Active, {
-      enableScripts: true,
+  private async showPagePane(bookmark: Bookmark) {
+    const id = bookmark.id;
+
+    //
+    // 1. Focus existing bookmark panel
+    //
+    const existingPanel = this.bookmarkPanels.get(id);
+
+    if (existingPanel) {
+      existingPanel.reveal(vscode.ViewColumn.Active);
+      return;
+    }
+
+    //
+    // 2. Open/reveal source file
+    //
+    if (bookmark.uri()) {
+      const uri = vscode.Uri.file(bookmark.uri());
+
+      let editor = vscode.window.visibleTextEditors.find(
+        (e) => e.document.uri.toString() === uri.toString(),
+      );
+
+      if (editor) {
+        await vscode.window.showTextDocument(editor.document, editor.viewColumn);
+      } else {
+        const doc = await vscode.workspace.openTextDocument(uri);
+
+        editor = await vscode.window.showTextDocument(doc, {
+          preview: false,
+          preserveFocus: false,
+        });
+      }
+
+      //
+      // 3. Jump to bookmark location
+      //
+      const pos = new vscode.Position(
+        bookmark.src?.startLine ?? 0,
+        bookmark.src?.startCharacter ?? 0,
+      );
+
+      editor.selection = new vscode.Selection(pos, pos);
+
+      editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter);
+    }
+
+    //
+    // 4. Create bookmark panel
+    //
+    const panel = vscode.window.createWebviewPanel(
+      'bookmark',
+      bookmark.label ?? 'Bookmark',
+      vscode.ViewColumn.Active,
+      {
+        enableScripts: true,
+      },
+    );
+
+    this.bookmarkPanels.set(id, panel);
+
+    panel.onDidDispose(() => {
+      this.bookmarkPanels.delete(id);
     });
-    panel.webview.html = bookmarkShowPage;
+
+    panel.webview.onDidReceiveMessage(
+      async (message) => {
+        vscode.window.showInformationMessage(`Saving`);
+        switch (message.type) {
+          case 'saveBookmark':
+            this.app.bookmarks.update(id, message.bookmark);
+            this.app.bookmarks.save();
+            break;
+        }
+      },
+      undefined,
+      this.app.ctx.subscriptions,
+    );
+
+    panel.webview.html = bookmarkShowPage(bookmark);
   }
   async present(ctx: vscode.ExtensionContext, bookmark: Bookmark) {
     const panel = vscode.window.createWebviewPanel(
@@ -715,62 +807,3 @@ function getModalHtml(): string {
 </html>`;
 }
 // Define a custom interface extending QuickPickItem to hold extra data
-interface ReferenceItem extends vscode.QuickPickItem {
-  id: string;
-  details?: string;
-}
-export function registerGiantQuickPickCommand(context: vscode.ExtensionContext, app: AppStore) {
-  let disposable = vscode.commands.registerCommand(CMD.refPanel.open, async () => {
-    const quickPick = vscode.window.createQuickPick<ReferenceItem>();
-    quickPick.title = '🚀 Reference & Command Hub';
-    quickPick.placeholder = 'Type to search references, snippets, or actions...';
-    quickPick.matchOnDescription = true;
-    quickPick.matchOnDetail = true;
-    quickPick.items = [
-      {
-        label: '$(book) Core Documentation Reference',
-        description: 'Module 01 • Architecture overview',
-        detail:
-          'Detailed explanation of the compilation pipeline, lexer rules, and syntax tree nodes.',
-        id: 'doc_1',
-      },
-      {
-        label: '$(code) Active Workspace Snippets',
-        description: 'Module 02 • Boilerplate code',
-        detail: 'Quick injection templates for state management, hooks, and lifecycle events.',
-        id: 'doc_2',
-      },
-      {
-        label: '$(terminal) Build & Test Automation',
-        description: 'Module 03 • Scripts',
-        detail:
-          'Trigger hot module reloading, validation checks, and target architecture emitter tests.',
-        id: 'doc_3',
-      },
-      {
-        label: '$(settings) Configuration Dashboard',
-        description: 'Module 04 • Settings',
-        detail: 'Adjust workspace behavior, sandboxing properties, and path resolutions.',
-        id: 'doc_4',
-      },
-    ];
-    quickPick.onDidAccept(() => {
-      const selection = quickPick.selectedItems[0];
-      if (selection) {
-        vscode.window.showInformationMessage(`Selected: ${selection.label} (ID: ${selection.id})`);
-      }
-      quickPick.dispose();
-    });
-    quickPick.onDidHide(() => {
-      quickPick.dispose();
-    });
-    quickPick.show();
-  });
-  if (app) {
-    app.ctx.subscriptions.push(disposable);
-  } else if (context) {
-    context.subscriptions.push(disposable);
-  } else {
-    vscode.window.showErrorMessage('No context provided for registering the command.');
-  }
-}

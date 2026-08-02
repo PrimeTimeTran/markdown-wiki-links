@@ -2,7 +2,7 @@
   "name": "markdown-wiki-links",
   "displayName": "Markdown Wiki Links",
   "publisher": "ltvan",
-  "version": "0.2.15",
+  "version": "0.2.16",
   "description": "Obsidian-style [[wiki-links]] between Markdown files in the workspace.",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -66,15 +66,95 @@
   "contributes": {
     "markdown.markdownItPlugins": true,
     "menus": {
+      "view/title": [
+        {
+          "command": "estate.bookmark.create",
+          "when": "view == estateExplorer",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.refresh",
+          "when": "view == estateExplorer",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "estate.bookmark.delete",
+          "group": "inline"
+        },
+        {
+          "command": "estate.bookmark.delete",
+          "when": "view == estateExplorer && viewItem == bookmark",
+          "group": "inline"
+        },
+        {
+          "command": "estate.bookmark.delete",
+          "when": "view == estateExplorer && viewItem == bookmark",
+          "group": "navigation"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "estate.snippet.save",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.snippet.preview",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.snippet.export",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.snippet.save",
+          "group": "navigation",
+          "when": "editorLangId == html || editorLangId == javascript || editorLangId == css"
+        }
+      ],
       "editor/context": [
+        {
+          "command": "estate.snippet.save",
+          "when": "editorTextFocus",
+          "group": "navigation"
+        },
         {
           "command": "flowify.analyzeLine",
           "group": "navigation",
           "when": "editorTextFocus"
+        },
+        {
+          "command": "estate.snippet.save",
+          "when": "editorTextFocus",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.snippet.save",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.snippet.preview",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.snippet.export",
+          "group": "navigation"
         }
       ]
     },
     "commands": [
+      {
+        "command": "estate.bookmark.delete",
+        "title": "Delete Bookmark",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "estate.refresh",
+        "title": "Refresh Bookmark",
+        "icon": "$(filter)",
+        "shortTitle": "estate refresh"
+      },
       {
         "command": "wikiLinks.rebuildIndex",
         "title": "Wiki Links: Rebuild Index"
@@ -89,7 +169,33 @@
       },
       {
         "command": "bookmark.create",
-        "title": "Estate: Create Bookmark"
+        "title": "Estate: Create Bookmark",
+        "icon": "$(add)"
+      },
+      {
+        "command": "bookmark.open",
+        "title": "Estate: Open Bookmark"
+      },
+      {
+        "command": "estate.snippet-maker",
+        "title": "Estate: Snippet Maker"
+      },
+      {
+        "command": "estate.snippet.preview",
+        "title": "Estate: Snippet Preview"
+      },
+      {
+        "command": "estate.snippet.save",
+        "title": "Save Snippet"
+      },
+      {
+        "command": "estate.bookmark.create",
+        "title": "Estate: Create",
+        "icon": "$(add)"
+      },
+      {
+        "command": "estate.snippet.export",
+        "title": "Export"
       },
       {
         "command": "refPanel.open",
@@ -351,7 +457,6 @@
     "mocha": "^11.7.5",
     "prettier": "^3.8.3",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.4",
-    "vscode": "^1.1.37"
+    "typescript-eslint": "^8.59.4"
   }
 }

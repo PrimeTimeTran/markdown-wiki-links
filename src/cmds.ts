@@ -29,7 +29,10 @@ const COMMANDS = [
     command: 'bookmark.present',
     title: 'Estate: Present Bookmark',
   },
-
+  {
+    command: 'estate.snippet-maker',
+    title: 'Estate: Snippet Maker',
+  },
   {
     command: 'wikiLinks.rebuildIndex',
     title: 'Wiki Links: Rebuild Index',

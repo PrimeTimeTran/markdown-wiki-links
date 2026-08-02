@@ -51,3 +51,68 @@ export interface Presenter<T> {
 // export class GraphPresenter implements Presenter<SemanticGraph> {
 //   async present(graph: SemanticGraph) {}
 // }
+
+export class Global {
+  constructor() {}
+  snippetMaker(ctx: vscode.ExtensionContext) {
+    vscode.commands.registerCommand('estate.snippet-maker', async () => {
+      const language = await this.pickSnippetLanguage();
+      if (!language) {
+        return;
+      }
+      const doc = await vscode.workspace.openTextDocument({
+        language: language.id,
+        content: language.template,
+      });
+      const editor = await vscode.window.showTextDocument(doc);
+      await vscode.commands.executeCommand('editor.action.formatDocument');
+    });
+  }
+  private async pickSnippetLanguage() {
+    const items = [
+      {
+        label: 'HTML',
+        id: 'html',
+        template: `<!doctype html>
+<html>
+<head>
+  <title>Snippet</title>
+</head>
+<body>
+
+</body>
+</html>`,
+      },
+
+      {
+        label: 'JavaScript',
+        id: 'javascript',
+        template: `function main() {
+
+}
+
+main();`,
+      },
+
+      {
+        label: 'CSS',
+        id: 'css',
+        template: `.container {
+
+}`,
+      },
+
+      {
+        label: 'JSON',
+        id: 'json',
+        template: `{
+  
+}`,
+      },
+    ];
+
+    return vscode.window.showQuickPick(items, {
+      placeHolder: 'Choose snippet type',
+    });
+  }
+}

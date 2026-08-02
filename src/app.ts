@@ -3,7 +3,8 @@ import * as vscode from 'vscode';
 import { ActivityStore } from './activity';
 import { AnalysisStore } from './analysis';
 import { BookmarkPresenter, BookmarkStore } from './adapters/bookmarkService';
-import { EstateTreeProvider } from './estate';
+import { VFSDecorator, EstateTreeProvider, VFSProvider } from './estate';
+import { CMD } from './cmds';
 
 export interface EstateState {
   mdPreviewMode: boolean;
@@ -13,24 +14,32 @@ type FocusTarget = 'editor' | 'sidebar' | 'panel' | 'outline' | 'terminal';
 
 export class AppStore {
   public outputChannel = vscode.window.createOutputChannel('Flowify');
+  readonly tree: EstateTreeProvider;
+  readonly vfs: VFSProvider;
+  readonly vfsDecorator: VFSDecorator;
   readonly activity: ActivityStore;
   readonly analysis: AnalysisStore;
   readonly bookmarks: BookmarkStore;
   readonly presenter: BookmarkPresenter;
-  readonly tree: EstateTreeProvider;
 
   constructor(public ctx: vscode.ExtensionContext) {
+    this.tree = new EstateTreeProvider(this);
     this.activity = new ActivityStore(this);
     this.bookmarks = new BookmarkStore(this);
     this.analysis = new AnalysisStore(this);
     this.presenter = new BookmarkPresenter(this);
-    this.tree = new EstateTreeProvider(this);
+    this.vfs = new VFSProvider(ctx, this);
+    this.vfsDecorator = new VFSDecorator(ctx, this);
     this.activity.init(this.ctx);
   }
 
-  init() {
+  init(context: vscode.ExtensionContext) {
+    context.subscriptions.push(
+      vscode.workspace.registerTextDocumentContentProvider('estate', this.vfs),
+      vscode.window.registerFileDecorationProvider(this.vfsDecorator),
+    );
     this.activity.subscribe((activity) => {
-    //   console.log('activityStore handler for click');
+      //   console.log('activityStore handler for click');
       this.analysis.analyzeLine(activity);
     });
   }
@@ -59,5 +68,66 @@ export class AppStore {
   toggleMdPreview(): boolean {
     this.state.mdPreviewMode = !this.state.mdPreviewMode;
     return this.state.mdPreviewMode;
+  }
+}
+
+interface ReferenceItem extends vscode.QuickPickItem {
+  id: string;
+  details?: string;
+}
+
+export function registerGiantQuickPickCommand(context: vscode.ExtensionContext, app: AppStore) {
+  let disposable = vscode.commands.registerCommand(CMD.refPanel.open, async () => {
+    const quickPick = vscode.window.createQuickPick<ReferenceItem>();
+    quickPick.title = '🚀 Reference & Command Hub';
+    quickPick.placeholder = 'Type to search references, snippets, or actions...';
+    quickPick.matchOnDescription = true;
+    quickPick.matchOnDetail = true;
+    quickPick.items = [
+      {
+        label: '$(book) Core Documentation Reference',
+        description: 'Module 01 • Architecture overview',
+        detail:
+          'Detailed explanation of the compilation pipeline, lexer rules, and syntax tree nodes.',
+        id: 'doc_1',
+      },
+      {
+        label: '$(code) Active Workspace Snippets',
+        description: 'Module 02 • Boilerplate code',
+        detail: 'Quick injection templates for state management, hooks, and lifecycle events.',
+        id: 'doc_2',
+      },
+      {
+        label: '$(terminal) Build & Test Automation',
+        description: 'Module 03 • Scripts',
+        detail:
+          'Trigger hot module reloading, validation checks, and target architecture emitter tests.',
+        id: 'doc_3',
+      },
+      {
+        label: '$(settings) Configuration Dashboard',
+        description: 'Module 04 • Settings',
+        detail: 'Adjust workspace behavior, sandboxing properties, and path resolutions.',
+        id: 'doc_4',
+      },
+    ];
+    quickPick.onDidAccept(() => {
+      const selection = quickPick.selectedItems[0];
+      if (selection) {
+        vscode.window.showInformationMessage(`Selected: ${selection.label} (ID: ${selection.id})`);
+      }
+      quickPick.dispose();
+    });
+    quickPick.onDidHide(() => {
+      quickPick.dispose();
+    });
+    quickPick.show();
+  });
+  if (app) {
+    app.ctx.subscriptions.push(disposable);
+  } else if (context) {
+    context.subscriptions.push(disposable);
+  } else {
+    vscode.window.showErrorMessage('No context provided for registering the command.');
   }
 }

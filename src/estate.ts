@@ -2,6 +2,32 @@ import * as vscode from 'vscode';
 import { ScopeInfo } from './activity';
 import { Bookmark } from './adapters/bookmarkService';
 import { AppStore } from './app';
+import { CMD } from './cmds';
+/* 
+# Modes:
+The modes we're in will help use idenitfy which panels to show/have
+
+## Types
+    - Dev:
+        - Explorer
+        - Outline
+    - Debug
+        - 
+    - Doc
+    - Cleanup
+    - Explore
+    - Learn
+    - 
+    - 
+    // Sorting logic needs to be planned well here.
+    // Similar to bookmarks of a browser, we want to collect 'easily' initiall and enable additional semantic meaning to be attached later
+    // - Blank
+    // - Series
+    // - Sequence
+    // - Connected
+## Types 
+
+*/
 
 export interface EstateContext {
   bookmark: string;
@@ -17,7 +43,6 @@ export interface EstateFlag {
   scope: 'language' | 'workspace';
   action: string;
 }
-
 export type EstateFlags = EstateFlag[];
 
 export interface EstateScope {
@@ -127,13 +152,11 @@ export async function showEstatePanel(bookmark: Bookmark) {
 
 export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
   constructor(public app: AppStore) {}
-
   private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<
     EstateNode | null | undefined
   >();
   readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
   icons: any;
-
   refresh(): void {
     this.onDidChangeTreeDataEmitter.fire();
   }
@@ -143,65 +166,234 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
   getTreeItem(node: EstateNode): vscode.TreeItem {
     return node;
   }
-
   getChildren(node?: EstateNode): EstateNode[] {
     if (!node) {
-      return [new EstateNode('Favorites'), new EstateNode('Flags')];
+      return [
+        new EstateNode('folder', 'Main'),
+        new EstateNode('folder', 'Flags'),
+        new EstateNode('folder', 'Series'),
+      ];
     }
-    if (node.label === 'Favorites') {
-      return this.app.bookmarks.list().map((id) => {
-        const bookmark = this.app.bookmarks.get(id);
-        if (!bookmark) return;
-        return new EstateNode(bookmark?.label ?? id, undefined);
-      });
+    let bookmarks = this.app.bookmarks.list();
+
+    if (node.label === 'Main') {
+      return bookmarks.map((b) => new EstateNode('bookmark', b.label ?? '', b));
     }
 
     return [];
   }
-  //   getChildren(node?: EstateNode): EstateNode[] {
-  //     if (!node) {
-  //       return [new EstateNode('Files'), new EstateNode('Bookmarks')];
-  //     }
-
-  //     if (node.label === 'Files') {
-  //       return [
-  //         new EstateNode(
-  //           'ownership.md',
-  //           undefined,
-  //           vscode.Uri.file(
-  //             '/Users/future/KB/project/app/loi/crates/learn/design-decisions/pipeline/ownership.md',
-  //           ),
-  //         ),
-  //       ];
-  //     }
-
-  //     return [];
-  //   }
 }
-
-// export class EstateNode extends vscode.TreeItem {
-//   constructor(
-//     readonly label: string,
-//     readonly collapsibleState = vscode.TreeItemCollapsibleState.Collapsed,
-//   ) {
-//     super(label, collapsibleState);
-
-//     this.id = label;
-//     this.tooltip = label;
-//     this.contextValue = 'estate';
-//   }
-// }
 export class EstateNode extends vscode.TreeItem {
-  constructor(label: string, icon?: vscode.Uri) {
-    super(label, vscode.TreeItemCollapsibleState.Collapsed);
-    this.id = label;
-    this.tooltip = label;
-    this.contextValue = 'estate';
-    if (icon) {
-      this.iconPath = icon;
+  constructor(
+    public readonly type: 'folder' | 'bookmark',
+    public readonly label: string,
+    public readonly bookmark?: Bookmark,
+  ) {
+    super(
+      label,
+      type === 'folder'
+        ? label === 'Main'
+          ? vscode.TreeItemCollapsibleState.Expanded
+          : vscode.TreeItemCollapsibleState.Collapsed
+        : vscode.TreeItemCollapsibleState.None,
+    );
+    this.id = bookmark?.id ?? label;
+    this.contextValue = type;
+    if (type === 'bookmark') {
+      this.contextValue = 'bookmark';
+    } else {
+      this.contextValue = 'folder';
     }
+    if (bookmark) {
+      this.resourceUri = vscode.Uri.parse(`estate://${bookmark.id}`);
+      this.applyBookmarkStyle(bookmark);
+    }
+    this.command = {
+      command: CMD.bookmark.open,
+      title: 'Open Bookmark',
+      arguments: [bookmark],
+    };
   }
+  private applyBookmarkStyle(bookmark: Bookmark) {
+    const tags = bookmark.tags ?? [];
+    // 'bookmark'          // bookmarks
+    // 'star-full'         // favorites
+    // 'flag'              // flags
+    // 'lightbulb'         // ideas
+    // 'warning'           // issues
+    // 'bug'               // bugs
+    // 'checklist'         // tasks
+    // 'symbol-structure'  // architecture
+    // 'symbol-class'      // types
+    // 'symbol-method'     // functions
+    // 'file-code'         // code
+    // 'library'           // knowledge
+    // 'archive'           // saved artifacts
+    // 'graph'             // relationships
+    // 'link'              // references
+    if (tags.includes('index')) {
+      // https://microsoft.github.io/vscode-codicons/dist/codicon.html?utm_source=chatgpt.com
+      this.iconPath = new vscode.ThemeIcon('list-unordered');
+    } else if (tags.includes('tools')) {
+      this.iconPath = new vscode.ThemeIcon('');
+    }
+
+    // if (tags.includes('todo')) {
+    //   this.iconPath = new vscode.ThemeIcon('checklist');
+    // }
+
+    // if (tags.includes('important')) {
+    //   this.iconPath = new vscode.ThemeIcon('star-full');
+    // }
+
+    // this.description = this.getDescription(tags);
+
+    this.contextValue = tags.join('.');
+  }
+
+  private getDescription(tags: string[]) {
+    return tags.join(' · ');
+  }
+  //   constructor(
+  //     public readonly bookmark: Bookmark,
+  //     label: string,
+  //     icon?: vscode.Uri,
+  //   ) {
+  //     super(bookmark.label ?? bookmark.id, vscode.TreeItemCollapsibleState.None);
+  //     this.id = label;
+  //     this.tooltip = label;
+  //     this.contextValue = 'estate';
+  //     if (icon) {
+  //       this.iconPath = icon;
+  //     }
+  //     this.command = {
+  //       command: 'bookmark.read',
+  //       title: 'Open Bookmark',
+  //       arguments: [bookmark],
+  //     };
+  //   }
 }
 // When a bookmark has been tagged to be of a certain
 // class then we can attach capabilities.
 // Also useful if it's been idenfieid to have a matching property
+
+export class VFSProvider implements vscode.TextDocumentContentProvider {
+  private documents = new Map<string, string>();
+
+  set(uri: vscode.Uri, content: string) {
+    this.documents.set(uri.toString(), content);
+  }
+
+  provideTextDocumentContent(uri: vscode.Uri): string {
+    return this.documents.get(uri.toString()) ?? '';
+  }
+  constructor(ctx: vscode.ExtensionContext, app: AppStore) {
+    ctx.subscriptions.push(
+      vscode.commands.registerCommand('estate.snippet.save', () => {
+        vscode.window.showInformationMessage('Saving snippet');
+      }),
+      vscode.commands.registerCommand('estate.snippet.preview', () => {
+        vscode.window.showInformationMessage('Preview');
+      }),
+
+      vscode.commands.registerCommand('estate.snippet.export', () => {
+        vscode.window.showInformationMessage('Export');
+      }),
+    );
+    ctx.subscriptions.push(
+      vscode.commands.registerCommand('estate.snippet-maker', async () => {
+        const language = await this.pickSnippetLanguage();
+        if (!language) {
+          return;
+        }
+        const doc = await vscode.workspace.openTextDocument({
+          language: language.id,
+          content: language.template,
+        });
+        const editor = await vscode.window.showTextDocument(doc);
+        await vscode.commands.executeCommand('editor.action.formatDocument');
+      }),
+    );
+
+    app.activity.subscribe((a) => {
+      console.log('VFS Click');
+    });
+  }
+  private async pickSnippetLanguage() {
+    const items = [
+      {
+        label: 'HTML',
+        id: 'html',
+        template: `<!doctype html>
+<html>
+<head>
+  <title>Snippet</title>
+</head>
+<body>
+
+</body>
+</html>`,
+      },
+
+      {
+        label: 'JavaScript',
+        id: 'javascript',
+        template: `function main() {
+
+}
+
+main();`,
+      },
+
+      {
+        label: 'CSS',
+        id: 'css',
+        template: `.container {
+
+}`,
+      },
+
+      {
+        label: 'JSON',
+        id: 'json',
+        template: `{
+  
+}`,
+      },
+    ];
+
+    return vscode.window.showQuickPick(items, {
+      placeHolder: 'Choose snippet type',
+    });
+  }
+}
+
+// 'charts.red'
+// 'charts.orange'
+// 'charts.yellow'
+// 'charts.green'
+// 'charts.blue'
+// 'charts.purple'
+
+// 'list.warningForeground'
+// 'list.errorForeground'
+// 'editorInfo.foreground'
+// 'terminal.ansiGreen'
+export class VFSDecorator implements vscode.FileDecorationProvider {
+  constructor(ctx: vscode.ExtensionContext, app: AppStore) {
+    app.activity.subscribe((a) => {
+      console.log('Decorator click');
+    });
+  }
+
+  provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
+    if (uri.scheme !== 'estate') {
+      return;
+    }
+    return {
+      badge: '•',
+      color: new vscode.ThemeColor('charts.green'),
+      tooltip: 'Active bookmark',
+    };
+  }
+}

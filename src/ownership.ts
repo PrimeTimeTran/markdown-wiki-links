@@ -57,10 +57,8 @@ export class OwnershipInlayProvider implements vscode.InlayHintsProvider {
     range: vscode.Range,
     token: vscode.CancellationToken,
   ): vscode.InlayHint[] {
-    console.log('provideInlayHints', this.currentLine);
-
+    // console.log('provideInlayHints', this.currentLine);
     const hints: vscode.InlayHint[] = [];
-
     const line = this.currentLine;
     hints.push(this.createRightAlignedHint(document, line, 80, '🔒 owns: 3 children'));
     // hints.push(
@@ -88,20 +86,15 @@ export class OwnershipInlayProvider implements vscode.InlayHintsProvider {
     text: string,
   ): vscode.InlayHint {
     const lineText = document.lineAt(line).text;
-
     const currentColumn = lineText.length;
-
     const padding = Math.max(1, targetColumn - currentColumn);
-
     const hint = new vscode.InlayHint(
       new vscode.Position(line, currentColumn),
       ' '.repeat(padding) + text,
       vscode.InlayHintKind.Type,
     );
-
     hint.paddingLeft = false;
     hint.paddingRight = false;
-
     return hint;
   }
 }

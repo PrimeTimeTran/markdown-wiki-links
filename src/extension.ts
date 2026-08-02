@@ -19,7 +19,6 @@ import { EstateContext, EstateNode } from './estate';
 import { AppStore } from './app';
 import { WikiDecorations } from './adapters/decorations';
 import { OwnershipInlayProvider } from './ownership';
-import { BookmarkPresenter, registerGiantQuickPickCommand } from './adapters/bookmarkService';
 import { OwnershipCodeActionProvider } from './adapters/codeAction';
 import { OwnershipContentProvider, OwnershipEngine, showOwnershipView } from './diff';
 
@@ -32,7 +31,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   indexService = new IndexService();
   await indexService.initialize();
   const app = new AppStore(context);
-  app.init();
+  app.init(context);
 
   const ownershipEngine = new OwnershipEngine();
   const ownershipProvider = new OwnershipContentProvider(ownershipEngine);
@@ -51,44 +50,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
     }),
   );
 
-  //   await vscode.commands.executeCommand('vscode.open', annotationUri, {
-  //     viewColumn: vscode.ViewColumn.Beside,
-  //     preview: true,
-  //   });
-
-  registerGiantQuickPickCommand(context, app);
-
-  //   vscode.languages.registerCodeActionsProvider('rust', new OwnershipCodeActionProvider(), {
-  //     providedCodeActionKinds: [vscode.CodeActionKind.Refactor, vscode.CodeActionKind.Source],
-  //   });
-  //   const provider = vscode.languages.registerCodeActionsProvider(
-  //     'rust',
-  //     new OwnershipCodeActionProvider(),
-  //     {
-  //       providedCodeActionKinds: [vscode.CodeActionKind.QuickFix, vscode.CodeActionKind.Refactor],
-  //     },
-  //   );
-  //   context.subscriptions.push(
-  //     vscode.commands.registerCommand(
-  //       'estate.showOwnership',
-  //       (uri: string, line: number, column: number) => {
-  //         console.log('ownership requested', uri, line, column);
-  //       },
-  //     ),
-  //   );
-  //   context.subscriptions.push(
-  //     vscode.languages.registerCodeActionsProvider(
-  //       'rust',
-  //       () => {
-  //         console.log("Providing code actions for 'rust' language");
-  //         new OwnershipCodeActionProvider();
-  //       },
-  //       {
-  //         providedCodeActionKinds: [vscode.CodeActionKind.Refactor, vscode.CodeActionKind.Source],
-  //       },
-  //     ),
-  //   );
-
   // Code Action provider
   context.subscriptions.push(
     vscode.languages.registerCodeActionsProvider('rust', new OwnershipCodeActionProvider()),
@@ -104,9 +65,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
       vscode.window.showInformationMessage('Ownership command fired');
     }),
   );
-
-  //   vscode.workspace.registerTextDocumentContentProvider('estate', provider);
-  // j
 
   // Commands
   const commands = [
@@ -160,15 +118,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
     //     new BookmarkPresenter(app).present(ctx, store, tree),
     // }
   ),
-    // vscode.commands.registerCommand('ui.openInNewEditorGroup', async (ctx: EstateContext) => {
+    // vscode.commands.registerCommand('bookmark.present', async (ctx: EstateContext) => {
     //   const bookmark = store.get(ctx.bookmark);
     //   if (!bookmark) {
     //     vscode.window.showWarningMessage(`Unknown estate: ${ctx.bookmark}`);
     //     return;
     //   }
-
     //   await showEstatePanel(bookmark);
-
     //   vscode.window.showInformationMessage(`Editor Group: ${bookmark.label}`);
     // }),
     vscode.commands.registerCommand('estate.addPersistentNotification', (ctx: { id: string }) => {
