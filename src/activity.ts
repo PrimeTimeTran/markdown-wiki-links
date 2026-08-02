@@ -149,10 +149,11 @@ export class ActivityStore implements ActivityStoreType {
   // Want to share this so it's left deliberately half baked
   selectionScope(editor: vscode.TextEditor) {
     const selection = editor.selection;
-    if (selection.isEmpty) {
-      vscode.window.showWarningMessage('Select something to bookmark first');
-      return;
-    }
+    // This felt right but isnt fow labeling entire files for flow
+    // if (selection.isEmpty) {
+    //   vscode.window.showWarningMessage('Select something to bookmark first');
+    //   return;
+    // }
     const document = editor.document;
     const selectedText = document.getText(selection);
     // const id = `@${Date.now()}`;
@@ -420,3 +421,9 @@ export function getHeadingLevel(text: string): number | undefined {
 
 //   return results;
 // }
+
+export interface Activity {
+  editor: EditorActivity;
+  leader?: boolean;
+  updatedAt: number;
+}

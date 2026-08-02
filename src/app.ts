@@ -39,7 +39,8 @@ export class AppStore {
       vscode.window.registerFileDecorationProvider(this.vfsDecorator),
     );
     this.activity.subscribe((activity) => {
-      //   console.log('activityStore handler for click');
+      console.log('App Editor Click');
+    //   vscode.window.showInformationMessage(`app ${this.input}`);
       this.analysis.analyzeLine(activity);
     });
   }
@@ -68,6 +69,16 @@ export class AppStore {
   toggleMdPreview(): boolean {
     this.state.mdPreviewMode = !this.state.mdPreviewMode;
     return this.state.mdPreviewMode;
+  }
+
+  //   private input = new Map<string, boolean>();
+  //   private input = new Map<string, boolean>();
+  public input = false;
+  async enterLeader() {
+    console.log('enter leader');
+    this.input = !this.input;
+    // await vscode.commands.executeCommand('setContext', 'estate.leader', this.input);
+    this.tree.refresh();
   }
 }
 
@@ -131,3 +142,5 @@ export function registerGiantQuickPickCommand(context: vscode.ExtensionContext, 
     vscode.window.showErrorMessage('No context provided for registering the command.');
   }
 }
+
+

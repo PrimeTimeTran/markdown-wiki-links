@@ -3,7 +3,7 @@ import * as fsPromise from 'node:fs/promises';
 import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { EstateContext, EstateFlag, EstateTreeProvider } from '../estate';
+import { EstateContext, EstateFlag } from '../estate';
 import { randomUUID } from 'node:crypto';
 import { AppStore } from '../app';
 import { capability, CMD, flags } from '../cmds';
@@ -31,6 +31,8 @@ export interface Bookmark {
   code?: string;
   context?: string;
   body?: string;
+  scratchpadBody?: string;
+  scratchpadExt?: string;
   repo?: string;
   commit?: string;
   scope?: string;
@@ -46,8 +48,8 @@ export class Bookmark {
   id: string;
   label?: string;
   src?: BookmarkSource;
-  tags: EstateFlag[] = [];
-  capabilities: [] = [];
+  tags: string[] = [];
+  capabilities: EstateFlag[] = [];
   constructor(id: string, data: Partial<Bookmark>) {
     this.id = id;
     Object.assign(this, data);
@@ -270,6 +272,8 @@ export class BookmarkStore implements BookmarkStoreType {
       origin: 'personal',
       createdAt: now,
       updatedAt: now,
+      scratchpadBody: '',
+      scratchpadExt: '',
     });
     this.register(id, b);
     return b;
@@ -280,10 +284,11 @@ export class BookmarkStore implements BookmarkStoreType {
       return;
     }
     const selection = editor.selection;
-    if (selection.isEmpty) {
-      vscode.window.showWarningMessage('Select something to bookmark first');
-      return;
-    }
+    // if (selection.isEmpty) {
+    //   // It is useful to save files with no content
+    //   vscode.window.showWarningMessage('Select something to bookmark first');
+    //   return;
+    // }
     const document = editor.document;
     const selectedText = document.getText(selection);
     const id = `@${Date.now()}`;
@@ -539,7 +544,11 @@ export class BookmarkPresenter {
   // - Panel
   private async showPagePane(bookmark: Bookmark) {
     const id = bookmark.id;
-
+    const language = languageForBookmark(bookmark);
+    const doc = await vscode.workspace.openTextDocument({
+      language,
+      content: bookmark.code ?? bookmark.body ?? '',
+    });
     //
     // 1. Focus existing bookmark panel
     //
@@ -644,7 +653,7 @@ export class BookmarkPresenter {
     //     return new vscode.Hover();
     //   },
     // });
-    registerGiantQuickPickCommand(ctx, app);
+
     function createStatusBar() {
       // 1. Create a status bar item aligned to the right (or left)
       const refStatusBar = vscode.window.createStatusBarItem(
@@ -807,3 +816,26 @@ function getModalHtml(): string {
 </html>`;
 }
 // Define a custom interface extending QuickPickItem to hold extra data
+
+function languageForBookmark(bookmark: Bookmark): string {
+  const ext = path.extname(bookmark.uri()).toLowerCase();
+
+  switch (ext) {
+    case '.rs':
+      return 'rust';
+    case '.ts':
+      return 'typescript';
+    case '.js':
+      return 'javascript';
+    case '.html':
+      return 'html';
+    case '.css':
+      return 'css';
+    case '.json':
+      return 'json';
+    case '.md':
+      return 'markdown';
+    default:
+      return 'plaintext';
+  }
+}

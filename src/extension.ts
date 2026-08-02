@@ -16,7 +16,7 @@ import {
   resetResolver,
 } from './markdownItPlugin/index';
 import { EstateContext, EstateNode } from './estate';
-import { AppStore } from './app';
+import { AppStore, registerGiantQuickPickCommand } from './app';
 import { WikiDecorations } from './adapters/decorations';
 import { OwnershipInlayProvider } from './ownership';
 import { OwnershipCodeActionProvider } from './adapters/codeAction';
@@ -32,7 +32,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   await indexService.initialize();
   const app = new AppStore(context);
   app.init(context);
-
+  context.subscriptions.push(
+    vscode.commands.registerCommand('estate.enterLeader', async () => {
+      app.enterLeader();
+      console.log('Leader!', app.input);
+      await vscode.commands.executeCommand('setContext', 'estate.leader', true);
+      app.tree.refresh();
+    }),
+  );
+  registerGiantQuickPickCommand(context, app);
   const ownershipEngine = new OwnershipEngine();
   const ownershipProvider = new OwnershipContentProvider(ownershipEngine);
 
@@ -105,6 +113,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   );
 
   let store = app.bookmarks;
+  // We accept the inserted wrapping () to prevent having to use context.subscriptions.push everywhere
+  // oxlint-disable-next-line no-unused-expressions
   (context.subscriptions.push(
     vscode.commands.registerCommand('ui.addInlinePanel', (ctx: { id: string }) => {
       const bookmark = app.bookmarks.get(ctx.id);
@@ -243,7 +253,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
     vscode.window.onDidChangeActiveTextEditor(async (editor) => {
       if (!editor) return;
       if (!app.isMdPreviewEnabled()) return;
-
       if (!supportedLanguages.includes(editor.document.languageId)) return;
       await vscode.commands.executeCommand('markdown.togglePreview', editor.document.uri);
     }));

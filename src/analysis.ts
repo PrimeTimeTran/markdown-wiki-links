@@ -39,10 +39,13 @@ export class AnalysisStore {
       console.log('Keys received from Rust:', Object.keys(raw));
       const analysis = new OwnershipAnalysisResult(
         raw.click,
-        raw.analysis.node_context,
-        raw.analysis.classification,
-        raw.analysis.symbols,
+        raw.analysis?.node_context,
+        raw.analysis?.classification,
+        raw.analysis?.symbols,
       );
+      if (!analysis) {
+        return;
+      }
 
       logAnalysis(this.app.outputChannel, raw.click.file, raw.click.line.toString(), raw);
 

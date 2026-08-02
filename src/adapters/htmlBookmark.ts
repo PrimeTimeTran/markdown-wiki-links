@@ -5,138 +5,13 @@ export const bookmarkShowPage = (b: Bookmark) => {
 <!doctype html>
 <html>
     <head>
-        <style>
-            html,
-            body {
-                margin: 0;
-                padding: 0;
-                height: 100%;
-                background: var(--vscode-editor-background);
-                color: var(--vscode-editor-foreground);
-                font-family: var(--vscode-font-family);
-            }
-
-            .container {
-                width: min(1000px, 100%);
-                margin: 0 auto;
-                padding: 32px;
-                box-sizing: border-box;
-            }
-
-            h1 {
-                margin-top: 0;
-                font-size: 26px;
-            }
-
-            .form {
-                display: flex;
-                flex-direction: column;
-                gap: 20px;
-            }
-
-            .field {
-                display: flex;
-                flex-direction: column;
-                gap: 6px;
-            }
-
-            label {
-                font-size: 13px;
-                font-weight: 600;
-                opacity: 0.8;
-            }
-
-            input,
-            textarea,
-            select {
-                width: 100%;
-                box-sizing: border-box;
-
-                padding: 10px 12px;
-
-                background: var(--vscode-input-background);
-                color: var(--vscode-input-foreground);
-
-                border: 1px solid var(--vscode-input-border);
-                border-radius: 5px;
-
-                font-family: inherit;
-                font-size: 14px;
-            }
-
-            textarea {
-                resize: vertical;
-                min-height: 120px;
-            }
-
-            .body-editor {
-                min-height: 300px;
-                font-family: var(--vscode-editor-font-family);
-            }
-
-            .tags {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 8px;
-
-                padding: 8px;
-
-                border: 1px solid var(--vscode-input-border);
-                border-radius: 5px;
-
-                background: var(--vscode-input-background);
-            }
-
-            .tag {
-                padding: 4px 10px;
-                border-radius: 20px;
-
-                background: var(--vscode-button-secondaryBackground);
-                color: var(--vscode-button-secondaryForeground);
-
-                cursor: pointer;
-            }
-
-            .tag.new {
-                opacity: 0.5;
-            }
-
-            .row {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 20px;
-            }
-
-            .actions {
-                margin-top: 20px;
-
-                display: flex;
-                justify-content: flex-end;
-                gap: 10px;
-            }
-
-            button {
-                padding: 8px 18px;
-
-                border-radius: 5px;
-                border: none;
-
-                cursor: pointer;
-
-                background: var(--vscode-button-background);
-                color: var(--vscode-button-foreground);
-            }
-
-            button:hover {
-                background: var(--vscode-button-hoverBackground);
-            }
-        </style>
+    <link rel="stylesheet" href="highlight.min.css">
+    <script src="highlight.min.js"></script>
+        ${rootCSS2()}
     </head>
-
     <body>
         <div class="container">
-            <h1>Edit Bookmark</h1>
-
+            <h1>Bookmark</h1>
             <div class="form">
                 <div class="field">
                     <label>Label</label>
@@ -183,10 +58,15 @@ export const bookmarkShowPage = (b: Bookmark) => {
 
                 <div class="field">
                     <label>Body</label>
+                    <pre><code class="language-rust">${escapeHtml(b.body)}</code></pre>
+
+                </div>
+                <div class="field">
+                    <label>Scratchpad</label>
                     <textarea
-                        name="body"
-                        class="body-editor">
-                    ${b.body}
+                        name="scratchpadBody"
+                        class="scratchpad-editor">
+                    ${b.scratchpadBody}
                     </textarea>
                 </div>
 
@@ -225,55 +105,7 @@ export const bookmarkShowPage = (b: Bookmark) => {
                 </div>
             </div>
         </div>
-        <script>
-            const vscode = acquireVsCodeApi()
-
-            console.log('webview loaded')
-
-            const button = document.querySelector('button.save')
-
-            console.log('save button', button)
-
-            button.addEventListener('click', () => {
-                console.log('clicked')
-
-                vscode.postMessage({
-                    type: 'saveBookmark',
-                    bookmark: {
-                        label: document.querySelector('input[name="label"]')
-                            .value,
-                        description: document.querySelector(
-                            'input[name="description"]',
-                        ).value,
-                        privacy: document.querySelector(
-                            'select[name="privacy"]',
-                        ).value,
-                        type: document.querySelector('select[name="type"]')
-                            .value,
-                        body: document.querySelector('textarea[name="body"]')
-                            .value,
-                        context: document.querySelector(
-                            'textarea[name="context"]',
-                        ).value,
-                        code: document.querySelector('textarea[name="code"]')
-                            .value,
-                        repo: document.querySelector('input[name="repo"]')
-                            .value,
-                        commit: document.querySelector('input[name="commit"]')
-                            .value,
-                        scope: document.querySelector('input[name="scope"]')
-                            .value,
-                    },
-                })
-            })
-        </script>
-        <script>
-            const vscode = acquireVsCodeApi()
-
-            document
-                .querySelector('button.save')
-                .addEventListener('click', () => {})
-        </script>
+        ${rootScript()}
     </body>
 </html>
     `;
@@ -996,4 +828,187 @@ input {
 }
 `;
 }
-function rootScript() {}
+function rootScript() {
+  return `
+<script>
+    const vscode = acquireVsCodeApi()
+
+    console.log('webview loaded')
+
+    const button = document.querySelector('button.save')
+
+    console.log('save button', button)
+
+    button.addEventListener('click', () => {
+        console.log('clicked')
+
+        vscode.postMessage({
+            type: 'saveBookmark',
+            bookmark: {
+                label: document.querySelector('input[name="label"]')
+                    .value,
+                description: document.querySelector(
+                    'input[name="description"]',
+                ).value,
+                privacy: document.querySelector(
+                    'select[name="privacy"]',
+                ).value,
+                type: document.querySelector('select[name="type"]')
+                    .value,
+                body: document.querySelector('textarea[name="body"]')
+                    .value,
+                context: document.querySelector(
+                    'textarea[name="context"]',
+                ).value,
+                code: document.querySelector('textarea[name="code"]')
+                    .value,
+                repo: document.querySelector('input[name="repo"]')
+                    .value,
+                commit: document.querySelector('input[name="commit"]')
+                    .value,
+                scope: document.querySelector('input[name="scope"]')
+                    .value,
+            },
+        })
+    })
+</script>
+<script>
+const vscode = acquireVsCodeApi()
+
+document
+    .querySelector('button.save')
+    .addEventListener('click', () => {})
+hljs.highlightAll();
+</script>
+    `;
+}
+function rootCSS2() {
+  return `
+<style>
+    html,
+    body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: var(--vscode-editor-background);
+        color: var(--vscode-editor-foreground);
+        font-family: var(--vscode-font-family);
+    }
+
+    .container {
+        width: min(1000px, 100%);
+        margin: 0 auto;
+        padding: 32px;
+        box-sizing: border-box;
+    }
+
+    h1 {
+        margin-top: 0;
+        font-size: 26px;
+    }
+
+    .form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    label {
+        font-size: 13px;
+        font-weight: 600;
+        opacity: 0.8;
+    }
+
+    input,
+    textarea,
+    select {
+        width: 100%;
+        box-sizing: border-box;
+
+        padding: 10px 12px;
+
+        background: var(--vscode-input-background);
+        color: var(--vscode-input-foreground);
+
+        border: 1px solid var(--vscode-input-border);
+        border-radius: 5px;
+
+        font-family: inherit;
+        font-size: 14px;
+    }
+
+    textarea {
+        resize: vertical;
+        min-height: 120px;
+    }
+
+    .body-editor {
+        min-height: 300px;
+        font-family: var(--vscode-editor-font-family);
+    }
+
+    .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+
+        padding: 8px;
+
+        border: 1px solid var(--vscode-input-border);
+        border-radius: 5px;
+
+        background: var(--vscode-input-background);
+    }
+
+    .tag {
+        padding: 4px 10px;
+        border-radius: 20px;
+
+        background: var(--vscode-button-secondaryBackground);
+        color: var(--vscode-button-secondaryForeground);
+
+        cursor: pointer;
+    }
+
+    .tag.new {
+        opacity: 0.5;
+    }
+
+    .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .actions {
+        margin-top: 20px;
+
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    button {
+        padding: 8px 18px;
+
+        border-radius: 5px;
+        border: none;
+
+        cursor: pointer;
+
+        background: var(--vscode-button-background);
+        color: var(--vscode-button-foreground);
+    }
+
+    button:hover {
+        background: var(--vscode-button-hoverBackground);
+    }
+</style>    
+`;
+}

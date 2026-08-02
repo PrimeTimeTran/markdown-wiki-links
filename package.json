@@ -66,6 +66,13 @@
   "contributes": {
     "markdown.markdownItPlugins": true,
     "menus": {
+      "editor/title/context": [
+        {
+          "command": "estate.flow.next",
+          "group": "navigation",
+          "when": "estateExplorer.visible"
+        }
+      ],
       "view/title": [
         {
           "command": "estate.bookmark.create",
@@ -120,11 +127,6 @@
           "group": "navigation"
         },
         {
-          "command": "flowify.analyzeLine",
-          "group": "navigation",
-          "when": "editorTextFocus"
-        },
-        {
           "command": "estate.snippet.save",
           "when": "editorTextFocus",
           "group": "navigation"
@@ -143,17 +145,41 @@
         }
       ]
     },
+    "keybindings": [
+      {
+        "key": "f20",
+        "command": "estate.enterLeader"
+      }
+    ],
     "commands": [
       {
+        "title": "Estate: Bookmark",
         "command": "estate.bookmark.delete",
-        "title": "Delete Bookmark",
+        "group": "inline",
         "icon": "$(trash)"
+      },
+      {
+        "key": "f20",
+        "title": "Estate: Enter Leader",
+        "icon": "$(symbol-interface)",
+        "command": "estate.enterLeader"
+      },
+      {
+        "key": "f24",
+        "title": "Estate: Flow Next",
+        "icon": "$(symbol-interface)",
+        "command": "estate.flow.next"
       },
       {
         "command": "estate.refresh",
         "title": "Refresh Bookmark",
         "icon": "$(filter)",
         "shortTitle": "estate refresh"
+      },
+      {
+        "command": "bookmark.create",
+        "title": "Estate: Create Bookmark",
+        "icon": "$(add)"
       },
       {
         "command": "wikiLinks.rebuildIndex",
@@ -166,11 +192,6 @@
       {
         "command": "flowify.analyzeLine",
         "title": "Estate: Analyze Subject"
-      },
-      {
-        "command": "bookmark.create",
-        "title": "Estate: Create Bookmark",
-        "icon": "$(add)"
       },
       {
         "command": "bookmark.open",

@@ -115,4 +115,10 @@ main();`,
       placeHolder: 'Choose snippet type',
     });
   }
+  addStatusBar() {
+    const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
+    item.text = '$(symbol-class) Ownership 3/7';
+    item.command = 'estate.showFlow';
+    item.show();
+  }
 }
