@@ -25,6 +25,46 @@ import { Activity } from '../activity';
 // option: enables picking one of more
 //  - graph problems: dfs, bfs, etc.
 // interface augments types
+
+export interface Anchor {
+  // Identity
+  id: string;
+  label?: string;
+
+  // Existing bookmark fields
+  type?: string;
+  description?: string;
+
+  code?: string;
+  context?: string;
+  body?: string;
+
+  scratchpadBody?: string;
+  scratchpadExt?: string;
+
+  repo?: string;
+  commit?: string;
+
+  scope?: string;
+  privacy?: string;
+
+  updatedAt?: string;
+  createdAt?: string;
+
+  // Existing bookmark relationship
+  // references to other anchors
+  anchors: string[];
+
+  // New: where this anchor came from
+  origin: BookmarkOrigin;
+
+  // New: source/code locations
+  locations?: AnchorLocation[];
+
+  // New: organization
+  // Later this can become a proper relationship table/store
+  lists?: string[];
+}
 export interface Bookmark {
   type?: string;
   description?: string;
@@ -41,7 +81,7 @@ export interface Bookmark {
   createdAt?: string;
   //   uri: String;
   origin: BookmarkOrigin;
-  anchors: BookmarkAnchor[];
+  anchors: string[];
 }
 // Runtime
 export class Bookmark {
@@ -486,19 +526,7 @@ export interface Anchor {
   start: number;
   end: number;
 }
-export function findAnchors(text: string, line: number): Anchor[] {
-  const results: Anchor[] = [];
-  const regex = /@[A-Za-z0-9_-]+/g;
-  for (const match of text.matchAll(regex)) {
-    results.push({
-      id: match[0],
-      line,
-      start: match.index!,
-      end: match.index! + match[0].length,
-    });
-  }
-  return results;
-}
+
 export function findBookmarks(
   text: string,
   store: BookmarkStore,
@@ -542,27 +570,99 @@ export class BookmarkPresenter {
   // - Preview
   // - Full
   // - Panel
-  private async showPagePane(bookmark: Bookmark) {
+  private async showBookmarkPane(bookmark: Bookmark) {
     const id = bookmark.id;
-    const language = languageForBookmark(bookmark);
-    const doc = await vscode.workspace.openTextDocument({
-      language,
-      content: bookmark.code ?? bookmark.body ?? '',
-    });
+
     //
     // 1. Focus existing bookmark panel
     //
     const existingPanel = this.bookmarkPanels.get(id);
-
     if (existingPanel) {
       existingPanel.reveal(vscode.ViewColumn.Active);
       return;
     }
 
     //
-    // 2. Open/reveal source file
+    // 2. Create bookmark panel
     //
-    if (bookmark.uri()) {
+    const panel = vscode.window.createWebviewPanel(
+      'bookmark',
+      bookmark.label ?? 'Bookmark',
+      vscode.ViewColumn.Active,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+      },
+    );
+
+    this.bookmarkPanels.set(id, panel);
+
+    panel.onDidDispose(() => {
+      this.bookmarkPanels.delete(id);
+    });
+
+    panel.webview.onDidReceiveMessage(
+      async (message) => {
+        switch (message.type) {
+          case 'saveBookmark':
+            this.app.bookmarks.update(id, message.bookmark);
+            this.app.bookmarks.save();
+            break;
+
+          case 'openSource':
+            this.openBookmarkSource(bookmark);
+            break;
+        }
+      },
+      undefined,
+      this.app.ctx.subscriptions,
+    );
+
+    panel.webview.html = bookmarkShowPage(bookmark);
+  }
+  private async openBookmarkSource(bookmark: Bookmark) {
+    if (!bookmark.uri()) {
+      return;
+    }
+
+    const uri = vscode.Uri.file(bookmark.uri());
+
+    const doc = await vscode.workspace.openTextDocument(uri);
+
+    const editor = await vscode.window.showTextDocument(doc, {
+      preview: false,
+    });
+
+    const pos = new vscode.Position(
+      bookmark.src?.startLine ?? 0,
+      bookmark.src?.startCharacter ?? 0,
+    );
+
+    editor.selection = new vscode.Selection(pos, pos);
+
+    editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter);
+  }
+  private async showPagePane(
+    bookmark: Bookmark,
+    options: {
+      openSource?: boolean;
+    } = {},
+  ) {
+    const id = bookmark.id;
+
+    //
+    // 1. Focus existing bookmark panel
+    //
+    const existingPanel = this.bookmarkPanels.get(id);
+    if (existingPanel) {
+      existingPanel.reveal(vscode.ViewColumn.Active);
+      return;
+    }
+
+    //
+    // 2. Optionally open source file
+    //
+    if (options.openSource && bookmark.uri()) {
       const uri = vscode.Uri.file(bookmark.uri());
 
       let editor = vscode.window.visibleTextEditors.find(
@@ -580,9 +680,6 @@ export class BookmarkPresenter {
         });
       }
 
-      //
-      // 3. Jump to bookmark location
-      //
       const pos = new vscode.Position(
         bookmark.src?.startLine ?? 0,
         bookmark.src?.startCharacter ?? 0,
@@ -591,10 +688,12 @@ export class BookmarkPresenter {
       editor.selection = new vscode.Selection(pos, pos);
 
       editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter);
+
+      return;
     }
 
     //
-    // 4. Create bookmark panel
+    // 3. Create bookmark panel
     //
     const panel = vscode.window.createWebviewPanel(
       'bookmark',
@@ -602,6 +701,7 @@ export class BookmarkPresenter {
       vscode.ViewColumn.Active,
       {
         enableScripts: true,
+        retainContextWhenHidden: true,
       },
     );
 
@@ -613,11 +713,16 @@ export class BookmarkPresenter {
 
     panel.webview.onDidReceiveMessage(
       async (message) => {
-        vscode.window.showInformationMessage(`Saving`);
         switch (message.type) {
           case 'saveBookmark':
             this.app.bookmarks.update(id, message.bookmark);
             this.app.bookmarks.save();
+            break;
+
+          case 'openSource':
+            await this.showPagePane(bookmark, {
+              openSource: true,
+            });
             break;
         }
       },
@@ -719,13 +824,13 @@ export class BookmarkPresenter {
   }
 }
 export interface BookmarkAnchor {
-  uri: vscode.Uri;
-  line: number;
-  // optional placement info
-  start?: number;
-  end?: number;
-  // why it exists
-  source: 'reference' | 'position';
+  //   uri: vscode.Uri;
+  //   line: number;
+  //   // optional placement info
+  //   start?: number;
+  //   end?: number;
+  //   // why it exists
+  //   source: 'reference' | 'position';
 }
 function getModalHtml(): string {
   return `<!DOCTYPE html>
@@ -838,4 +943,62 @@ function languageForBookmark(bookmark: Bookmark): string {
     default:
       return 'plaintext';
   }
+}
+
+export interface Anchor {
+  id: string;
+  label?: string;
+
+  // Organization
+  lists?: string[];
+
+  // Source references
+  locations?: AnchorLocation[];
+
+  // Content payload
+  type?: string;
+  body?: string;
+  code?: string;
+  context?: string;
+  scratchpadBody?: string;
+
+  // Metadata
+  repo?: string;
+  commit?: string;
+  scope?: string;
+  privacy?: string;
+
+  updatedAt?: string;
+  createdAt?: string;
+}
+export interface AnchorList {
+  id: string;
+  label: string;
+  parent?: string;
+  anchors: string[];
+}
+export interface AnchorRef {
+  id: string;
+  line: number;
+  start: number;
+  end: number;
+}
+export function findAnchors(text: string, line: number): AnchorRef[] {
+  const results: AnchorRef[] = [];
+  const regex = /@[A-Za-z0-9_-]+/g;
+  for (const match of text.matchAll(regex)) {
+    results.push({
+      id: match[0],
+      line,
+      start: match.index!,
+      end: match.index! + match[0].length,
+    });
+  }
+  return results;
+}
+export interface AnchorLocation {
+  uri: string;
+  line: number;
+  start: number;
+  end: number;
 }

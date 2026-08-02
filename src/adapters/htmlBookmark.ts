@@ -1,114 +1,139 @@
-import { Bookmark } from './bookmarkService';
+import { Bookmark, BookmarkAnchor } from './bookmarkService';
 
 export const bookmarkShowPage = (b: Bookmark) => {
-  return `
-<!doctype html>
-<html>
-    <head>
-    <link rel="stylesheet" href="highlight.min.css">
-    <script src="highlight.min.js"></script>
-        ${rootCSS2()}
-    </head>
-    <body>
-        <div class="container">
-            <h1>Bookmark</h1>
-            <div class="form">
-                <div class="field">
-                    <label>Label</label>
-                    <input
-                        name="label"
-                        value="${b.label}" />
-                </div>
-
-                <div class="field">
-                    <label>Description</label>
-                    <input
-                        name="description"
-                        value="${b.description}" />
-                </div>
-
-                <div class="row">
-                    <div class="field">
-                        <label>Privacy</label>
-                        <select name="privacy">
-                            <option selected>workspace</option>
-                            <option>private</option>
-                            <option>public</option>
-                        </select>
-                    </div>
-
-                    <div class="field">
-                        <label>Type</label>
-                        <select
-                            name="type"
-                            value="${b.type}">
-                            <option selected>code</option>
-                            <option>note</option>
-                            <option>reference</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="field">
-                    <label>Tags</label>
-                        <div class="tag">architecture ×</div>
-                        <div class="tag">rust ×</div>
-                        <div class="tag new">+ Add tag</div>
-                </div>
-
-                <div class="field">
-                    <label>Body</label>
-                    <pre><code class="language-rust">${escapeHtml(b.body)}</code></pre>
-
-                </div>
-                <div class="field">
-                    <label>Scratchpad</label>
-                    <textarea
-                        name="scratchpadBody"
-                        class="scratchpad-editor">
-                    ${b.scratchpadBody}
-                    </textarea>
-                </div>
-
-                <div class="field">
-                    <label>Context</label>
-                    <textarea> </textarea>
-                </div>
-
-                <div class="field">
-                    <label>Code</label>
-                    <textarea></textarea>
-                </div>
-
-                <div class="field">
-                    <label>Repository</label>
-                    <input />
-                </div>
-
-                <div class="field">
-                    <label>Commit</label>
-                    <input />
-                </div>
-
-                <div class="field">
-                    <label>Scope</label>
-                    <input value="source.selection" />
-                </div>
-
-                <div class="actions">
-                    <button>Cancel</button>
-                    <button
-                        name="save"
-                        class="save">
-                        Save Bookmark
-                    </button>
-                </div>
-            </div>
+  let body = `
+<div class="container">
+    <div class="workspace">
+        <div class="content">
+            ${renderBlock(b)}
         </div>
-        ${rootScript()}
-    </body>
-</html>
+        <aside class="sidebar">
+            <section>
+                <label>Options</label>
+                <select name="privacy">
+                    <option>workspace</option>
+                    <option>private</option>
+                    <option>public</option>
+                </select>
+
+                <select name="type">
+                    <option>code</option>
+                    <option>note</option>
+                    <option>reference</option>
+                </select>
+            </section>
+        </aside>
+    </div>
+</div>
     `;
+  return `
+    ${rootHtml(body)}
+`;
+  //   return `
+  // <!doctype html>
+  // <html>
+  //     <head>
+  //     <link rel="stylesheet" href="highlight.min.css">
+  //     <script src="highlight.min.js"></script>
+  //         ${rootCSS2()}
+  //     </head>
+  //     <body>
+  //         <div class="container">
+  //             <h1>Bookmark</h1>
+  //             <div class="form">
+  //                 <div class="field">
+  //                     <label>Label</label>
+  //                     <input
+  //                         name="label"
+  //                         value="${b.label}" />
+  //                 </div>
+
+  //                 <div class="field">
+  //                     <label>Description</label>
+  //                     <input
+  //                         name="description"
+  //                         value="${b.description}" />
+  //                 </div>
+
+  //                 <div class="row">
+  //                     <div class="field">
+  //                         <label>Privacy</label>
+  //                         <select name="privacy">
+  //                             <option selected>workspace</option>
+  //                             <option>private</option>
+  //                             <option>public</option>
+  //                         </select>
+  //                     </div>
+
+  //                     <div class="field">
+  //                         <label>Type</label>
+  //                         <select
+  //                             name="type"
+  //                             value="${b.type}">
+  //                             <option selected>code</option>
+  //                             <option>note</option>
+  //                             <option>reference</option>
+  //                         </select>
+  //                     </div>
+  //                 </div>
+  //                 <div class="field">
+  //                     <label>Tags</label>
+  //                         <div class="tag">architecture ×</div>
+  //                         <div class="tag">rust ×</div>
+  //                         <div class="tag new">+ Add tag</div>
+  //                 </div>
+  //                 <div class="field">
+  //                     <label>Body</label>
+  //                     <pre><code class="language-rust">${escapeHtml(b.body)}</code></pre>
+  //                 </div>
+  //                 <div class="field">
+  //                     <label>Scratchpad</label>
+  //                     <textarea
+  //                         name="scratchpadBody"
+  //                         class="scratchpad-editor">
+  //                     ${b.scratchpadBody}
+  //                     </textarea>
+  //                 </div>
+
+  //                 <div class="field">
+  //                     <label>Context</label>
+  //                     <textarea> </textarea>
+  //                 </div>
+
+  //                 <div class="field">
+  //                     <label>Code</label>
+  //                     <textarea></textarea>
+  //                 </div>
+
+  //                 <div class="field">
+  //                     <label>Repository</label>
+  //                     <input />
+  //                 </div>
+
+  //                 <div class="field">
+  //                     <label>Commit</label>
+  //                     <input />
+  //                 </div>
+
+  //                 <div class="field">
+  //                     <label>Scope</label>
+  //                     <input value="source.selection" />
+  //                 </div>
+
+  //                 <div class="actions">
+  //                     <button>Cancel</button>
+  //                     <button
+  //                         name="save"
+  //                         class="save">
+  //                         Save Bookmark
+  //                     </button>
+  //                 </div>
+  //             </div>
+  //         </div>
+  //         ${rootScript()}
+  //     </body>
+  // </html>
+  //     `;
 };
 
 export function getHtml(bookmark: Bookmark): string {
@@ -453,7 +478,7 @@ export function escapeHtml(value: string = '') {
     .replaceAll("'", '&#039;');
 }
 
-function rootHtml() {
+function rootHtml(body: string) {
   return `
 <!DOCTYPE html>
 <html lang="ko">
@@ -462,14 +487,16 @@ function rootHtml() {
 	<meta name="description" content="" />
 	<meta name="author" content="" />
 	<meta name="viewport" content="user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, width=device-width" />
+    <script src="highlight.min.js"></script>
+    <script src="highlightjs/languages/rust.min.js"></script>
 	<title></title>
     <style>
         ${rootCSS()}
     </style>
 </head>
 <body>
-
-	<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    ${body}
+	${rootScript()}
 </body>
 </html>
     `;
@@ -831,54 +858,27 @@ input {
 function rootScript() {
   return `
 <script>
-    const vscode = acquireVsCodeApi()
+const vscode = acquireVsCodeApi();
 
-    console.log('webview loaded')
+console.log('webview loaded');
 
-    const button = document.querySelector('button.save')
+const button = document.querySelector('button.save');
 
-    console.log('save button', button)
+console.log('save button', button);
 
-    button.addEventListener('click', () => {
-        console.log('clicked')
+button?.addEventListener('click', () => {
+    console.log('clicked');
 
-        vscode.postMessage({
-            type: 'saveBookmark',
-            bookmark: {
-                label: document.querySelector('input[name="label"]')
-                    .value,
-                description: document.querySelector(
-                    'input[name="description"]',
-                ).value,
-                privacy: document.querySelector(
-                    'select[name="privacy"]',
-                ).value,
-                type: document.querySelector('select[name="type"]')
-                    .value,
-                body: document.querySelector('textarea[name="body"]')
-                    .value,
-                context: document.querySelector(
-                    'textarea[name="context"]',
-                ).value,
-                code: document.querySelector('textarea[name="code"]')
-                    .value,
-                repo: document.querySelector('input[name="repo"]')
-                    .value,
-                commit: document.querySelector('input[name="commit"]')
-                    .value,
-                scope: document.querySelector('input[name="scope"]')
-                    .value,
-            },
-        })
-    })
-</script>
-<script>
-const vscode = acquireVsCodeApi()
+    vscode.postMessage({
+        type: 'saveBookmark',
+        bookmark: {}
+    });
+});
 
-document
-    .querySelector('button.save')
-    .addEventListener('click', () => {})
-hljs.highlightAll();
+document.querySelectorAll('pre code')
+    .forEach(block => {
+        hljs.highlightElement(block);
+    });
 </script>
     `;
 }
@@ -1009,6 +1009,105 @@ function rootCSS2() {
     button:hover {
         background: var(--vscode-button-hoverBackground);
     }
+    .bookmark-block.source-open {
+        border-left: 3px solid var(--vscode-charts-green);
+    }
+
+    .source-open .source-button {
+        color: var(--vscode-charts-green);
+    }
 </style>    
 `;
+}
+
+function renderBlock(b: Bookmark) {
+  return `
+    <article 
+      class="bookmark-block"
+      data-id="${b.id}"
+      data-uri="${b.uri() ?? ''}"
+      data-line="${b.src?.startLine ?? ''}"
+    >
+      <header class="block-header">
+        <h2>
+          <span class="icon">$(symbol-method)</span>
+          ${b.label}
+        </h2>
+        <div class="block-actions">
+          <button
+            class="source-button"
+            data-command="open-source"
+            title="Open source">
+              $(go-to-file)
+          </button>
+          <button
+            title="Copy">
+              $(copy)
+          </button>
+          <button
+            title="Pin">
+              $(pin)
+          </button>
+        </div>
+      </header>
+      <pre>
+        <code class="language-rust">
+${escapeHtml(b.body)}
+        </code>
+      </pre>
+      ${b.anchors?.length ? renderAnchors(b.anchors) : ''}
+
+    </article>
+  `;
+}
+function renderAnchors(anchors: BookmarkAnchor[]) {
+  return `
+    <section class="anchors">
+      <label>Anchors</label>
+
+      <div class="anchor-tree">
+        ${renderAnchorTree(anchors)}
+      </div>
+    </section>
+  `;
+}
+
+function renderAnchorTree(anchors: BookmarkAnchor[], depth = 0): string {
+  return `
+    <ul class="anchor-list depth-${depth}">
+      ${anchors
+        .map(
+          (anchor) => `
+            <li class="anchor-item">
+
+              <button
+                class="anchor"
+                data-anchor-id="${anchor.id}"
+                data-uri="${anchor.uri ?? ''}"
+                data-line="${anchor.line ?? ''}"
+              >
+                <span class="codicon codicon-symbol-field"></span>
+                <span class="anchor-label">
+                  ${escapeHtml(anchor.label)}
+                </span>
+
+                ${
+                  anchor.children?.length
+                    ? `
+                      <span class="child-count">
+                        ${anchor.children.length}
+                      </span>
+                    `
+                    : ''
+                }
+              </button>
+
+              ${anchor.children?.length ? renderAnchorTree(anchor.children, depth + 1) : ''}
+
+            </li>
+          `,
+        )
+        .join('')}
+    </ul>
+  `;
 }

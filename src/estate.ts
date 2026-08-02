@@ -115,30 +115,6 @@ export class EventStore implements EventStoreType {
     };
   }
 }
-export async function showEstatePanel(bookmark: Bookmark) {
-  const panel = vscode.window.createWebviewPanel(
-    'estate',
-    `🏠 ${bookmark.label}`,
-    vscode.ViewColumn.Beside,
-    {},
-  );
-  panel.webview.html = `
-    <html>
-      <body>
-        <h1>${bookmark.label}</h1>
-        <h3>Description</h3>
-        <p>${bookmark.description ?? ''}</p>
-        <h3>Context</h3>
-        <p>${bookmark.context ?? ''}</p>
-        <h3>Code</h3>
-        <pre>${bookmark.code ?? ''}</pre>
-        <h3>Body</h3>
-        <p>${bookmark.body ?? ''}</p>
-      </body>
-    </html>
-  `;
-}
-
 export class VFSProvider implements vscode.TextDocumentContentProvider {
   private documents = new Map<string, string>();
   set(uri: vscode.Uri, content: string) {
@@ -261,7 +237,6 @@ export class VFSDecorator implements vscode.FileDecorationProvider {
   // 'terminal.ansiGreen'
 }
 
-// let sections = ['main', 'sequence', 'misc'];
 const SECTIONS_LIST = ['main', 'series', 'blank'];
 const SECTIONS = {
   [SECTIONS_LIST[0]]: {},
@@ -388,17 +363,13 @@ export class EstateNode extends vscode.TreeItem {
     } else if (tags.includes('tools')) {
       this.iconPath = new vscode.ThemeIcon('too');
     }
-
     if (tags.includes('todo')) {
       this.iconPath = new vscode.ThemeIcon('checklist');
     }
-
     if (tags.includes('important')) {
       this.iconPath = new vscode.ThemeIcon('star-full');
     }
-
     this.description = this.getDescription(tags);
-
     this.contextValue = tags.join('.');
     // 'bookmark'          // bookmarks
     // 'star-full'         // favorites
