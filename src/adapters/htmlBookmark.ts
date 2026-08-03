@@ -32,15 +32,12 @@ export function rootHtml({ title, body }: RootHtmlOptions) {
   rel="stylesheet"
   href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
 />
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/rust.min.js"></script>
 <style>
 ${rootCSS()}
 </style>
-
 </head>
-
 <body>
 
 ${rootHeader(title)}
@@ -56,39 +53,25 @@ ${rootScript()}
 export function rootHeader(title: string) {
   return `
 <header class="header">
-
     <h1>
         <span class="codicon codicon-symbol-field"></span>
         ${title}
     </h1>
-
-
     <div class="toolbar">
-
         <button data-action="save">
             <span class="codicon codicon-save"></span>
         </button>
-
-
         <button data-action="open-source">
             <span class="codicon codicon-go-to-file"></span>
         </button>
-
-
         <button data-action="copy">
             <span class="codicon codicon-copy"></span>
         </button>
-
     </div>
-
 </header>
 `;
 }
 export function rootBody(anchor: Anchor) {
-  console.log('rootBody', {
-    code: anchor.code?.length,
-    body: anchor.body?.length,
-  });
   return `
 <main class="anchor-page">
     <section class="primary">
@@ -577,7 +560,7 @@ input {
   --space-2: 12px;
   --space-3: 16px;
   --space-4: 24px;
-  --space-5: 32px;
+  --space-5: 16px;
   --space-6: 48px;
 
   --bg: #f6f7fb;
@@ -586,9 +569,9 @@ input {
   --panel-soft: rgba(255, 255, 255, 0.7);
 
   --text: #0f172a;
-  --muted: rgba(15, 23, 42, 0.65);
+  --muted: rgba(16, 23, 42, 0.65);
 
-  --border: rgba(15, 23, 42, 0.12);
+  --border: rgba(16, 23, 42, 0.12);
 
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
 
@@ -598,12 +581,12 @@ input {
 
   --code-bg: #f1f5f9;
   --code-text: #0f172a;
-  --code-border: rgba(15, 23, 42, 0.12);
+  --code-border: rgba(16, 23, 42, 0.12);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0f1115;
+    --bg: #0f1116;
 
     --panel: #141821;
     --panel-soft: rgba(255, 255, 255, 0.04);
@@ -639,15 +622,11 @@ input {
 }
 
 .hero {
-  padding: 28px;
+  padding: 14px;
   border-radius: 20px;
-
   background: var(--panel-soft);
-
   border: 1px solid var(--border);
-
   box-shadow: var(--shadow);
-
   backdrop-filter: blur(10px);
 }
 
@@ -659,7 +638,7 @@ input {
 }
 
 .hero-title {
-  font-size: 32px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: -0.03em;
 }
@@ -771,7 +750,7 @@ input {
   flex-direction: column;
   gap: 18px;
 
-  padding: 28px;
+  padding: 14px;
 
   border-radius: 18px;
 
@@ -935,7 +914,6 @@ export function rootBody2(anchor: Anchor) {
                 <h1 class="hero-title">
                     ${escapeHtml(anchor.label ?? 'Anchor')}
                 </h1>
-
                 ${
                   anchor.description
                     ? `
@@ -944,14 +922,12 @@ export function rootBody2(anchor: Anchor) {
                     : ''
                 }
             </div>
-
             <div class="controls">
                 <button
                     class="btn btn-primary"
                     data-action="save">
                     Save
                 </button>
-
                 <button
                     class="btn"
                     data-action="openSource">

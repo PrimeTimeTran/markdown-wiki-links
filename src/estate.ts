@@ -321,15 +321,14 @@ export class EstateNode extends vscode.TreeItem {
     const uri = bookmark?.uri?.() || '';
     const isSettingsFile = /settings\.json$/i.test(uri);
     const tags = bookmark.tags ?? [];
-    // console.log('applybookmarks');
+    this.iconPath = new vscode.ThemeIcon('pinned', new vscode.ThemeColor('charts.red'));
     if (isSettingsFile) {
-      // Use a specific icon for settings files
       this.iconPath = new vscode.ThemeIcon('settings-gear');
     } else if (tags.includes('index')) {
       // https://microsoft.github.io/vscode-codicons/dist/codicon.html?utm_source=chatgpt.com
       this.iconPath = new vscode.ThemeIcon('list-unordered');
     } else if (tags.includes('tools')) {
-      this.iconPath = new vscode.ThemeIcon('too');
+      this.iconPath = new vscode.ThemeIcon('tools');
     }
     if (tags.includes('todo')) {
       this.iconPath = new vscode.ThemeIcon('checklist');

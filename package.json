@@ -120,6 +120,10 @@
         {
           "command": "estate.snippet.export",
           "group": "navigation"
+        },
+        {
+          "command": "estate.bookmark.view",
+          "group": "navigation"
         }
       ],
       "editor/title": [
@@ -154,6 +158,10 @@
         {
           "command": "estate.snippet.export",
           "group": "navigation"
+        },
+        {
+          "command": "estate.bookmark.view",
+          "group": "navigation"
         }
       ],
       "editor/title/context": [
@@ -161,6 +169,10 @@
           "command": "estate.flow.next",
           "group": "navigation",
           "when": "estateExplorer.visible"
+        },
+        {
+          "command": "estate.bookmark.view",
+          "group": "navigation"
         }
       ]
     },
@@ -171,6 +183,11 @@
       }
     ],
     "commands": [
+      {
+        "command": "estate.bookmark.view",
+        "title": "Estate: View Bookmark",
+        "icon": "$(preview)"
+      },
       {
         "command": "estate.anchor.pipeline",
         "title": "Estate: Flow",
@@ -184,13 +201,6 @@
         "title": "Save Settings",
         "shortTitle": "Configure behavior",
         "icon": "$(save)",
-        "category": "Settings"
-      },
-      {
-        "command": "estate.settings.configure",
-        "title": "Open Settings",
-        "shortTitle": "Configure behavior",
-        "icon": "$(gear)",
         "category": "Settings"
       },
       {
@@ -278,6 +288,13 @@
       {
         "command": "bookmark.edit",
         "title": "Estate: Edit Bookmark"
+      },
+      {
+        "command": "estate.settings.configure",
+        "title": "Open Settings",
+        "shortTitle": "Configure behavior",
+        "icon": "$(gear)",
+        "category": "Settings"
       }
     ],
     "configuration": {
@@ -491,7 +508,7 @@
     }
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
+    "@eslint/js": "^10",
     "@types/markdown-it": "^14.1.2",
     "@types/mocha": "^10.0.10",
     "@types/node": "^25.9.1",
@@ -500,7 +517,7 @@
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.9.1",
     "esbuild": "^0.28.0",
-    "eslint": "^10.4.0",
+    "eslint": "^10.8.0",
     "eslint-plugin-import": "^2.32.0",
     "markdown-it": "^14.1.1",
     "mocha": "^11.7.5",

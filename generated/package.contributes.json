@@ -2,6 +2,11 @@
   "contributes": {
     "commands": [
       {
+        "command": "estate.bookmark.view",
+        "title": "Estate: View Bookmark",
+        "icon": "$(preview)"
+      },
+      {
         "command": "estate.anchor.pipeline",
         "title": "Estate: Anchor a pipeline's flow",
         "shortTitle": "Understand your code by noting steps through configuration files, branches, and variants",
@@ -12,51 +17,24 @@
       {
         "command": "estate.show.ownership",
         "title": "Estate: Show Ownership Analysis",
-        "shortTitle": "Visualize ownership flow, borrowing relationships, and affected regions",
+        "shortTitle": "Visualize ownership relationships and affected code regions",
         "category": "Analysis",
-        "icon": "$(symbol-reference)",
+        "icon": "$(references)",
         "enablement": "estate.rustAnalyzerReady"
-      },
-      {
-        "command": "estate.bookmark.create",
-        "title": "Estate: Create Bookmark",
-        "shortTitle": "Create a persistent code bookmark with context, notes, and metadata",
-        "category": "Bookmarks",
-        "icon": "$(bookmark)",
-        "enablement": "editorTextFocus"
-      },
-      {
-        "command": "estate.pipeline.inspect",
-        "title": "Estate: Inspect Pipeline Stage",
-        "shortTitle": "Open the pipeline graph and inspect transformations between stages",
-        "category": "Pipeline",
-        "icon": "$(graph)",
-        "enablement": "estate.pipelineAvailable"
-      },
-      {
-        "command": "estate.open.documentation",
-        "title": "Estate: Open Documentation",
-        "shortTitle": "Open command documentation and implementation references",
-        "category": "Help",
-        "icon": "$(book)"
       }
     ],
     "menus": {
+      "editor/title/context": [
+        {
+          "command": "estate.bookmark.view",
+          "group": "navigation"
+        }
+      ],
       "editor/context": [
         {
           "command": "estate.anchor.pipeline",
           "when": "editorLangId == rust",
           "group": "estate@1"
-        },
-        {
-          "command": "estate.show.ownership",
-          "when": "editorLangId == rust",
-          "group": "estate.analysis"
-        },
-        {
-          "command": "estate.bookmark.create",
-          "when": "editorTextFocus",
-          "group": "estate.bookmarks"
         }
       ],
       "view/item/context": [
@@ -64,42 +42,12 @@
           "command": "estate.anchor.pipeline",
           "when": "view == estateTree",
           "group": "estate@1"
-        },
-        {
-          "command": "estate.pipeline.inspect",
-          "when": "view == estatePipelineTree",
-          "group": "inline"
-        }
-      ],
-      "view/title": [
-        {
-          "command": "estate.anchor.pipeline",
-          "when": "view == estateTree",
-          "group": "navigation"
-        },
-        {
-          "command": "estate.pipeline.inspect",
-          "when": "view == estatePipelineTree",
-          "group": "navigation"
         }
       ],
       "editor/title": [
         {
           "command": "estate.show.ownership",
           "when": "editorLangId == rust",
-          "group": "estate"
-        }
-      ],
-      "editor/title/context": [
-        {
-          "command": "estate.bookmark.create",
-          "when": "editorTextFocus",
-          "group": "estate.bookmarks"
-        }
-      ],
-      "commandPalette": [
-        {
-          "command": "estate.open.documentation",
           "group": "estate"
         }
       ]
@@ -113,17 +61,7 @@
       {
         "command": "estate.show.ownership",
         "key": "ctrl+alt+o",
-        "when": "editorTextFocus && editorLangId == rust"
-      },
-      {
-        "command": "estate.bookmark.create",
-        "key": "ctrl+alt+b",
-        "when": "editorTextFocus"
-      },
-      {
-        "command": "estate.pipeline.inspect",
-        "key": "ctrl+alt+p",
-        "when": "estate.pipelineAvailable"
+        "when": "editorLangId == rust"
       }
     ]
   }

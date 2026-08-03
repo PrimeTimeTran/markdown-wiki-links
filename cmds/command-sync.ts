@@ -1,152 +1,7 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { COMMANDS } from './CMDS';
 import type { Keybinding } from './command-schema';
-
-export const COMMAND_NAMES: CommandDefinition[] = [
-  {
-    id: 'estate.anchor.pipeline',
-    title: "Estate: Anchor a pipeline's flow",
-    shortTitle:
-      'Understand your code by noting steps through configuration files, branches, and variants',
-
-    icon: '$(type-hierarchy-sub)',
-    category: 'Estate',
-
-    enablement: 'estate.input',
-
-    menus: [
-      {
-        menu: 'editor/context',
-        when: 'editorLangId == rust',
-        group: 'estate@1',
-      },
-      {
-        menu: 'view/item/context',
-        when: 'view == estateTree',
-        group: 'estate@1',
-      },
-      {
-        menu: 'view/title',
-        when: 'view == estateTree',
-        group: 'navigation',
-      },
-    ],
-
-    keybindings: [
-      {
-        key: 'ctrl+alt+a',
-        when: 'editorTextFocus',
-      },
-    ],
-  },
-
-  {
-    id: 'estate.show.ownership',
-    title: 'Estate: Show Ownership Analysis',
-    shortTitle: 'Visualize ownership flow, borrowing relationships, and affected regions',
-
-    icon: '$(symbol-reference)',
-    category: 'Analysis',
-
-    enablement: 'estate.rustAnalyzerReady',
-
-    menus: [
-      {
-        menu: 'editor/context',
-        when: 'editorLangId == rust',
-        group: 'estate.analysis',
-      },
-      {
-        menu: 'editor/title',
-        when: 'editorLangId == rust',
-        group: 'estate',
-      },
-    ],
-
-    keybindings: [
-      {
-        key: 'ctrl+alt+o',
-        when: 'editorTextFocus && editorLangId == rust',
-      },
-    ],
-  },
-
-  {
-    id: 'estate.bookmark.create',
-    title: 'Estate: Create Bookmark',
-    shortTitle: 'Create a persistent code bookmark with context, notes, and metadata',
-
-    icon: '$(bookmark)',
-    category: 'Bookmarks',
-
-    enablement: 'editorTextFocus',
-
-    menus: [
-      {
-        menu: 'editor/context',
-        when: 'editorTextFocus',
-        group: 'estate.bookmarks',
-      },
-      {
-        menu: 'editor/title/context',
-        when: 'editorTextFocus',
-        group: 'estate.bookmarks',
-      },
-    ],
-
-    keybindings: [
-      {
-        key: 'ctrl+alt+b',
-        when: 'editorTextFocus',
-      },
-    ],
-  },
-
-  {
-    id: 'estate.pipeline.inspect',
-    title: 'Estate: Inspect Pipeline Stage',
-    shortTitle: 'Open the pipeline graph and inspect transformations between stages',
-
-    icon: '$(graph)',
-    category: 'Pipeline',
-
-    enablement: 'estate.pipelineAvailable',
-
-    menus: [
-      {
-        menu: 'view/item/context',
-        when: 'view == estatePipelineTree',
-        group: 'inline',
-      },
-      {
-        menu: 'view/title',
-        when: 'view == estatePipelineTree',
-        group: 'navigation',
-      },
-    ],
-
-    keybindings: [
-      {
-        key: 'ctrl+alt+p',
-        when: 'estate.pipelineAvailable',
-      },
-    ],
-  },
-
-  {
-    id: 'estate.open.documentation',
-    title: 'Estate: Open Documentation',
-    shortTitle: 'Open command documentation and implementation references',
-
-    icon: '$(book)',
-    category: 'Help',
-
-    menus: [
-      {
-        menu: 'commandPalette',
-        group: 'estate',
-      },
-    ],
-  },
-];
 
 interface CommandDefinition {
   id: string;
@@ -177,11 +32,6 @@ interface MenuContribution {
   when?: string;
   group?: string;
 }
-
-import fs from 'node:fs';
-import path from 'node:path';
-
-import { COMMANDS } from './command-registry';
 
 interface PackageContributes {
   commands: Array<{
@@ -384,7 +234,7 @@ function write(file: string, content: string) {
 export function syncCommands() {
   const root = process.cwd();
 
-  const contributes = generatePackageContributes(COMMAND_NAMES);
+  const contributes = generatePackageContributes(COMMANDS);
 
   //
   // VS Code package.json contributes section

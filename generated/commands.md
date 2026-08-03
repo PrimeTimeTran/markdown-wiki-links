@@ -1,4 +1,27 @@
 
+# Estate: View Bookmark
+
+Command:
+
+`estate.bookmark.view`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- editor/title/context
+
+---
+
+
 # Estate: Anchor a pipeline's flow
 
 Command:
