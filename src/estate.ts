@@ -168,7 +168,6 @@ export class VFSProvider implements vscode.TextDocumentContentProvider {
   // class then we can attach capabilities.
   // Also useful if it's been idenfieid to have a matching property
 }
-
 export class VFSDecorator implements vscode.FileDecorationProvider {
   constructor(ctx: vscode.ExtensionContext, app: AppStore) {
     app.activity.subscribe((a) => {
@@ -183,7 +182,7 @@ export class VFSDecorator implements vscode.FileDecorationProvider {
 
     return {
       badge: '•',
-      color: new vscode.ThemeColor('charts.green'),
+      //   color: new vscode.ThemeColor('charts.green'),
       tooltip: 'Active bookmark',
     };
   }
@@ -199,7 +198,6 @@ export class VFSDecorator implements vscode.FileDecorationProvider {
   // 'editorInfo.foreground'
   // 'terminal.ansiGreen'
 }
-
 export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
   constructor(public app: AppStore) {}
   private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<
@@ -222,22 +220,21 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
       return SECTIONS_LIST.map((s) => new EstateNode('folder', s));
     }
     const bookmarks = this.app.bookmarks.list();
-
     switch (node.label) {
       case SECTIONS_LIST[0]:
         return bookmarks
           .filter((b) => !b.tags.includes('sequence') && !b.tags.includes('misc'))
-          .map((b) => new EstateNode('bookmark', b.label ?? '', b));
+          .map((b) => new EstateNode('bookmark', path.basename(b.uri() ?? '') ?? '', b));
 
       case SECTIONS_LIST[1]:
         return bookmarks
           .filter((b) => b.tags.includes('sequence'))
-          .map((b) => new EstateNode('bookmark', b.label ?? '', b));
+          .map((b) => new EstateNode('bookmark', path.basename(b.uri() ?? '') ?? '', b));
 
       case SECTIONS_LIST[2]:
         return bookmarks
           .filter((b) => b.tags.includes('misc'))
-          .map((b) => new EstateNode('bookmark', b.label ?? '', b));
+          .map((b) => new EstateNode('bookmark', path.basename(b.uri() ?? '') ?? '', b));
 
       default:
         return [];
@@ -256,7 +253,6 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
     });
   }
 }
-
 export class EstateNode extends vscode.TreeItem {
   constructor(
     public readonly type: 'folder' | 'bookmark',
@@ -322,6 +318,7 @@ export class EstateNode extends vscode.TreeItem {
     const isSettingsFile = /settings\.json$/i.test(uri);
     const tags = bookmark.tags ?? [];
     this.iconPath = new vscode.ThemeIcon('pinned', new vscode.ThemeColor('charts.red'));
+
     if (isSettingsFile) {
       this.iconPath = new vscode.ThemeIcon('settings-gear');
     } else if (tags.includes('index')) {

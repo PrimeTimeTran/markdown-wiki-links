@@ -14,6 +14,18 @@ const newCmd: CommandDefinition = {
 
 export const COMMANDS2: CommandDefinition[] = [];
 export const COMMANDS: CommandDefinition[] = [
+  {
+    id: 'estate.filter',
+    title: 'Estate: Filter',
+    icon: '$(filter)',
+    shortTitle: 'estate filter',
+    menus: [
+      {
+        menu: 'view/title',
+        group: 'navigation',
+      },
+    ],
+  },
   newCmd,
   {
     id: 'estate.anchor.pipeline',

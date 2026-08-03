@@ -521,7 +521,6 @@ export class AnchorPresenter {
   private async showAnchorPane(bookmark: Anchor) {
     const id = bookmark.id;
 
-    //
     // 1. Focus existing bookmark panel
     //
     const existingPanel = this.bookmarkPanels.get(id);
@@ -564,13 +563,6 @@ export class AnchorPresenter {
       undefined,
       this.app.ctx.subscriptions,
     );
-    console.log('SENDING TO WEBVIEW', {
-      id: bookmark.id,
-      codeLength: bookmark.code?.length,
-      bodyLength: bookmark.body?.length,
-    });
-
-    panel.webview.html = anchorShowPage(bookmark);
     panel.webview.html = anchorShowPage(bookmark);
   }
   private async openAnchorSource(bookmark: Anchor) {
@@ -582,14 +574,11 @@ export class AnchorPresenter {
     const editor = await vscode.window.showTextDocument(doc, {
       preview: false,
     });
-
     const pos = new vscode.Position(
       bookmark.src?.startLine ?? 0,
       bookmark.src?.startCharacter ?? 0,
     );
-
     editor.selection = new vscode.Selection(pos, pos);
-
     editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter);
   }
   private async showPagePane(
@@ -609,10 +598,8 @@ export class AnchorPresenter {
       let editor = vscode.window.visibleTextEditors.find(
         (e) => e.document.uri.toString() === uri.toString(),
       );
-
       if (!editor) {
         const doc = await vscode.workspace.openTextDocument(uri);
-
         editor = await vscode.window.showTextDocument(doc, {
           preview: false,
           preserveFocus: false,
@@ -620,26 +607,22 @@ export class AnchorPresenter {
       } else {
         await vscode.window.showTextDocument(editor.document, editor.viewColumn);
       }
-
       const pos = new vscode.Position(anchor.src?.startLine ?? 0, anchor.src?.startCharacter ?? 0);
-
       editor.selection = new vscode.Selection(pos, pos);
-
       editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter);
 
       return;
     }
 
+    this.showAnchorPane(anchor)
+
     //
     // 2. Update existing panel
     //
     const existingPanel = this.bookmarkPanels.get(id);
-
     if (existingPanel) {
       existingPanel.reveal(vscode.ViewColumn.Active);
-
       existingPanel.webview.html = anchorShowPage(anchor);
-
       return;
     }
 
@@ -680,12 +663,6 @@ export class AnchorPresenter {
       undefined,
       this.app.ctx.subscriptions,
     );
-
-    console.log('SENDING TO WEBVIEW', {
-      id: anchor.id,
-      codeLength: anchor.code?.length,
-      bodyLength: anchor.body?.length,
-    });
 
     panel.webview.html = anchorShowPage(anchor);
   }
