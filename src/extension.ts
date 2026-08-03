@@ -35,8 +35,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   context.subscriptions.push(
     vscode.commands.registerCommand('estate.enterLeader', async () => {
       app.enterLeader();
-      console.log('Leader!', app.input);
-      await vscode.commands.executeCommand('setContext', 'estate.leader', true);
+      console.log('app.inputapp.input', app.input);
+      await vscode.commands.executeCommand('setContext', 'estate.leader', app.input);
       app.tree.refresh();
     }),
   );

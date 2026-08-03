@@ -65,24 +65,6 @@ export interface Anchor {
   // Later this can become a proper relationship table/store
   lists?: string[];
 }
-export interface Anchor {
-  type?: string;
-  description?: string;
-  code?: string;
-  context?: string;
-  body?: string;
-  scratchpadBody?: string;
-  scratchpadExt?: string;
-  repo?: string;
-  commit?: string;
-  scope?: string;
-  privacy?: string;
-  updatedAt?: string;
-  createdAt?: string;
-  //   uri: String;
-  origin: AnchorOrigin;
-  anchors: string[];
-}
 // Runtime
 export class Anchor {
   id: string;
@@ -110,11 +92,6 @@ export interface AnchorSource {
   endCharacter?: number;
   languageId?: string;
 }
-export interface AnchorOccurrence extends Anchor {}
-export interface FlagOccurrence extends Anchor {
-  flag: EstateFlag;
-}
-export type Occurrence = AnchorOccurrence | FlagOccurrence;
 // CRUD
 // - [ ] Create
 // - [ ] Read
@@ -262,7 +239,6 @@ export class AnchorStore implements AnchorStoreType {
     return estates.reverse();
   }
   public async saveAnchor(patch: Partial<Anchor>) {
-    console.log('Hi');
     // if (!this.currentAnchor) {
     //   return;
     // }
@@ -501,22 +477,11 @@ export interface CreateAnchorOptions {
   captureScope?: boolean;
   captureContext?: boolean;
 }
-export interface AnchorOccurrence {
-  id: string;
-  line: number;
-  start: number;
-  end: number;
-}
+
 export interface Result<T> {
   ok: boolean;
   value?: T;
   error?: string;
-}
-export interface Anchor {
-  id: string;
-  line: number;
-  start: number;
-  end: number;
 }
 
 export function findFlags(text: string, store: AnchorStore, line: number): AnchorRef[] {
@@ -824,119 +789,6 @@ export interface AnchorAnchor {
   //   // why it exists
   //   source: 'reference' | 'position';
 }
-function getModalHtml(): string {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <style>
-        /* Reset and fill the entire webview tab area */
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.4); /* Dim the editor behind it */
-            font-family: var(--vscode-font-family);
-            color: var(--vscode-editor-foreground);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-        }
-        /* The Giant Centered "Command Palette" Box */
-        .modal-container {
-            width: 70vw;          /* Takes up 70% of your screen width */
-            height: 60vh;         /* Takes up 60% of your screen height */
-            background-color: var(--vscode-editor-background);
-            border: 1px solid var(--vscode-widget-border, #444);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            animation: fadeIn 0.15s ease-out;
-        }
-        /* Subtle scale-up animation */
-        @keyframes fadeIn {
-            from { transform: scale(0.95); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-        /* Palette Input Header */
-        .palette-input {
-            width: 100%;
-            padding: 16px;
-            font-size: 18px;
-            background: var(--vscode-input-background);
-            color: var(--vscode-input-foreground);
-            border: none;
-            border-bottom: 1px solid var(--vscode-widget-border, #444);
-            outline: none;
-            box-sizing: border-box;
-        }
-        /* Results Area */
-        .palette-results {
-            flex: 1;
-            overflow-y: auto;
-            padding: 8px;
-        }
-        .palette-item {
-            padding: 10px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .palette-item:hover, .palette-item.active {
-            background-color: var(--vscode-list-activeSelectionBackground);
-            color: var(--vscode-list-activeSelectionForeground);
-        }
-    </style>
-</head>
-<body>
-    <div class="modal-container">
-        <input type="text" class="palette-input" placeholder="Type a command or search reference..." autofocus />
-        <div class="palette-results">
-            <div class="palette-item active">First giant suggestion item</div>
-            <div class="palette-item">Second reference module</div>
-            <div class="palette-item">Third option block</div>
-        </div>
-    </div>
-    <script>
-        // Close automatically when user hits Escape
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                // Send message back to extension to close panel
-                const vscode = acquireVsCodeApi();
-                vscode.postMessage({ command: 'close' });
-            }
-        });
-    </script>
-</body>
-</html>`;
-}
-// Define a custom interface extending QuickPickItem to hold extra data
-
-function languageForAnchor(bookmark: Anchor): string {
-  const ext = path.extname(bookmark.uri()).toLowerCase();
-
-  switch (ext) {
-    case '.rs':
-      return 'rust';
-    case '.ts':
-      return 'typescript';
-    case '.js':
-      return 'javascript';
-    case '.html':
-      return 'html';
-    case '.css':
-      return 'css';
-    case '.json':
-      return 'json';
-    case '.md':
-      return 'markdown';
-    default:
-      return 'plaintext';
-  }
-}
-
 // export interface Anchor {
 //   id: string;
 //   label?: string;

@@ -59,10 +59,10 @@ export class AnalysisStore {
       this.setAnalysis(analysis, raw.analysis.related_lines, raw.formatted_output);
       this.printformatted();
     } catch (error: any) {
-      console.error('Analysis failed', error);
-      if (error.stdout) {
-        console.error(error.stdout);
-      }
+      //   console.error('Analysis failed: LSP Installed?', error);
+      //   if (error.stdout) {
+      //     console.error(error.stdout);
+      //   }
     }
   }
   printExtClick(item: any) {

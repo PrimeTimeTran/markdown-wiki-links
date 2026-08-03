@@ -68,6 +68,10 @@ function printCmds() {
 }
 
 export const CMD = {
+  estate: {
+    anchor: 'anchor.pipeline',
+    refresh: 'estate.refresh',
+  },
   bookmark: {
     create: 'bookmark.create',
     read: 'bookmark.read',
@@ -77,10 +81,7 @@ export const CMD = {
     present: 'bookmark.present',
     edit: 'bookmark.edit',
   },
-  estate: {
-    open: 'estate.open',
-    refresh: 'estate.refresh',
-  },
+
   refPanel: {
     open: 'refPanel.open',
     register: 'refPanel.register',

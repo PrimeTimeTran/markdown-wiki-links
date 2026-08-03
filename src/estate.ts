@@ -5,6 +5,7 @@ import { ScopeInfo } from './activity';
 import { Anchor } from './adapters/bookmarkService';
 import { AppStore } from './app';
 import { CMD } from './cmds';
+import { SECTIONS_LIST, SNIPPET_ITEMS } from './consts';
 
 /* 
 # Modes:
@@ -144,11 +145,11 @@ export class VFSProvider implements vscode.TextDocumentContentProvider {
         if (!language) {
           return;
         }
-        const doc = await vscode.workspace.openTextDocument({
-          language: language.id,
-          content: language.template,
-        });
-        const editor = await vscode.window.showTextDocument(doc);
+        // const doc = await vscode.workspace.openTextDocument({
+        //   language: language.id,
+        //   content: language.template,
+        // });
+        // const editor = await vscode.window.showTextDocument(doc);
         await vscode.commands.executeCommand('editor.action.formatDocument');
       }),
     );
@@ -159,47 +160,7 @@ export class VFSProvider implements vscode.TextDocumentContentProvider {
   }
 
   private async pickSnippetLanguage() {
-    const items = [
-      {
-        label: 'HTML',
-        id: 'html',
-        template: `<!doctype html>
-<html>
-    <head>
-    <title>Snippet</title>
-    </head>
-    <body>
-    </body>
-</html>`,
-      },
-
-      {
-        label: 'JavaScript',
-        id: 'javascript',
-        template: `function main() {
-}
-
-main();`,
-      },
-
-      {
-        label: 'CSS',
-        id: 'css',
-        template: `.container {
-
-}`,
-      },
-
-      {
-        label: 'JSON',
-        id: 'json',
-        template: `{
-  
-}`,
-      },
-    ];
-
-    return vscode.window.showQuickPick(items, {
+    return vscode.window.showQuickPick(SNIPPET_ITEMS, {
       placeHolder: 'Choose snippet type',
     });
   }
@@ -238,13 +199,6 @@ export class VFSDecorator implements vscode.FileDecorationProvider {
   // 'editorInfo.foreground'
   // 'terminal.ansiGreen'
 }
-
-const SECTIONS_LIST = ['main', 'series', 'blank'];
-const SECTIONS = {
-  [SECTIONS_LIST[0]]: {},
-  [SECTIONS_LIST[1]]: {},
-  [SECTIONS_LIST[2]]: {},
-};
 
 export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
   constructor(public app: AppStore) {}
@@ -294,8 +248,7 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
     if (editors.length > 0) {
       return;
     }
-    let rootpath = path.join(os.homedir(), '.estate', 'hello-world.html');
-    const uri = vscode.Uri.file('/');
+    const uri = path.join(os.homedir(), '.estate', 'hello.html');
     const doc = await vscode.workspace.openTextDocument(uri);
     await vscode.window.showTextDocument(doc, {
       viewColumn: vscode.ViewColumn.Active,

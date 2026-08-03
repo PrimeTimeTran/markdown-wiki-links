@@ -22,3 +22,50 @@ export const longLangs = [
   { language: 'typescript' },
   { language: 'javascript' },
 ];
+
+export const SECTIONS_LIST = ['main', 'series', 'blank'];
+export const SECTIONS = {
+  [SECTIONS_LIST[0]]: {},
+  [SECTIONS_LIST[1]]: {},
+  [SECTIONS_LIST[2]]: {},
+};
+
+export const SNIPPET_ITEMS = [
+  {
+    label: 'HTML',
+    id: 'html',
+    template: `<!doctype html>
+<html>
+    <head>
+    <title>Snippet</title>
+    </head>
+    <body>
+    </body>
+</html>`,
+  },
+
+  {
+    label: 'JavaScript',
+    id: 'javascript',
+    template: `function main() {
+}
+
+main();`,
+  },
+
+  {
+    label: 'CSS',
+    id: 'css',
+    template: `.container {
+
+}`,
+  },
+
+  {
+    label: 'JSON',
+    id: 'json',
+    template: `{
+  
+}`,
+  },
+];

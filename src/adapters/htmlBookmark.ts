@@ -16,7 +16,6 @@ interface RootHtmlOptions {
   title: string;
   body: string;
 }
-
 export function rootHtml({ title, body }: RootHtmlOptions) {
   return `
 <!DOCTYPE html>
@@ -241,163 +240,6 @@ document.querySelectorAll('pre code')
 </script>
     `;
 }
-
-// export function rootScript2() {
-//   return `
-// <script>
-// const vscode = acquireVsCodeApi();
-// document.querySelectorAll('[data-action]').forEach((button) => {
-//     button.onclick = () => {
-//         vscode.postMessage({
-//             type: button.dataset.action,
-//             id: button.dataset.anchor,
-//         });
-//     };
-// });
-
-// document.querySelectorAll('pre code').forEach((block) => {
-//     hljs.highlightElement(block);
-// });
-// </script>
-// `;
-// }
-
-// export const bookmarkShowPage = (b: Anchor) => {
-//   let body = `
-// <div class="container">
-//     <div class="workspace">
-//         <div class="content">
-//             ${renderBlock(b)}
-//         </div>
-//         <aside class="sidebar">
-//             <section>
-//                 <label>Options</label>
-//                 <select name="privacy">
-//                     <option>workspace</option>
-//                     <option>private</option>
-//                     <option>public</option>
-//                 </select>
-
-//                 <select name="type">
-//                     <option>code</option>
-//                     <option>note</option>
-//                     <option>reference</option>
-//                 </select>
-//             </section>
-//         </aside>
-//     </div>
-// </div>
-//     `;
-//   return `
-//     ${rootHtml(body)}
-// `;
-//   //   return `
-//   // <!doctype html>
-//   // <html>
-//   //     <head>
-//   //     <link rel="stylesheet" href="highlight.min.css">
-//   //     <script src="highlight.min.js"></script>
-//   //         ${rootCSS2()}
-//   //     </head>
-//   //     <body>
-//   //         <div class="container">
-//   //             <h1>Anchor</h1>
-//   //             <div class="form">
-//   //                 <div class="field">
-//   //                     <label>Label</label>
-//   //                     <input
-//   //                         name="label"
-//   //                         value="${b.label}" />
-//   //                 </div>
-
-//   //                 <div class="field">
-//   //                     <label>Description</label>
-//   //                     <input
-//   //                         name="description"
-//   //                         value="${b.description}" />
-//   //                 </div>
-
-//   //                 <div class="row">
-//   //                     <div class="field">
-//   //                         <label>Privacy</label>
-//   //                         <select name="privacy">
-//   //                             <option selected>workspace</option>
-//   //                             <option>private</option>
-//   //                             <option>public</option>
-//   //                         </select>
-//   //                     </div>
-
-//   //                     <div class="field">
-//   //                         <label>Type</label>
-//   //                         <select
-//   //                             name="type"
-//   //                             value="${b.type}">
-//   //                             <option selected>code</option>
-//   //                             <option>note</option>
-//   //                             <option>reference</option>
-//   //                         </select>
-//   //                     </div>
-//   //                 </div>
-//   //                 <div class="field">
-//   //                     <label>Tags</label>
-//   //                         <div class="tag">architecture ×</div>
-//   //                         <div class="tag">rust ×</div>
-//   //                         <div class="tag new">+ Add tag</div>
-//   //                 </div>
-//   //                 <div class="field">
-//   //                     <label>Body</label>
-//   //                     <pre><code class="language-rust">${escapeHtml(b.body)}</code></pre>
-//   //                 </div>
-//   //                 <div class="field">
-//   //                     <label>Scratchpad</label>
-//   //                     <textarea
-//   //                         name="scratchpadBody"
-//   //                         class="scratchpad-editor">
-//   //                     ${b.scratchpadBody}
-//   //                     </textarea>
-//   //                 </div>
-
-//   //                 <div class="field">
-//   //                     <label>Context</label>
-//   //                     <textarea> </textarea>
-//   //                 </div>
-
-//   //                 <div class="field">
-//   //                     <label>Code</label>
-//   //                     <textarea></textarea>
-//   //                 </div>
-
-//   //                 <div class="field">
-//   //                     <label>Repository</label>
-//   //                     <input />
-//   //                 </div>
-
-//   //                 <div class="field">
-//   //                     <label>Commit</label>
-//   //                     <input />
-//   //                 </div>
-
-//   //                 <div class="field">
-//   //                     <label>Scope</label>
-//   //                     <input value="source.selection" />
-//   //                 </div>
-
-//   //                 <div class="actions">
-//   //                     <button>Cancel</button>
-//   //                     <button
-//   //                         name="save"
-//   //                         class="save">
-//   //                         Save Anchor
-//   //                     </button>
-//   //                 </div>
-//   //             </div>
-//   //         </div>
-//   //         ${rootScript()}
-//   //     </body>
-//   // </html>
-//   //     `;
-// };
-
 export function getHtml(bookmark: Anchor): string {
   return /* html */ `
 <!DOCTYPE html>
@@ -694,38 +536,6 @@ ${tag}
 
 `;
 }
-// export function escapeHtml(value: string = '') {
-//   return value
-//     .replaceAll('&', '&amp;')
-//     .replaceAll('<', '&lt;')
-//     .replaceAll('>', '&gt;')
-//     .replaceAll('"', '&quot;')
-//     .replaceAll("'", '&#039;');
-// }
-
-// function rootHtml(body: string) {
-//   return `
-// <!DOCTYPE html>
-// <html lang="ko">
-// <head>
-// 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-// 	<meta name="description" content="" />
-// 	<meta name="author" content="" />
-// 	<meta name="viewport" content="user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, width=device-width" />
-//     <script src="highlight.min.js"></script>
-//     <script src="highlightjs/languages/rust.min.js"></script>
-// 	<title></title>
-//     <style>
-//         ${rootCSS()}
-//     </style>
-// </head>
-// <body>
-//     ${body}
-// 	${rootScript()}
-// </body>
-// </html>
-//     `;
-// }
 function rootCSS() {
   return `
 * {
@@ -1079,237 +889,6 @@ input {
 }
 `;
 }
-
-// function rootCSS2() {
-//   return `
-// <style>
-//     html,
-//     body {
-//         margin: 0;
-//         padding: 0;
-//         height: 100%;
-//         background: var(--vscode-editor-background);
-//         color: var(--vscode-editor-foreground);
-//         font-family: var(--vscode-font-family);
-//     }
-
-//     .container {
-//         width: min(1000px, 100%);
-//         margin: 0 auto;
-//         padding: 32px;
-//         box-sizing: border-box;
-//     }
-
-//     h1 {
-//         margin-top: 0;
-//         font-size: 26px;
-//     }
-
-//     .form {
-//         display: flex;
-//         flex-direction: column;
-//         gap: 20px;
-//     }
-
-//     .field {
-//         display: flex;
-//         flex-direction: column;
-//         gap: 6px;
-//     }
-
-//     label {
-//         font-size: 13px;
-//         font-weight: 600;
-//         opacity: 0.8;
-//     }
-
-//     input,
-//     textarea,
-//     select {
-//         width: 100%;
-//         box-sizing: border-box;
-
-//         padding: 10px 12px;
-
-//         background: var(--vscode-input-background);
-//         color: var(--vscode-input-foreground);
-
-//         border: 1px solid var(--vscode-input-border);
-//         border-radius: 5px;
-
-//         font-family: inherit;
-//         font-size: 14px;
-//     }
-
-//     textarea {
-//         resize: vertical;
-//         min-height: 120px;
-//     }
-
-//     .body-editor {
-//         min-height: 300px;
-//         font-family: var(--vscode-editor-font-family);
-//     }
-
-//     .tags {
-//         display: flex;
-//         flex-wrap: wrap;
-//         gap: 8px;
-
-//         padding: 8px;
-
-//         border: 1px solid var(--vscode-input-border);
-//         border-radius: 5px;
-
-//         background: var(--vscode-input-background);
-//     }
-
-//     .tag {
-//         padding: 4px 10px;
-//         border-radius: 20px;
-
-//         background: var(--vscode-button-secondaryBackground);
-//         color: var(--vscode-button-secondaryForeground);
-
-//         cursor: pointer;
-//     }
-
-//     .tag.new {
-//         opacity: 0.5;
-//     }
-
-//     .row {
-//         display: grid;
-//         grid-template-columns: 1fr 1fr;
-//         gap: 20px;
-//     }
-
-//     .actions {
-//         margin-top: 20px;
-
-//         display: flex;
-//         justify-content: flex-end;
-//         gap: 10px;
-//     }
-
-//     button {
-//         padding: 8px 18px;
-
-//         border-radius: 5px;
-//         border: none;
-
-//         cursor: pointer;
-
-//         background: var(--vscode-button-background);
-//         color: var(--vscode-button-foreground);
-//     }
-
-//     button:hover {
-//         background: var(--vscode-button-hoverBackground);
-//     }
-//     .bookmark-block.source-open {
-//         border-left: 3px solid var(--vscode-charts-green);
-//     }
-
-//     .source-open .source-button {
-//         color: var(--vscode-charts-green);
-//     }
-// </style>
-// `;
-// }
-
-// function renderBlock(b: Anchor) {
-//   return `
-//     <article
-//       class="bookmark-block"
-//       data-id="${b.id}"
-//       data-uri="${b.uri() ?? ''}"
-//       data-line="${b.src?.startLine ?? ''}"
-//     >
-//       <header class="block-header">
-//         <h2>
-//           <span class="icon">$(symbol-method)</span>
-//           ${b.label}
-//         </h2>
-//         <div class="block-actions">
-//           <button
-//             class="source-button"
-//             data-command="open-source"
-//             title="Open source">
-//               $(go-to-file)
-//           </button>
-//           <button
-//             title="Copy">
-//               $(copy)
-//           </button>
-//           <button
-//             title="Pin">
-//               $(pin)
-//           </button>
-//         </div>
-//       </header>
-//       <pre>
-//         <code class="language-rust">
-// ${escapeHtml(b.body)}
-//         </code>
-//       </pre>
-//       ${b.anchors?.length ? renderAnchors(b.anchors) : ''}
-
-//     </article>
-//   `;
-// }
-// function renderAnchors(anchors: AnchorAnchor[]) {
-//   return `
-//     <section class="anchors">
-//       <label>Anchors</label>
-
-//       <div class="anchor-tree">
-//         ${renderAnchorTree(anchors)}
-//       </div>
-//     </section>
-//   `;
-// }
-
-// function renderAnchorTree(anchors: AnchorAnchor[], depth = 0): string {
-//   return `
-//     <ul class="anchor-list depth-${depth}">
-//       ${anchors
-//         .map(
-//           (anchor) => `
-//             <li class="anchor-item">
-
-//               <button
-//                 class="anchor"
-//                 data-anchor-id="${anchor.id}"
-//                 data-uri="${anchor.uri ?? ''}"
-//                 data-line="${anchor.line ?? ''}"
-//               >
-//                 <span class="codicon codicon-symbol-field"></span>
-//                 <span class="anchor-label">
-//                   ${escapeHtml(anchor.label)}
-//                 </span>
-
-//                 ${
-//                   anchor.children?.length
-//                     ? `
-//                       <span class="child-count">
-//                         ${anchor.children.length}
-//                       </span>
-//                     `
-//                     : ''
-//                 }
-//               </button>
-
-//               ${anchor.children?.length ? renderAnchorTree(anchor.children, depth + 1) : ''}
-
-//             </li>
-//           `,
-//         )
-//         .join('')}
-//     </ul>
-//   `;
-// }
-
 export function escapeHtml(value: string = '') {
   return value
     .replaceAll('&', '&amp;')
@@ -1318,7 +897,6 @@ export function escapeHtml(value: string = '') {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
 }
-
 export function anchorScratchpad(anchor: Anchor) {
   if (!anchor.scratchpadBody) {
     return `
@@ -1349,7 +927,6 @@ export function anchorScratchpad(anchor: Anchor) {
     </section>
   `;
 }
-
 export function rootBody2(anchor: Anchor) {
   return `<main class="page">
     <section class="hero">
@@ -1415,7 +992,6 @@ export function rootBody2(anchor: Anchor) {
 </main>
 `;
 }
-
 export function anchorCode2(anchor: Anchor) {
   const source =
     anchor.code ||
