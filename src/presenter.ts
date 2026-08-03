@@ -1,9 +1,5 @@
-import * as fs from 'fs';
-import * as fsPromise from 'node:fs/promises';
-import * as os from 'os';
-import * as path from 'path';
 import * as vscode from 'vscode';
-import { Anchor, AnchorSeries, AnchorStore } from './adapters/bookmarkService';
+import { AnchorSeries } from './adapters/anchorService';
 
 export interface Presenter<T> {
   present(value: T): Thenable<void>;
@@ -27,12 +23,12 @@ export interface Presenter<T> {
   input(options?: vscode.InputBoxOptions): Thenable<string | undefined>;
 
   // Editors
-  configure(bookmark: T): Thenable<void>;
-  open(bookmark: T): Thenable<void>;
+  configure(anchor: T): Thenable<void>;
+  open(anchor: T): Thenable<void>;
   openDiff(left: vscode.Uri, right: vscode.Uri): Thenable<void>;
 
   // Panels
-  showEditor(bookmark: T): Thenable<void>;
+  showEditor(anchor: T): Thenable<void>;
   showSeries(series: AnchorSeries): Thenable<void>;
 
   // Tree / Explorer

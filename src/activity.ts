@@ -45,14 +45,10 @@ export interface EditorActivity {
 export interface ScopeInfo {
   variant: string;
   name?: string;
-
   kind: 'heading' | 'codeblock' | 'list' | 'paragraph';
-
   startLine: number;
   endLine: number;
-
   range?: vscode.Range;
-
   text: string;
 }
 export interface ActivityStoreType {
@@ -151,15 +147,15 @@ export class ActivityStore implements ActivityStoreType {
     const selection = editor.selection;
     // This felt right but isnt fow labeling entire files for flow
     // if (selection.isEmpty) {
-    //   vscode.window.showWarningMessage('Select something to bookmark first');
+    //   vscode.window.showWarningMessage('Select something to anchor first');
     //   return;
     // }
     const document = editor.document;
     const selectedText = document.getText(selection);
     // const id = `@${Date.now()}`;
-    //   bookmark: id,
+    //   anchor: id,
     //   label: `Anchor ${id}`,
-    const bookmark = {
+    const anchor = {
       scope: 'source.selection',
       uri: document.uri,
       selection,
@@ -175,7 +171,7 @@ export class ActivityStore implements ActivityStoreType {
         languageId: document.languageId,
       },
     };
-    return bookmark;
+    return anchor;
   }
 }
 // export interface ScopeInfo {
@@ -368,7 +364,7 @@ export function getHeadingLevel(text: string): number | undefined {
 //   }
 
 // 3. Ensure we use it in create.
-//   create(ctx: EstateContext, opts: CreateAnchorOptions, bookmark: Partial<Anchor>): Anchor {
+//   create(ctx: EstateContext, opts: CreateAnchorOptions, anchor: Partial<Anchor>): Anchor {
 //     const now = new Date().toISOString();
 //     let id = randomUUID();
 //     let b = new Anchor(id, {

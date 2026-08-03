@@ -1,32 +1,57 @@
 {
   "contributes": {
     "commands": [
-      {
-        "command": "estate.bookmark.view",
-        "title": "Estate: View Bookmark",
-        "icon": "$(preview)"
-      },
-      {
-        "command": "estate.anchor.pipeline",
-        "title": "Estate: Anchor a pipeline's flow",
-        "shortTitle": "Understand your code by noting steps through configuration files, branches, and variants",
-        "category": "Estate",
-        "icon": "$(type-hierarchy-sub)",
-        "enablement": "estate.input"
-      },
-      {
-        "command": "estate.show.ownership",
-        "title": "Estate: Show Ownership Analysis",
-        "shortTitle": "Visualize ownership relationships and affected code regions",
-        "category": "Analysis",
-        "icon": "$(references)",
-        "enablement": "estate.rustAnalyzerReady"
-      }
+      
     ],
     "menus": {
+      "view/item/context": [
+        {
+          "command": "estate.series.create",
+          "group": "plan"
+        },
+        {
+          "command": "estate.series.read",
+          "group": "plan"
+        },
+        {
+          "command": "estate.series.update",
+          "group": "plan"
+        },
+        {
+          "command": "estate.series.delete",
+          "group": "plan"
+        },
+        {
+          "command": "estate.bookmark.create",
+          "group": "plan"
+        },
+        {
+          "command": "estate.bookmark.read",
+          "group": "plan"
+        },
+        {
+          "command": "estate.bookmark.update",
+          "group": "plan"
+        },
+        {
+          "command": "estate.bookmark.delete",
+          "group": "plan"
+        },
+        {
+          "command": "estate.anchor.pipeline",
+          "when": "view == estateTree",
+          "group": "estate@1"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "estate.filter",
+          "group": "navigation"
+        }
+      ],
       "editor/title/context": [
         {
-          "command": "estate.bookmark.view",
+          "command": "estate.anchor.view",
           "group": "navigation"
         }
       ],
@@ -34,13 +59,6 @@
         {
           "command": "estate.anchor.pipeline",
           "when": "editorLangId == rust",
-          "group": "estate@1"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "estate.anchor.pipeline",
-          "when": "view == estateTree",
           "group": "estate@1"
         }
       ],

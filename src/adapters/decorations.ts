@@ -369,7 +369,7 @@ export class WikiDecorations {
           icon: '🔖',
           actions: [
             {
-              kind: 'bookmark',
+              kind: 'anchor',
               id: '@bar',
               label: '🔖 Open Anchor',
             },
@@ -626,7 +626,7 @@ type Style = {
 //   | { kind: 'panel'; panel: 'references' | 'graph' | 'outline' }
 //   | { kind: 'command'; id: string; args?: unknown[] }
 //   | { kind: 'peek'; symbol: string }
-//   | { kind: 'bookmark'; id: string }
+//   | { kind: 'anchor'; id: string }
 //   | { kind: 'search'; query: string };
 type EstateNode = {
   id: string;
@@ -664,7 +664,7 @@ type EstateAction =
       label: string;
     }
   | {
-      kind: 'bookmark';
+      kind: 'anchor';
       id: string;
       args?: unknown[];
       label: string;

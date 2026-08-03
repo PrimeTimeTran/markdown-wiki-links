@@ -1,3 +1,5 @@
+
+
 export const EXT_PATH = '/Users/future/KB/project/app/markdown-wiki-links';
 
 // export interface Lang {

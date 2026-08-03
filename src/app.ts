@@ -2,9 +2,9 @@ import * as vscode from 'vscode';
 
 import { ActivityStore } from './activity';
 import { AnalysisStore } from './analysis';
-import { AnchorPresenter, AnchorStore } from './adapters/bookmarkService';
+import { AnchorPresenter, AnchorStore } from './adapters/anchorService';
 import { VFSDecorator, EstateTreeProvider, VFSProvider, EstateNode } from './estate';
-import { CMD } from './cmds';
+import { CMD } from '../generated/cmd';
 
 export interface EstateState {
   mdPreviewMode: boolean;
@@ -19,12 +19,12 @@ export class AppStore {
   readonly vfsDecorator: VFSDecorator;
   readonly activity: ActivityStore;
   readonly analysis: AnalysisStore;
-  readonly bookmarks: AnchorStore;
+  readonly anchors: AnchorStore;
   readonly presenter: AnchorPresenter;
 
   constructor(public ctx: vscode.ExtensionContext) {
     this.activity = new ActivityStore(this);
-    this.bookmarks = new AnchorStore(this);
+    this.anchors = new AnchorStore(this);
     this.analysis = new AnalysisStore(this);
     this.presenter = new AnchorPresenter(this);
     this.tree = new EstateTreeProvider(this);
@@ -38,7 +38,7 @@ export class AppStore {
     ctx.subscriptions.push(
       view.onDidChangeVisibility(async (e) => {
         if (e.visible) {
-          await this.tree.ensureEditorOpen();
+          //   await this.tree.ensureEditorOpen();
         }
       }),
       view,
@@ -101,7 +101,7 @@ interface ReferenceItem extends vscode.QuickPickItem {
 }
 
 export function registerGiantQuickPickCommand(context: vscode.ExtensionContext, app: AppStore) {
-  let disposable = vscode.commands.registerCommand(CMD.refPanel.open, async () => {
+  let disposable = vscode.commands.registerCommand(CMD.estate.show.ownership, async () => {
     const quickPick = vscode.window.createQuickPick<ReferenceItem>();
     quickPick.title = '🚀 Reference & Command Hub';
     quickPick.placeholder = 'Type to search references, snippets, or actions...';

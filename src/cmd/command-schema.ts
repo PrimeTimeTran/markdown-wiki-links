@@ -6,18 +6,15 @@ export type MenuId =
   | 'editor/title'
   | 'editor/title/context'
   | 'commandPalette';
-
 export interface Keybinding {
   key: string;
   when?: string;
 }
-
 export interface MenuContribution {
   menu: MenuId;
   when?: string;
   group?: string;
 }
-
 export interface CommandDefinition {
   id: string;
 

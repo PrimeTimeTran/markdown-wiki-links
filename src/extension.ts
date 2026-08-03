@@ -15,10 +15,10 @@ import {
   setResolver,
   resetResolver,
 } from './markdownItPlugin/index';
-import { EstateContext, EstateNode } from './estate';
+import { EstateContext } from './estate';
 import { AppStore, registerGiantQuickPickCommand } from './app';
 import { WikiDecorations } from './adapters/decorations';
-import { OwnershipInlayProvider } from './ownership';
+// import { OwnershipInlayProvider } from './ownership';
 import { OwnershipCodeActionProvider } from './adapters/codeAction';
 import { OwnershipContentProvider, OwnershipEngine, showOwnershipView } from './diff';
 
@@ -106,71 +106,56 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
     ),
   );
 
-  let store = app.bookmarks;
+  let store = app.anchors;
   // We accept the inserted wrapping () to prevent having to use context.subscriptions.push everywhere
   // oxlint-disable-next-line no-unused-expressions
   (context.subscriptions.push(
     vscode.commands.registerCommand('ui.addInlinePanel', (ctx: { id: string }) => {
-      const bookmark = app.bookmarks.get(ctx.id);
-      if (!bookmark) return;
-      vscode.window.showInformationMessage(`Inline: ${bookmark.label}`);
+      const anchor = app.anchors.get(ctx.id);
+      if (!anchor) return;
+      vscode.window.showInformationMessage(`Inline: ${anchor.label}`);
     }),
-    // vscode.commands.registerCommand('bookmark.create', (ctx) => {
-    //   new AnchorPresenter(ctx).present();
-    // }),
-    // vscode.commands.registerCommand('bookmark.edit', (ctx) => {
-    //     new AnchorPresenter(app).present(ctx, store, tree),
-    // }
   ),
-    // vscode.commands.registerCommand('bookmark.present', async (ctx: EstateContext) => {
-    //   const bookmark = store.get(ctx.bookmark);
-    //   if (!bookmark) {
-    //     vscode.window.showWarningMessage(`Unknown estate: ${ctx.bookmark}`);
-    //     return;
-    //   }
-    //   await showEstatePanel(bookmark);
-    //   vscode.window.showInformationMessage(`Editor Group: ${bookmark.label}`);
-    // }),
     vscode.commands.registerCommand('estate.addPersistentNotification', (ctx: { id: string }) => {
-      const bookmark = store.get(ctx.id);
-      if (!bookmark) return;
-      vscode.window.showInformationMessage(`Pinned: ${bookmark.label}`);
+      const anchor = store.get(ctx.id);
+      if (!anchor) return;
+      vscode.window.showInformationMessage(`Pinned: ${anchor.label}`);
     }),
     vscode.commands.registerCommand('estate.openTextAndIconPanel', (ctx: { id: string }) => {
-      const bookmark = store.get(ctx.id);
-      if (!bookmark) return;
-      vscode.window.showInformationMessage(`Panel: ${bookmark.label}`);
+      const anchor = store.get(ctx.id);
+      if (!anchor) return;
+      vscode.window.showInformationMessage(`Panel: ${anchor.label}`);
     }),
     vscode.commands.registerCommand('ui.openQuickpickDropdown', (ctx: { id: string }) => {
-      const bookmark = store.get(ctx.id);
-      if (!bookmark) return;
+      const anchor = store.get(ctx.id);
+      if (!anchor) return;
       vscode.window.showQuickPick([
-        `🧩 Inline ${bookmark.label}`,
-        `🕸 Graph ${bookmark.label}`,
-        `♻️ Replace ${bookmark.label}`,
-        `💾 Save ${bookmark.label}`,
+        `🧩 Inline ${anchor.label}`,
+        `🕸 Graph ${anchor.label}`,
+        `♻️ Replace ${anchor.label}`,
+        `💾 Save ${anchor.label}`,
       ]);
     }),
     vscode.commands.registerCommand('estate.contentSave', (ctx: { id: string }) => {
-      const bookmark = store.get(ctx.id);
-      if (!bookmark) return;
-      vscode.window.showInformationMessage(`Save content for ${bookmark.label}`);
+      const anchor = store.get(ctx.id);
+      if (!anchor) return;
+      vscode.window.showInformationMessage(`Save content for ${anchor.label}`);
     }),
     vscode.commands.registerCommand('estate.contentCycle', (ctx: { id: string }) => {
-      const bookmark = store.get(ctx.id);
-      if (!bookmark) return;
-      vscode.window.showInformationMessage(`Cycle variants for ${bookmark.label}`);
+      const anchor = store.get(ctx.id);
+      if (!anchor) return;
+      vscode.window.showInformationMessage(`Cycle variants for ${anchor.label}`);
     }),
     vscode.commands.registerCommand('estate.contentReplace', (ctx: { id: string }) => {
-      const bookmark = store.get(ctx.id);
-      if (!bookmark) return;
+      const anchor = store.get(ctx.id);
+      if (!anchor) return;
 
-      vscode.window.showInformationMessage(`Replace using ${bookmark.label}`);
+      vscode.window.showInformationMessage(`Replace using ${anchor.label}`);
     }),
     // vscode.commands.registerCommand(
-    //   'bookmark.create',
+    //   'anchor.create',
     //   async (uri: vscode.Uri, range: vscode.Range) => {
-    //     console.log('ADD BOOKMARK', { uri, range });
+    //     console.log('ADD anchor', { uri, range });
     //     await store.create(context);
     //     codeLens.refresh();
     //   },
@@ -200,7 +185,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
     // ),
     vscode.commands.registerCommand('wikiLinks.rebuildIndex', () => indexService?.refresh()),
     vscode.commands.registerCommand('wiki.showGraph', (ctx: EstateContext) => {
-      vscode.window.showInformationMessage(`Graph for ${ctx.bookmark}`);
+      vscode.window.showInformationMessage(`Graph for ${ctx.anchor}`);
     }),
     vscode.commands.registerCommand('ui.pinnable', (ctx: { id: string }) => {
       const flag = store.getFlag(ctx.id);
@@ -208,9 +193,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
       vscode.window.showInformationMessage(`Pinnable for ${flag?.label}`);
     }),
     vscode.commands.registerCommand('ui.pick', (ctx) => {
-      const bookmark = store.get(ctx.id);
+      const anchor = store.get(ctx.id);
       vscode.window.showQuickPick([
-        `🏠 ${bookmark?.label}`,
+        `🏠 ${anchor?.label}`,
         '🕸 Graph',
         '📄 Open Body',
         '🌿 Branches',
@@ -257,7 +242,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   const decorations = new WikiDecorations(app, indexService);
   decorations.register(context);
 
-  let inlineProvider = new OwnershipInlayProvider(app);
+  //   let inlineProvider = new OwnershipInlayProvider(app);
   //   context.subscriptions.push(
   //     vscode.languages.registerInlayHintsProvider({ language: 'rust' }, inlineProvider),
   //   );

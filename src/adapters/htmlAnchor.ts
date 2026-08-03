@@ -1,4 +1,4 @@
-import { Anchor } from './bookmarkService';
+import { Anchor } from './anchorService';
 
 export function anchorShowPage(anchor: Anchor) {
   console.log('anchorShowPage', {
@@ -212,7 +212,7 @@ button?.addEventListener('click', () => {
 
     vscode.postMessage({
         type: 'saveAnchor',
-        bookmark: {}
+        anchor: {}
     });
 });
 
@@ -223,7 +223,7 @@ document.querySelectorAll('pre code')
 </script>
     `;
 }
-export function getHtml(bookmark: Anchor): string {
+export function getHtml(anchor: Anchor): string {
   return /* html */ `
 <!DOCTYPE html>
 <html>
@@ -303,7 +303,7 @@ Label
 
 <input
 id="label"
-value="${escapeHtml(bookmark.label)}"
+value="${escapeHtml(anchor.label)}"
 class="
 w-full rounded-md px-3 py-2
 text-sm
@@ -346,7 +346,7 @@ Description
 
 <input
 id="description"
-value="${escapeHtml(bookmark.description)}"
+value="${escapeHtml(anchor.description)}"
 class="
 w-full rounded-md px-3 py-2
 text-sm
@@ -387,11 +387,11 @@ Tags
 grid grid-cols-2 sm:grid-cols-3 gap-2
 ">
 
-// ${renderTag('architecture', bookmark.tags)}
-// ${renderTag('parser', bookmark.tags)}
-// ${renderTag('compiler', bookmark.tags)}
-// ${renderTag('rust', bookmark.tags)}
-// ${renderTag('vscode', bookmark.tags)}
+// ${renderTag('architecture', anchor.tags)}
+// ${renderTag('parser', anchor.tags)}
+// ${renderTag('compiler', anchor.tags)}
+// ${renderTag('rust', anchor.tags)}
+// ${renderTag('vscode', anchor.tags)}
 
 </div>
 
@@ -413,7 +413,7 @@ text-sm
 resize-y
 min-h-[220px]
 "
->${escapeHtml(bookmark.body)}</textarea>
+>${escapeHtml(anchor.body)}</textarea>
 
 </div>
 
@@ -455,7 +455,7 @@ vscode.postMessage({
 
 type:"save",
 
-bookmark:{
+anchor:{
 
 label:
 document.getElementById("label").value,

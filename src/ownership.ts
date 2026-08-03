@@ -37,7 +37,7 @@ export class OwnershipInlayProvider implements vscode.InlayHintsProvider {
     private app: AppStore,
     // private ctx: vscode.ExtensionContext,
     // private activityStore: ActivityStore,
-    // private bookmarkStore: AnchorStore,
+    // private anchorStore: AnchorStore,
   ) {
     console.log('OwnershipInlayProvider constructor');
     app.activity.subscribe((activity) => {

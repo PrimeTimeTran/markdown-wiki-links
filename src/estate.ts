@@ -1,36 +1,15 @@
-import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { ScopeInfo } from './activity';
-import { Anchor } from './adapters/bookmarkService';
+import { Anchor } from './adapters/anchorService';
 import { AppStore } from './app';
-import { CMD } from './cmds';
+
 import { SECTIONS_LIST, SNIPPET_ITEMS } from './consts';
 
-/* 
-# Modes:
-The modes we're in will help use idenitfy which panels to show/have
-
-## Types
-    - Dev:
-        - Explorer
-        - Outline
-    - Debug
-        - 
-    - Doc
-    - Cleanup
-    - Explore
-    - Learn
-    Sorting logic needs to be planned well here.
-    Similar to bookmarks of a browser, we want to collect 'easily' initiall and enable additional semantic meaning to be attached later
-    - Blank
-    - Series
-    - Sequence
-    - Connected
-## Types 
-*/
+import { CMD } from '../generated/cmd';
+s
 export interface EstateContext {
-  bookmark: string;
+  anchor: string;
   uri: vscode.Uri;
   selection: vscode.Range;
   scope?: ScopeInfo;
@@ -67,7 +46,7 @@ export interface EstateScope {
 }
 export interface EstateFocus {
   id?: string;
-  kind: 'bookmark' | 'symbol' | 'heading' | 'codeblock' | 'file' | 'unknown';
+  kind: 'anchor' | 'symbol' | 'heading' | 'codeblock' | 'file' | 'unknown';
   range: vscode.Range;
   scope?: ScopeInfo;
   relations?: EstateRelation[];
@@ -164,7 +143,7 @@ export class VFSProvider implements vscode.TextDocumentContentProvider {
       placeHolder: 'Choose snippet type',
     });
   }
-  // When a bookmark has been tagged to be of a certain
+  // When a anchor has been tagged to be of a certain
   // class then we can attach capabilities.
   // Also useful if it's been idenfieid to have a matching property
 }
@@ -183,7 +162,7 @@ export class VFSDecorator implements vscode.FileDecorationProvider {
     return {
       badge: '•',
       //   color: new vscode.ThemeColor('charts.green'),
-      tooltip: 'Active bookmark',
+      tooltip: 'Active anchor',
     };
   }
   // 'charts.red'
@@ -219,45 +198,42 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
     if (!node) {
       return SECTIONS_LIST.map((s) => new EstateNode('folder', s));
     }
-    const bookmarks = this.app.bookmarks.list();
+    const anchors = this.app.anchors.list();
     switch (node.label) {
       case SECTIONS_LIST[0]:
-        return bookmarks
+        return anchors
           .filter((b) => !b.tags.includes('sequence') && !b.tags.includes('misc'))
-          .map((b) => new EstateNode('bookmark', path.basename(b.uri() ?? '') ?? '', b));
+          .map((b) => new EstateNode('anchor', path.basename(b.uri() ?? '') ?? '', b));
 
       case SECTIONS_LIST[1]:
-        return bookmarks
+        return anchors
           .filter((b) => b.tags.includes('sequence'))
-          .map((b) => new EstateNode('bookmark', path.basename(b.uri() ?? '') ?? '', b));
+          .map((b) => new EstateNode('anchor', path.basename(b.uri() ?? '') ?? '', b));
 
       case SECTIONS_LIST[2]:
-        return bookmarks
+        return anchors
           .filter((b) => b.tags.includes('misc'))
-          .map((b) => new EstateNode('bookmark', path.basename(b.uri() ?? '') ?? '', b));
+          .map((b) => new EstateNode('anchor', path.basename(b.uri() ?? '') ?? '', b));
 
       default:
         return [];
     }
   }
   async ensureEditorOpen() {
-    const editors = vscode.window.visibleTextEditors;
-    if (editors.length > 0) {
-      return;
-    }
-    const uri = path.join(os.homedir(), '.estate', 'hello.html');
-    const doc = await vscode.workspace.openTextDocument(uri);
-    await vscode.window.showTextDocument(doc, {
-      viewColumn: vscode.ViewColumn.Active,
-      preview: false,
-    });
+    // const editors = vscode.window.visibleTextEditors;
+    // if (editors.length > 0) {
+    //   return;
+    // }
+    // const file = PATHS.asset('hello.html');
+    // console.log('OPENING:', file);
+    // const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
   }
 }
 export class EstateNode extends vscode.TreeItem {
   constructor(
-    public readonly type: 'folder' | 'bookmark',
+    public readonly type: 'folder' | 'anchor',
     public readonly label: string,
-    public readonly bookmark?: Anchor,
+    public readonly anchor?: Anchor,
   ) {
     super(
       label,
@@ -268,55 +244,54 @@ export class EstateNode extends vscode.TreeItem {
         : vscode.TreeItemCollapsibleState.None,
     );
 
-    this.id = bookmark?.id ?? label;
+    this.id = anchor?.id ?? label;
     this.contextValue = type;
 
-    if (type === 'bookmark') {
-      this.contextValue = 'bookmark';
+    if (type === 'anchor') {
+      this.contextValue = 'anchor';
     } else {
       this.contextValue = 'folder';
     }
 
-    if (bookmark) {
+    if (anchor) {
       //   sections.includes(capitalizeFirstLetter(label));
-      this.resourceUri = vscode.Uri.parse(`estate://${bookmark.id}`);
-      this.applyAnchorStyle(bookmark);
+      this.resourceUri = vscode.Uri.parse(`estate://${anchor.id}`);
+      this.applyAnchorStyle(anchor);
     }
-    // this.applyCommand(bookmark);
+    // this.applyCommand(anchor);
     // this.command = {
-    //   command: CMD.bookmark.open,
+    //   command: CMD.anchor.open,
     //   title: 'Open Anchor',
-    //   arguments: [bookmark],
+    //   arguments: [anchor],
     // };
-
     if (SECTIONS_LIST.includes(this.label)) {
       vscode.window.showInformationMessage('clicked title');
     } else {
       this.command = {
-        command: CMD.bookmark.open,
+        command: CMD.estate.bookmark.read,
         title: 'Open Anchor',
-        arguments: [bookmark],
+        arguments: [anchor],
       };
     }
   }
-  private applyCommand(bookmark: Anchor) {
-    // switch (bookmark.label) {
+  private applyCommand(anchor: Anchor) {
+    // switch (anchor.label) {
     //   case 'Main':
     //     this.command = {
-    //       command: CMD.bookmark.open,
+    //       command: CMD.anchor.open,
     //       title: 'Open Anchor',
-    //       arguments: [bookmark],
+    //       arguments: [anchor],
     //     };
     //     break;
-    //   // return bookmarks
+    //   // return anchors
     //   //   .filter((b) => !b.tags.includes('sequence') && !b.tags.includes('misc'))
-    //   //   .map((b) => new EstateNode('bookmark', b.label ?? '', b));
+    //   //   .map((b) => new EstateNode('anchor', b.label ?? '', b));
     // }
   }
-  private applyAnchorStyle(bookmark: Anchor) {
-    const uri = bookmark?.uri?.() || '';
+  private applyAnchorStyle(anchor: Anchor) {
+    const uri = anchor?.uri?.() || '';
     const isSettingsFile = /settings\.json$/i.test(uri);
-    const tags = bookmark.tags ?? [];
+    const tags = anchor.tags ?? [];
     this.iconPath = new vscode.ThemeIcon('pinned', new vscode.ThemeColor('charts.red'));
 
     if (isSettingsFile) {
@@ -335,7 +310,7 @@ export class EstateNode extends vscode.TreeItem {
     }
     this.description = this.getDescription(tags);
     this.contextValue = tags.join('.');
-    // 'bookmark'          // bookmarks
+    // 'anchor'          // anchors
     // 'star-full'         // favorites
     // 'flag'              // flags
     // 'lightbulb'         // ideas

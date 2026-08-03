@@ -1,4 +1,4 @@
-import { EstateFlag } from './estate';
+import { EstateFlag } from '../src/estate';
 
 const COMMANDS = [
   {
@@ -6,27 +6,27 @@ const COMMANDS = [
     title: 'Estate: Open Reference Panel',
   },
   {
-    command: 'bookmark.create',
+    command: 'anchor.create',
     title: 'Estate: Create Anchor',
   },
   {
-    command: 'bookmark.read',
+    command: 'anchor.read',
     title: 'Estate: Read Anchor',
   },
   {
-    command: 'bookmark.update',
+    command: 'anchor.update',
     title: 'Estate: Update Anchor',
   },
   {
-    command: 'bookmark.delete',
+    command: 'anchor.delete',
     title: 'Estate: Delete Anchor',
   },
   {
-    command: 'bookmark.open',
+    command: 'anchor.open',
     title: 'Estate: Open Anchor',
   },
   {
-    command: 'bookmark.present',
+    command: 'anchor.present',
     title: 'Estate: Present Anchor',
   },
   {
@@ -72,14 +72,14 @@ export const CMD = {
     anchor: 'anchor.pipeline',
     refresh: 'estate.refresh',
   },
-  bookmark: {
-    create: 'bookmark.create',
-    read: 'bookmark.read',
-    update: 'bookmark.update',
-    delete: 'bookmark.delete',
-    open: 'bookmark.open',
-    present: 'bookmark.present',
-    edit: 'bookmark.edit',
+  anchor: {
+    create: 'anchor.create',
+    read: 'anchor.read',
+    update: 'anchor.update',
+    delete: 'anchor.delete',
+    open: 'anchor.open',
+    present: 'anchor.present',
+    edit: 'anchor.edit',
   },
 
   refPanel: {

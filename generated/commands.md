@@ -1,9 +1,308 @@
 
-# Estate: View Bookmark
+# Estate: Create settings
 
 Command:
 
-`estate.bookmark.view`
+`estate.settings.create`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+
+
+---
+
+
+# Estate: View settings
+
+Command:
+
+`estate.settings.read`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+
+
+---
+
+
+# Estate: Edit settings
+
+Command:
+
+`estate.settings.update`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+
+
+---
+
+
+# Estate: Delete settings
+
+Command:
+
+`estate.settings.delete`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+
+
+---
+
+
+# Estate: Create series
+
+Command:
+
+`estate.series.create`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- view/item/context
+
+---
+
+
+# Estate: View series
+
+Command:
+
+`estate.series.read`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- view/item/context
+
+---
+
+
+# Estate: Edit series
+
+Command:
+
+`estate.series.update`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- view/item/context
+
+---
+
+
+# Estate: Delete series
+
+Command:
+
+`estate.series.delete`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- view/item/context
+
+---
+
+
+# Estate: Create bookmark
+
+Command:
+
+`estate.bookmark.create`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- view/item/context
+
+---
+
+
+# Estate: View bookmark
+
+Command:
+
+`estate.bookmark.read`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- view/item/context
+
+---
+
+
+# Estate: Edit bookmark
+
+Command:
+
+`estate.bookmark.update`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- view/item/context
+
+---
+
+
+# Estate: Delete bookmark
+
+Command:
+
+`estate.bookmark.delete`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- view/item/context
+
+---
+
+
+# Estate: Filter
+
+Command:
+
+`estate.filter`
+
+estate filter
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- view/title
+
+---
+
+
+# Estate: View anchor
+
+Command:
+
+`estate.anchor.view`
 
 
 
@@ -18,6 +317,144 @@ none
 
 Menus:
 - editor/title/context
+
+---
+
+
+# Wiki Links: Preview Mode (Toggle)
+
+Command:
+
+`ui.toggleMDPreview`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+
+
+---
+
+
+# Estate: Analyze Subject
+
+Command:
+
+`flowify.analyzeLine`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+
+
+---
+
+
+# Estate: Create snippet
+
+Command:
+
+`estate.snippet.create`
+
+Create a snippet in any language quick and easy.
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+
+
+---
+
+
+# Estate: Read snippet
+
+Command:
+
+`estate.snippet.read`
+
+View snippets
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+
+
+---
+
+
+# Estate: Update snippet
+
+Command:
+
+`estate.snippet.update`
+
+Update snippts
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+
+
+---
+
+
+# Estate: Delete snippet
+
+Command:
+
+`estate.snippet.delete`
+
+Delete snippet
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+
 
 ---
 
