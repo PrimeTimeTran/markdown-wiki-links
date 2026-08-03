@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { EstateFocus } from './estate';
 import { AppStore } from './app';
+import { Anchor } from './adapters/anchorService';
 // Right now store the cursor here.
 // - I have other ideas on how this could be used in compostion with event to do more interesting things.
 // Current user context.
@@ -16,32 +17,85 @@ import { AppStore } from './app';
 //   mode?: string;
 //   updatedAt: number;
 // }
+
+export type AppActivity = AnchorActivity | AnalysisActivity | EditorActivity;
+// CRUD anchors
+// Render decorations on click of a new editor
+export interface AnchorActivity {
+  type: 'anchor';
+  anchor: Anchor;
+  editor: EditorActivity;
+}
+export interface AnalysisActivity {
+  type: 'analysis';
+  editor: EditorActivity;
+  lines: number[];
+}
+
+export interface EditorActivity {
+  type: 'editor';
+  snapshot: EditorSnapshot;
+  editor: vscode.TextEditor;
+  scope: ScopeInfo;
+  updatedAt: number;
+}
+
 export interface Activity {
   editor: EditorActivity;
   scope?: ScopeInfo;
   focus?: EstateFocus;
   updatedAt: number;
 }
-export interface EditorActivity {
+export interface EditorSnapshot {
   uri: vscode.Uri;
-
-  // where the user is
   cursor: vscode.Position;
   selection: vscode.Selection;
-
-  // immediate text context
   line: number;
-  lineText: string;
   column: number;
   displayColumn: number;
-
-  // file context
+  lineText: string;
   languageId: string;
   fileName: string;
-
-  // semantic context
-  scope?: ScopeInfo;
+  scope: ScopeInfo;
 }
+
+// export type AppActivity =
+//   | {
+//       type: 'anchor';
+//       anchor: Anchor;
+//       editor?: vscode.TextEditor;
+//     }
+//   | {
+//       type: 'analysis';
+//       editor: vscode.TextEditor;
+//       lines: number[];
+//     }
+//   | {
+//       type: 'editor';
+//       editor: vscode.TextEditor;
+//     }
+//   | Activity;
+
+// export interface EditorActivity {
+//   uri: vscode.Uri;
+
+//   // where the user is
+//   cursor: vscode.Position;
+//   selection: vscode.Selection;
+
+//   // immediate text context
+//   line: number;
+//   lineText: string;
+//   column: number;
+//   displayColumn: number;
+
+//   // file context
+//   languageId: string;
+//   fileName: string;
+
+//   // semantic context
+//   scope?: ScopeInfo;
+// }
 export interface ScopeInfo {
   variant: string;
   name?: string;
@@ -51,35 +105,36 @@ export interface ScopeInfo {
   range?: vscode.Range;
   text: string;
 }
-export interface ActivityStoreType {
-  current(): Activity | undefined;
-  subscribe(listener: (activity: Activity) => void): vscode.Disposable;
+export interface ActivityStore<T = unknown> {
+  current(): T | undefined;
+  subscribe(listener: (activity: T) => void): vscode.Disposable;
+  emit(activity: T): void;
+  clear(): void;
   init(context: vscode.ExtensionContext): void;
 }
-export class ActivityStore implements ActivityStoreType {
-  private activity?: Activity;
-  private listeners = new Set<(a: Activity) => void>();
+export class ActivityStore<T = unknown> implements ActivityStore<T> {
+  private listeners = new Set<(activity: T) => void>();
+  private activity?: T;
   constructor(private app: AppStore) {}
   init(context: vscode.ExtensionContext): void {
+    context.subscriptions.push(
+      vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+        if (!editor) return;
+        // 1. How do i properly let it know when i go between othr panels?
+        this.app.state.focushistory.push('editor');
+        console.log('[Activity].onDidChangeActiveTextEditor focus!');
+        const hasAnchor = editor ? this.app.anchors.has(editor.document.uri.fsPath) : false;
+        console.log('[Activity].checkingAnchor', hasAnchor);
+        await vscode.commands.executeCommand('setContext', 'estate.hasAnchor', hasAnchor);
+      }),
+    );
     context.subscriptions.push(
       vscode.window.onDidChangeTextEditorSelection((event) => {
         console.log('[Activity].onDidChangeTextEditorSelection click!');
         this.update(event.textEditor);
       }),
     );
-    context.subscriptions.push(
-      vscode.window.onDidChangeActiveTextEditor((editor) => {
-        // vscode.window.showInformationMessage('Activity onDidChangeActiveTextEditor');
-        if (!editor) return;
-        // 1. How do i properly let it know when i go between othr panels?
-        this.app.state.focushistory.push('editor');
-        // console.log.clear();
-        console.log('[Activity].onDidChangeActiveTextEditor focus!');
-        // console.log('editor.selection.active', editor.selection.active);
-        // console.log('Activity onDidChangeActiveTextEditor');
-        // console.log(editor.document.fileName, editor.document.languageId);
-      }),
-    );
+
     context.subscriptions.push(
       vscode.workspace.onDidChangeTextDocument((event) => {
         const editor = vscode.window.activeTextEditor;
@@ -102,15 +157,20 @@ export class ActivityStore implements ActivityStoreType {
   private update(editor: vscode.TextEditor): void {
     const document = editor.document;
     const position = editor.selection.active;
+
     const range = new vscode.Range(
       position.line,
       position.character,
       position.line,
       position.character,
     );
+
     const scope = captureScope(document, range);
-    this.activity = {
-      editor: {
+
+    const activity: EditorActivity = {
+      type: 'editor',
+      editor: editor,
+      snapshot: {
         uri: document.uri,
         cursor: position,
         selection: editor.selection,
@@ -120,26 +180,35 @@ export class ActivityStore implements ActivityStoreType {
         lineText: document.lineAt(position.line).text,
         languageId: document.languageId,
         fileName: document.fileName,
-        scope,
+        scope: scope as ScopeInfo,
       },
-      scope,
+      scope: scope as ScopeInfo,
       updatedAt: Date.now(),
     };
 
-    for (const listener of this.listeners) {
-      listener(this.activity);
-    }
+    this.app.activity.emit(activity);
   }
-  current(): Activity | undefined {
+
+  current(): T | undefined {
     return this.activity;
   }
-  subscribe(listener: (activity: Activity) => void): vscode.Disposable {
+
+  emit(activity: T) {
+    this.activity = activity;
+    for (const listener of this.listeners) {
+      listener(activity);
+    }
+  }
+
+  subscribe(listener: (activity: T) => void): vscode.Disposable {
     this.listeners.add(listener);
-    return {
-      dispose: () => {
-        this.listeners.delete(listener);
-      },
-    };
+    return new vscode.Disposable(() => {
+      this.listeners.delete(listener);
+    });
+  }
+
+  clear() {
+    this.activity = undefined;
   }
 
   // Want to share this so it's left deliberately half baked
@@ -187,10 +256,6 @@ export function captureScope(
   range: vscode.Range,
 ): ScopeInfo | undefined {
   const line = range.start.line;
-  //   console.log('CAPTURE SCOPE INPUT', {
-  //     line: range.start.line,
-  //     text: document.lineAt(range.start.line).text,
-  //   });
   const maxLines = document.lineCount;
   let safeLineNumber = line;
   if (safeLineNumber < 0 || safeLineNumber >= document.lineCount) {

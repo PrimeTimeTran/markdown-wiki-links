@@ -1,15 +1,4 @@
-
-
 export const EXT_PATH = '/Users/future/KB/project/app/markdown-wiki-links';
-
-// export interface Lang {
-//   language: string;
-// }
-// export interface Lang {
-//   language: string;
-// }
-
-// export type LangsLong = Lang[];
 
 export type LangsShort = string[];
 export const supportedLanguages: LangsShort = ['markdown', 'javascript', 'typescript', 'rust'];
@@ -25,7 +14,7 @@ export const longLangs = [
   { language: 'javascript' },
 ];
 
-export const SECTIONS_LIST = ['main', 'series', 'blank'];
+export const SECTIONS_LIST = ['draft', 'pipeline', 'plan'];
 export const SECTIONS = {
   [SECTIONS_LIST[0]]: {},
   [SECTIONS_LIST[1]]: {},

@@ -1,4 +1,147 @@
 
+# Estate: View Options
+
+Command:
+
+`estate.explore.options`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- view/title
+
+---
+
+
+# Estate: Create bookmark
+
+Command:
+
+`estate.bookmark.create`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- view/title
+- editor/title
+- view/item/context
+
+---
+
+
+# Estate: View bookmark
+
+Command:
+
+`estate.bookmark.read`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- editor/title
+- view/item/context
+
+---
+
+
+# Estate: Edit bookmark
+
+Command:
+
+`estate.bookmark.update`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- view/item/context
+
+---
+
+
+# Estate: Delete bookmark
+
+Command:
+
+`estate.bookmark.delete`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- editor/title
+- view/item/context
+
+---
+
+
+# Estate: Filter bookmarks
+
+Command:
+
+`estate.bookmark.filter`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- editor/title
+- view/item/context
+
+---
+
+
 # Estate: Create settings
 
 Command:
@@ -17,7 +160,7 @@ Implementation:
 none
 
 Menus:
-
+- editor/title
 
 ---
 
@@ -40,7 +183,7 @@ Implementation:
 none
 
 Menus:
-
+- editor/title
 
 ---
 
@@ -63,7 +206,7 @@ Implementation:
 none
 
 Menus:
-
+- editor/title
 
 ---
 
@@ -86,7 +229,7 @@ Implementation:
 none
 
 Menus:
-
+- editor/title
 
 ---
 
@@ -165,98 +308,6 @@ Menus:
 Command:
 
 `estate.series.delete`
-
-
-
-Category:
-
-
-Documentation:
-none
-
-Implementation:
-none
-
-Menus:
-- view/item/context
-
----
-
-
-# Estate: Create bookmark
-
-Command:
-
-`estate.bookmark.create`
-
-
-
-Category:
-
-
-Documentation:
-none
-
-Implementation:
-none
-
-Menus:
-- view/item/context
-
----
-
-
-# Estate: View bookmark
-
-Command:
-
-`estate.bookmark.read`
-
-
-
-Category:
-
-
-Documentation:
-none
-
-Implementation:
-none
-
-Menus:
-- view/item/context
-
----
-
-
-# Estate: Edit bookmark
-
-Command:
-
-`estate.bookmark.update`
-
-
-
-Category:
-
-
-Documentation:
-none
-
-Implementation:
-none
-
-Menus:
-- view/item/context
-
----
-
-
-# Estate: Delete bookmark
-
-Command:
-
-`estate.bookmark.delete`
 
 
 

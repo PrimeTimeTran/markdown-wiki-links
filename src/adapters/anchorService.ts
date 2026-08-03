@@ -9,7 +9,7 @@ import { AppStore } from '../app';
 import { capability, flags } from '../cmd/cmd';
 import { CMD } from '../../generated/cmd';
 import { anchorShowPage, getHtml } from './htmlAnchor';
-import { Activity } from '../activity';
+import { AnchorActivity, AppActivity } from '../activity';
 import { PATHS } from '../cfg';
 // # Flag
 // - Fold flags: show prevent 'above' from 'unfolding' no matter how many depths I've unfolded. Think about how I might want to 'ignore' tests of rust or imports or 'first impl'
@@ -108,6 +108,8 @@ export interface AnchorStoreType {
   update(id: string, patch: Partial<Anchor>): void;
   delete(id: string): void;
   find(file: vscode.Uri, text: string, line: number): AnchorRef[];
+  findByUri(uri: vscode.Uri): Anchor[];
+
   list(): Anchor[];
   hasFlag(id: string): boolean;
   getFlag(id: string): EstateFlag | undefined;
@@ -343,6 +345,12 @@ export class AnchorStore implements AnchorStoreType {
     await this.save();
     vscode.window.showInformationMessage(`Created ${id}`);
   }
+  findByUri(uri: vscode.Uri): Anchor[] {
+    const target = uri.toString();
+    return this.list().filter((anchor) =>
+      anchor.locations?.some((location) => location.uri === target),
+    );
+  }
   register(id: string, anchor: Anchor) {
     console.log('registering');
     try {
@@ -501,9 +509,22 @@ export class AnchorPresenter {
   private anchorPanels = new Map<string, vscode.WebviewPanel>();
   constructor(public app: AppStore) {
     app.ctx.subscriptions.push(
-      vscode.commands.registerCommand(CMD.estate.bookmark.read, this.showAnchor, this),
+      vscode.commands.registerCommand(
+        CMD.estate.bookmark.read,
+        async (anchor: Anchor) => {
+          await vscode.commands.executeCommand('setContext', 'estate.hasAnchor', true);
+          let activity: AnchorActivity = {
+            type: 'anchor',
+            anchor,
+            editor: vscode.window.activeTextEditor,
+          };
+          this.app.activity.emit(activity);
+          await this.showAnchor(anchor);
+        },
+        this,
+      ),
     );
-    app.activity.subscribe((a: Activity) => {
+    app.activity.subscribe((a: AppActivity) => {
       if (!a.editor) return;
     });
   }
@@ -517,6 +538,11 @@ export class AnchorPresenter {
       if (!anchor.uri()) {
         return;
       }
+      console.log('Hi there showAnchor');
+      // TODO:
+      // Fix bug, logic is right but it takes a second click to show buttons in editor tabs row
+      console.log('estate.hasAnchor =', true);
+      await vscode.commands.executeCommand('setContext', 'estate.hasAnchor', true);
 
       const uri = vscode.Uri.file(anchor.uri());
 
@@ -690,6 +716,7 @@ export class AnchorPresenter {
       } else {
         await vscode.window.showTextDocument(editor.document, editor.viewColumn);
       }
+      await vscode.commands.executeCommand('setContext', 'estate.hasAnchor', true);
       const pos = new vscode.Position(anchor.src?.startLine ?? 0, anchor.src?.startCharacter ?? 0);
       editor.selection = new vscode.Selection(pos, pos);
       editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter);

@@ -1,18 +1,18 @@
 import * as util from 'util';
 import * as vscode from 'vscode';
 import { execFile } from 'child_process';
-import { Activity } from './activity';
+import { AppActivity } from './activity';
 import { icons } from './ownership';
 import { AppStore } from './app';
 const execFileAsync = util.promisify(execFile);
 export class AnalysisStore {
   private current?: OwnershipAnalysisResult;
-  private currentActivity?: Activity;
+  private currentActivity?: AppActivity;
   private currentRelatedLines: any[] = [];
   private currentFormattedOutput?: string;
   private listeners = new Set<() => void>();
   constructor(private app: AppStore) {}
-  async analyzeLine(activity: Activity, analysisMode = 'default'): Promise<void> {
+  async analyzeLine(activity: AppActivity, analysisMode = 'default'): Promise<void> {
     this.currentActivity = activity;
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -22,7 +22,7 @@ export class AnalysisStore {
     // const defaultMode = config.get<string>('defaultAnalysisMode', 'default');
     try {
       const item = {
-        file: activity.editor.uri.fsPath,
+        file: activity?.editor?.uri?.fsPath,
         column: activity.editor.column,
         line: activity.editor.line,
         text: activity.editor.lineText,
@@ -95,7 +95,7 @@ export class AnalysisStore {
   get(): OwnershipAnalysisResult | undefined {
     return this.current;
   }
-  getActivity(): Activity | undefined {
+  getActivity(): AppActivity | undefined {
     return this.currentActivity;
   }
   getRelatedLines(): any[] {

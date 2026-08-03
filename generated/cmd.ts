@@ -1,8 +1,17 @@
 // GENERATED FILE
 
-export const CMD = 
-{
+export const CMD = {
   estate: {
+    explore: {
+      options: "estate.explore.options",
+    },
+    bookmark: {
+      create: "estate.bookmark.create",
+      read: "estate.bookmark.read",
+      update: "estate.bookmark.update",
+      delete: "estate.bookmark.delete",
+      filter: "estate.bookmark.filter",
+    },
     settings: {
       create: "estate.settings.create",
       read: "estate.settings.read",
@@ -14,12 +23,6 @@ export const CMD =
       read: "estate.series.read",
       update: "estate.series.update",
       delete: "estate.series.delete",
-    },
-    bookmark: {
-      create: "estate.bookmark.create",
-      read: "estate.bookmark.read",
-      update: "estate.bookmark.update",
-      delete: "estate.bookmark.delete",
     },
     filter: "estate.filter",
     anchor: {

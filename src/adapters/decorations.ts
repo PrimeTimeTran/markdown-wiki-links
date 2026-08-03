@@ -1,46 +1,48 @@
-import * as vscode from 'vscode';
-import * as path from 'path';
-import { parseLinks } from '../core/parser/linkParser';
-import { parseEmbeds } from '../core/parser/embedParser';
-import { buildFenceMask } from '../core/fenceMask';
-import { innerRange } from '../core/parser/refRange';
-import { resolveTarget } from '../core/resolver/resolveTarget';
-import { IndexService } from './indexService';
+import * as vscode from "vscode";
+import * as path from "path";
+import { parseLinks } from "../core/parser/linkParser";
+import { parseEmbeds } from "../core/parser/embedParser";
+import { buildFenceMask } from "../core/fenceMask";
+import { innerRange } from "../core/parser/refRange";
+import { resolveTarget } from "../core/resolver/resolveTarget";
+import { IndexService } from "./indexService";
 const DEBOUNCE_MS = 250;
 // Colours `[[...]]` / `![[...]]` in the editor by whether the resolver can actually resolve
 // the target — resolved links take the editor link colour, unresolved ones are dimmed.
 // This reflects real resolution (spaces, Unicode, every character the parser accepts),
 // unlike a TextMate grammar that pattern-matches the link text.
 export class WikiDecorations {
+  [x: string]: any;
   private decorations = new Map<string, vscode.TextEditorDecorationType>();
   private stateDecorations = new Map<string, vscode.TextEditorDecorationType>();
+  private providers: DecorationProvider[] = [];
   private initStateIcons() {
     this.stateDecorations.set(
-      'muted',
+      "muted",
       vscode.window.createTextEditorDecorationType({
-        opacity: '1',
+        opacity: "1",
       }),
     );
     this.stateDecorations.set(
-      'focused',
+      "focused",
       vscode.window.createTextEditorDecorationType({
-        fontWeight: 'bold',
-        opacity: '1',
+        fontWeight: "bold",
+        opacity: "1",
       }),
     );
     this.stateDecorations.set(
-      'selected',
+      "selected",
       vscode.window.createTextEditorDecorationType({
-        backgroundColor: new vscode.ThemeColor('editor.selectionBackground'),
+        backgroundColor: new vscode.ThemeColor("editor.selectionBackground"),
       }),
     );
   }
   private initIcons() {
     for (const icon of icons) {
-      const iconPath = vscode.Uri.file(path.join(EXT_PATH, 'resources', `${icon}.svg`));
+      const iconPath = vscode.Uri.file(path.join(EXT_PATH, "resources", `${icon}.svg`));
       const decoration = vscode.window.createTextEditorDecorationType({
         gutterIconPath: iconPath,
-        gutterIconSize: 'contain',
+        gutterIconSize: "contain",
       });
       this.decorations.set(icon, decoration);
     }
@@ -55,7 +57,6 @@ export class WikiDecorations {
     editor.setDecorations(decoration, ranges);
   }
   private markLines(editor: vscode.TextEditor, icon: string, lines: number[]) {
-    console.log('markLines');
     const decoration = this.decorations.get(icon);
     if (!decoration) {
       console.warn(`Missing decoration: ${icon}`);
@@ -75,15 +76,14 @@ export class WikiDecorations {
   private renderSymbolAnalysis(editor: vscode.TextEditor, subjectLine: number, children: number[]) {
     this.clearDecorations(editor);
     // selected symbol
-    this.markLines(editor, 'binding', [subjectLine]);
+    this.markLines(editor, "binding", [subjectLine]);
     // related symbols
-    this.markLines(editor, 'shadowing', children);
+    this.markLines(editor, "shadowing", children);
     // visual states
-    this.applyState(editor, 'muted', children);
-    this.applyState(editor, 'selected', [subjectLine]);
+    this.applyState(editor, "muted", children);
+    this.applyState(editor, "selected", [subjectLine]);
   }
   private previewIconStack(editor: vscode.TextEditor) {
-    console.log('previewIconStack');
     const startLine = editor.selection.active.line;
     this.clearDecorations(editor);
     icons.forEach((icon, index) => {
@@ -95,26 +95,31 @@ export class WikiDecorations {
     });
   }
   private unrelatedDecorationType = vscode.window.createTextEditorDecorationType({
-    opacity: '0.50',
+    opacity: "0.50",
   });
   private declarationDecorationType = vscode.window.createTextEditorDecorationType({
-    after: { contentText: ' 📌 [Declaration]', color: '#007acc', fontStyle: 'italic' },
+    after: { contentText: " 📌 [Declaration]", color: "#007acc", fontStyle: "italic" },
   });
   private usageDecorationType = vscode.window.createTextEditorDecorationType({
-    after: { contentText: ' ⚡ [Flow]', color: '#28a745', fontStyle: 'italic' },
+    after: { contentText: " ⚡ [Flow]", color: "#28a745", fontStyle: "italic" },
   });
   private resolved = vscode.window.createTextEditorDecorationType({
-    color: new vscode.ThemeColor('textLink.foreground'),
+    color: new vscode.ThemeColor("textLink.foreground"),
   });
   private unresolved = vscode.window.createTextEditorDecorationType({
-    color: new vscode.ThemeColor('descriptionForeground'),
+    color: new vscode.ThemeColor("descriptionForeground"),
   });
   private timer?: ReturnType<typeof setTimeout>;
   constructor(
     app: AppStore,
     private idx: IndexService,
   ) {
-    console.log('Hi Decorations');
+    console.log("Hi Decorations");
+    this.providers = [
+      new AnchorDecorationProvider(this.anchorDecorationType, app),
+      // new AnalysisDecorationProvider(app.analysis, this.analysisDecorationType),
+      // new WikiLinkDecorationProvider(this.idx, this.resolved, this.unresolved),
+    ];
     app.ctx.subscriptions.push(
       this.resolved,
       this.unresolved,
@@ -124,16 +129,43 @@ export class WikiDecorations {
     );
     this.initIcons();
     this.initStateIcons();
-    app.activity.subscribe(() => {
-      //   console.log('click Decoration Subscribe');
-      const result = app.analysis.get();
-      const lines = app.analysis.getRelatedLines();
-      if (!result) return;
+    // app.activity.subscribe((activity) => {
+    //   console.log('Hi Decorations subscribe', activity);
+    //   const editor = vscode.window.activeTextEditor;
+    //   if (!editor) return;
+
+    //   const lines = app.analysis.getRelatedLines();
+    //   // 1. Anchors always have what they need to decorate.
+    //   this.refresh(editor, lines);
+    //   // 2. Analysis doesn't. So request that the LSP tell us.
+    //   //
+    //   const result = app.analysis.get();
+    //   if (!result) return;
+    // });
+
+    app.activity.subscribe((activity) => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
-      this.previewIconStack(editor);
-      this.applyDecorations(editor, lines);
+      // vscode.window.showInformationMessage(`[WikiDecorations].onActivity`);
+      // if (activity.type == 'editor') {
+      //   activity.snapshot.selection;
+      // }
+      this.refresh(editor, activity);
     });
+  }
+  public refresh(editor: vscode.TextEditor, activity: AppActivity) {
+    const grouped = new Map<vscode.TextEditorDecorationType, vscode.Range[]>();
+    for (const provider of this.providers) {
+      const results = provider.provide(editor, activity);
+      for (const result of results) {
+        const existing = grouped.get(result.type) ?? [];
+        grouped.set(result.type, [...existing, ...result.ranges]);
+      }
+    }
+    console.log("[WikiDecorations].refresh grouped", grouped);
+    for (const [type, ranges] of grouped) {
+      editor.setDecorations(type, ranges);
+    }
   }
   register(ctx: vscode.ExtensionContext): void {
     ctx.subscriptions.push(
@@ -153,6 +185,32 @@ export class WikiDecorations {
         }
       }),
     );
+  }
+
+  // public refresh(editor: vscode.TextEditor, lines: number[] = []) {
+  //   this.previewIconStack(editor);
+  //   this.applyDecorations(editor, lines);
+  // }
+  public refreshAnchor(editor: vscode.TextEditor, anchor: Anchor) {
+    const ranges = this.getAnchorRanges(editor, anchor);
+    // no anchor locations for this file
+    if (ranges.length === 0) {
+      editor.setDecorations(this.anchorDecorationType, []);
+      return;
+    }
+    editor.setDecorations(this.anchorDecorationType, ranges);
+  }
+  private readonly anchorDecorationType = vscode.window.createTextEditorDecorationType({
+    backgroundColor: new vscode.ThemeColor("editor.selectionHighlightBackground"),
+  });
+  private getAnchorRanges(editor: vscode.TextEditor, anchor: Anchor): vscode.Range[] {
+    if (!anchor.locations) return [];
+    const uri = editor.document.uri.toString();
+    return anchor.locations
+      .filter((loc) => loc.uri === uri)
+      .map((loc) => {
+        return new vscode.Range(loc.line, loc.start, loc.line, loc.end);
+      });
   }
   private schedule(): void {
     this.cancel();
@@ -178,10 +236,15 @@ export class WikiDecorations {
     }
     const estates = this.findEstateFlags(doc);
     const estate = this.findEstateAnchors(doc);
-    editor.setDecorations(this.resolved, [...estate.map((e) => e.range)]);
-    editor.setDecorations(this.resolved, [...estates.map((e) => e.range)]);
-    editor.setDecorations(this.resolved, resolvedRanges);
-    editor.setDecorations(this.unresolved, unresolvedRanges);
+    // editor.setDecorations(this.resolved, [...estate.map((e) => e.range)]);
+    // editor.setDecorations(this.resolved, [...estates.map((e) => e.range)]);
+    // editor.setDecorations(this.resolved, resolvedRanges);
+    // editor.setDecorations(this.unresolved, unresolvedRanges);
+    editor.setDecorations(this.resolved, [
+      ...estate.map((e) => e.range),
+      ...estates.map((e) => e.range),
+      ...resolvedRanges,
+    ]);
   }
   public highlightSurroundingLines(editor: vscode.TextEditor) {
     const selection = editor.selection;
@@ -197,10 +260,10 @@ export class WikiDecorations {
     }
     // Apply decorations using your existing usage decoration type
     editor.setDecorations(this.usageDecorationType, targetRanges);
-    console.log(`Highlighted lines: ${linesToHighlight.join(', ')}`);
+    console.log(`Highlighted lines: ${linesToHighlight.join(", ")}`);
     const panel = vscode.window.createWebviewPanel(
-      'ownershipGraph',
-      'Ownership Analysis',
+      "ownershipGraph",
+      "Ownership Analysis",
       vscode.ViewColumn.Beside,
       {
         enableScripts: true,
@@ -228,9 +291,9 @@ export class WikiDecorations {
   }
   private readonly ownershipMarkerDecoration = vscode.window.createTextEditorDecorationType({
     after: {
-      contentText: ' 🧬',
-      margin: '0 0 0 2em',
-      color: '#888',
+      contentText: " 🧬",
+      margin: "0 0 0 2em",
+      color: "#888",
     },
     rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
   });
@@ -248,19 +311,18 @@ export class WikiDecorations {
   //     this.previewIconStack(editor);
   //   }
   private applyDecorations(editor: vscode.TextEditor, relatedLines: any[]) {
-    console.log('Hi plz go');
     const doc = editor.document;
     const scopeLines = new Set<number>();
     const influenceLines = new Set<number>();
     for (const item of relatedLines) {
       const line = item.line - 1;
-      if (item.relation_type === 'Scope') {
+      if (item.relation_type === "Scope") {
         scopeLines.add(line);
       }
       if (
-        item.relation_type === 'ImmutableBorrow' ||
-        item.relation_type === 'Assignment' ||
-        item.relation_type === 'MoveOwnership'
+        item.relation_type === "ImmutableBorrow" ||
+        item.relation_type === "Assignment" ||
+        item.relation_type === "MoveOwnership"
       ) {
         influenceLines.add(line);
       }
@@ -279,10 +341,10 @@ export class WikiDecorations {
     editor.setDecorations(this.ownershipMarkerDecoration, activeRanges);
   }
   private mutedDecoration = vscode.window.createTextEditorDecorationType({
-    opacity: '0.20',
+    opacity: "0.20",
   });
   private scopeDecoration = vscode.window.createTextEditorDecorationType({
-    backgroundColor: new vscode.ThemeColor('editor.selectionBackground'),
+    backgroundColor: new vscode.ThemeColor("editor.selectionBackground"),
   });
   public dispose() {
     this.unrelatedDecorationType.dispose();
@@ -306,121 +368,121 @@ export class WikiDecorations {
     for (let i = 0; i < document.lineCount; i++) {
       const text = document.lineAt(i).text;
       let range = new vscode.Range(i, 0, i, text.length);
-      if (text.includes('@branch')) {
+      if (text.includes("@branch")) {
         nodes.push({
           range,
-          kind: 'tag',
-          id: '@branch',
-          icon: '🏠',
-          label: 'Architecture',
+          kind: "tag",
+          id: "@branch",
+          icon: "🏠",
+          label: "Architecture",
           actions: [
             {
-              kind: 'file',
-              path: '/docs/architecture.md',
-              label: 'Open Hub',
+              kind: "file",
+              path: "/docs/architecture.md",
+              label: "Open Hub",
             },
             {
-              kind: 'panel',
-              panel: 'graph',
-              label: 'Show Graph',
+              kind: "panel",
+              panel: "graph",
+              label: "Show Graph",
             },
             {
-              kind: 'command',
-              id: 'wiki.references',
-              args: ['@branch'],
-              label: 'References',
+              kind: "command",
+              id: "wiki.references",
+              args: ["@branch"],
+              label: "References",
             },
           ],
         });
       }
-      if (text.includes('@foo')) {
+      if (text.includes("@foo")) {
         nodes.push({
           range,
-          kind: 'tag',
-          id: '@foo',
-          icon: '🏠',
-          label: 'Architecture',
+          kind: "tag",
+          id: "@foo",
+          icon: "🏠",
+          label: "Architecture",
           actions: [
             {
-              kind: 'file',
-              path: '/docs/architecture.md',
-              label: 'Open Hub',
+              kind: "file",
+              path: "/docs/architecture.md",
+              label: "Open Hub",
             },
             {
-              kind: 'panel',
-              panel: 'graph',
-              label: 'Show Graph',
+              kind: "panel",
+              panel: "graph",
+              label: "Show Graph",
             },
             {
-              kind: 'command',
-              id: 'wiki.references',
-              args: ['@foo'],
-              label: 'References',
+              kind: "command",
+              id: "wiki.references",
+              args: ["@foo"],
+              label: "References",
             },
           ],
         });
       }
-      if (text.includes('@bar')) {
+      if (text.includes("@bar")) {
         nodes.push({
           range,
-          kind: 'tag',
-          id: '@bar',
-          label: 'Bar Anchor',
-          icon: '🔖',
+          kind: "tag",
+          id: "@bar",
+          label: "Bar Anchor",
+          icon: "🔖",
           actions: [
             {
-              kind: 'anchor',
-              id: '@bar',
-              label: '🔖 Open Anchor',
+              kind: "anchor",
+              id: "@bar",
+              label: "🔖 Open Anchor",
             },
             {
-              kind: 'command',
-              id: 'wiki.pin',
-              args: ['@bar'],
-              label: '📌 Pin Location',
+              kind: "command",
+              id: "wiki.pin",
+              args: ["@bar"],
+              label: "📌 Pin Location",
             },
           ],
         });
       }
-      if (text.includes('@spam')) {
+      if (text.includes("@spam")) {
         nodes.push({
           range,
-          kind: 'tag',
-          id: '@spam',
-          label: 'Spam Node',
-          icon: '🧹',
+          kind: "tag",
+          id: "@spam",
+          label: "Spam Node",
+          icon: "🧹",
           actions: [
             {
-              kind: 'command',
-              id: 'wiki.ignore',
-              args: ['@spam'],
-              label: '🧹 Ignore',
+              kind: "command",
+              id: "wiki.ignore",
+              args: ["@spam"],
+              label: "🧹 Ignore",
             },
             {
-              kind: 'panel',
-              panel: 'references',
-              label: '🔍 Find References',
+              kind: "panel",
+              panel: "references",
+              label: "🔍 Find References",
             },
           ],
         });
       }
-      if (text.includes('@ham')) {
+      if (text.includes("@ham")) {
         nodes.push({
           range,
-          kind: 'tag',
-          id: '@ham',
-          label: 'Ham Node',
-          icon: '📖',
+          kind: "tag",
+          id: "@ham",
+          label: "Ham Node",
+          icon: "📖",
           actions: [
             {
-              kind: 'preview',
-              path: '/tmp/ham-preview.md',
-              label: '📖 Preview',
+              kind: "preview",
+              path: "/tmp/ham-preview.md",
+              label: "📖 Preview",
             },
             {
-              kind: 'url',
-              url: 'https://en.wikipedia.org/wiki/Quantopian',
-              label: '🌐 External Links',
+              kind: "url",
+              url: "https://en.wikipedia.org/wiki/Quantopian",
+              label: "🌐 External Links",
             },
           ],
         });
@@ -431,7 +493,7 @@ export class WikiDecorations {
 }
 export class WikiDecoration {
   private decorate(editor: vscode.TextEditor): void {
-    if (editor.document.languageId !== 'markdown') return;
+    if (editor.document.languageId !== "markdown") return;
     const doc = editor.document;
     //
     // Playground ranges
@@ -450,8 +512,8 @@ export class WikiDecoration {
         range: secondLine,
         renderOptions: {
           after: {
-            contentText: '  🔗 loi tran ob object',
-            color: new vscode.ThemeColor('descriptionForeground'),
+            contentText: "  🔗 loi tran ob object",
+            color: new vscode.ThemeColor("descriptionForeground"),
           },
         },
       },
@@ -464,7 +526,7 @@ export class WikiDecoration {
         range: secondLine,
         renderOptions: {
           before: {
-            contentText: '🏠 ',
+            contentText: "🏠 ",
           },
         },
       },
@@ -499,14 +561,14 @@ export class WikiDecoration {
     editor.setDecorations(this.underlineDemo, [secondLine]);
   }
   private resolved = vscode.window.createTextEditorDecorationType({
-    color: new vscode.ThemeColor('textLink.foreground'),
+    color: new vscode.ThemeColor("textLink.foreground"),
   });
   private unresolved = vscode.window.createTextEditorDecorationType({
-    color: new vscode.ThemeColor('descriptionForeground'),
+    color: new vscode.ThemeColor("descriptionForeground"),
   });
   // 1. Change background
   private backgroundDemo = vscode.window.createTextEditorDecorationType({
-    backgroundColor: new vscode.ThemeColor('editor.selectionBackground'),
+    backgroundColor: new vscode.ThemeColor("editor.selectionBackground"),
   });
   // 2. Add text before
   private beforeDemo = vscode.window.createTextEditorDecorationType({});
@@ -514,16 +576,16 @@ export class WikiDecoration {
   private afterDemo = vscode.window.createTextEditorDecorationType({});
   // 4. Hide text
   private hiddenDemo = vscode.window.createTextEditorDecorationType({
-    textDecoration: 'none; display:none;',
+    textDecoration: "none; display:none;",
   });
   // 5. Border / outline
   private borderDemo = vscode.window.createTextEditorDecorationType({
-    border: '1px solid',
+    border: "1px solid",
   });
   // 6. Gutter icon
   private gutterDemo = vscode.window.createTextEditorDecorationType({
-    gutterIconPath: vscode.Uri.file('/absolute/path/to/icon.svg'),
-    gutterIconSize: 'contain',
+    gutterIconPath: vscode.Uri.file("/absolute/path/to/icon.svg"),
+    gutterIconSize: "contain",
   });
   // 7. Whole line decoration
   private lineDemo = vscode.window.createTextEditorDecorationType({
@@ -531,17 +593,17 @@ export class WikiDecoration {
   });
   // 8. Overview ruler
   private rulerDemo = vscode.window.createTextEditorDecorationType({
-    overviewRulerColor: new vscode.ThemeColor('editorWarning.foreground'),
+    overviewRulerColor: new vscode.ThemeColor("editorWarning.foreground"),
     overviewRulerLane: vscode.OverviewRulerLane.Right,
   });
   // 9. Font styling
   private fontDemo = vscode.window.createTextEditorDecorationType({
-    fontWeight: 'bold',
-    fontStyle: 'italic',
+    fontWeight: "bold",
+    fontStyle: "italic",
   });
   // 10. Letter spacing / text effect
   private underlineDemo = vscode.window.createTextEditorDecorationType({
-    textDecoration: 'underline wavy',
+    textDecoration: "underline wavy",
   });
   private timer?: ReturnType<typeof setTimeout>;
 }
@@ -567,16 +629,16 @@ export interface AnnotationStyle {
 }
 export type AnnotationPlacement =
   // attached to source
-  | 'highlight'
-  | 'inline-after'
-  | 'gutter'
-  | 'overview'
-  | 'codelens'
+  | "highlight"
+  | "inline-after"
+  | "gutter"
+  | "overview"
+  | "codelens"
   // discovery/navigation
-  | 'sidebar'
-  | 'panel';
+  | "sidebar"
+  | "panel";
 export interface AnnotationAction {
-  kind: 'navigate' | 'command' | 'open' | 'reveal';
+  kind: "navigate" | "command" | "open" | "reveal";
   target?: string;
   command?: string;
   args?: unknown[];
@@ -589,27 +651,27 @@ export interface AnnotationMetadata {
 }
 type Placement =
   | {
-      kind: 'inline';
+      kind: "inline";
     }
   | {
-      kind: 'afterLine';
+      kind: "afterLine";
       column?: number;
     }
   | {
-      kind: 'gutter';
+      kind: "gutter";
     };
 type Action =
   | {
-      kind: 'navigate';
+      kind: "navigate";
       target: string;
     }
   | {
-      kind: 'showDetails';
+      kind: "showDetails";
     };
 type Style = {
   color?: string;
   background?: string;
-  emphasis?: 'bold' | 'italic';
+  emphasis?: "bold" | "italic";
   underline?: boolean;
 };
 // type Estate = {
@@ -638,33 +700,33 @@ type EstateNode = {
 };
 type EstateAction =
   | {
-      kind: 'file';
+      kind: "file";
       path: string;
       label: string;
     }
   | {
-      kind: 'url';
+      kind: "url";
       url: string;
       label: string;
     }
   | {
-      kind: 'preview';
+      kind: "preview";
       path: string;
       label: string;
     }
   | {
-      kind: 'panel';
-      panel: 'references' | 'graph' | 'outline';
+      kind: "panel";
+      panel: "references" | "graph" | "outline";
       label: string;
     }
   | {
-      kind: 'command';
+      kind: "command";
       id: string;
       args?: unknown[];
       label: string;
     }
   | {
-      kind: 'anchor';
+      kind: "anchor";
       id: string;
       args?: unknown[];
       label: string;
@@ -675,9 +737,11 @@ function isLineVisible(editor: vscode.TextEditor, line: number): boolean {
 function isProbablyVisible(editor: vscode.TextEditor, line: number) {
   return editor.visibleRanges.some((range) => line >= range.start.line && line <= range.end.line);
 }
-import { icons } from '../ownership';
-import { AppStore } from '../app';
-import { EXT_PATH, supportedLanguages } from '../consts';
+import { icons } from "../ownership";
+import { AppStore } from "../app";
+import { EXT_PATH, supportedLanguages } from "../consts";
+import { Anchor, AnchorStore } from "./anchorService";
+import { AppActivity, EditorActivity } from "../activity";
 // export class DecorationService {
 //   private unrelatedDecorationType = vscode.window.createTextEditorDecorationType({
 //     opacity: '0.35', // Greys out unrelated code
@@ -764,4 +828,83 @@ import { EXT_PATH, supportedLanguages } from '../consts';
 //       console.error('Failed to run background analyzer:', error);
 //     }
 //   }
+// }
+
+interface DecorationProvider {
+  provide(editor: vscode.TextEditor, activity: AppActivity): DecorationResult[];
+}
+
+interface DecorationResult {
+  type: vscode.TextEditorDecorationType;
+  ranges: vscode.Range[];
+}
+
+export class AnchorDecorationProvider implements DecorationProvider {
+  constructor(
+    private type: vscode.TextEditorDecorationType,
+    private app: AppStore,
+  ) {}
+  provide(editor: vscode.TextEditor, activity: AppActivity): DecorationResult[] {
+    const anchor = this.resolveAnchor(activity, editor);
+
+    if (!anchor?.src) {
+      return [];
+    }
+
+    const src = anchor.src;
+
+    if (src.uri !== editor.document.uri.fsPath) {
+      return [];
+    }
+
+    const endLine = src.endLine ?? editor.document.lineCount - 1;
+    const endCharacter = src.endCharacter ?? editor.document.lineAt(endLine).text.length;
+
+    return [
+      {
+        type: this.type,
+        ranges: [
+          new vscode.Range(
+            src.startLine,
+            src.startCharacter || 0,
+            src.endLine,
+            src.endCharacter || endCharacter,
+          ),
+        ],
+      },
+    ];
+  }
+
+  private allAnchors(editor: vscode.TextEditor, activity: AppActivity): DecorationResult[] {
+    const ranges = this.app.anchors.findByUri(editor.document.uri).flatMap((anchor) => {
+      const src = anchor.src;
+      if (!src) return [];
+      return [new vscode.Range(src.startLine, src.startCharacter, src.endLine, src.endCharacter)];
+    });
+    return [{ type: this.type, ranges }];
+  }
+
+  private resolveAnchor(activity: AppActivity, editor: vscode.TextEditor): Anchor | undefined {
+    if (activity.type !== "anchor") {
+      return undefined;
+    }
+
+    // Case 1: click sent the whole anchor
+    if (activity.anchor) {
+      return activity.anchor;
+    }
+
+    // Case 2: resolve from current file/location
+    const uri = editor.document.uri.toString();
+
+    return this.app.anchors
+      .list()
+      .find((anchor) => anchor.locations?.some((location) => location.uri === uri));
+  }
+}
+// class AnalysisDecorationProvider implements DecorationProvider {
+//   provide(editor: vscode.TextEditor, activity: AppActivity): DecorationResult[] {}
+// }
+// class WikiLinkDecorationProvider implements DecorationProvider {
+//   provide(editor: vscode.TextEditor, activity: AppActivity): DecorationResult[] {}
 // }

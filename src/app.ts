@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-import { ActivityStore } from './activity';
+import { ActivityStore, AppActivity } from './activity';
 import { AnalysisStore } from './analysis';
 import { AnchorPresenter, AnchorStore } from './adapters/anchorService';
 import { VFSDecorator, EstateTreeProvider, VFSProvider, EstateNode } from './estate';
@@ -17,12 +17,13 @@ export class AppStore {
   readonly tree: EstateTreeProvider;
   readonly vfs: VFSProvider;
   readonly vfsDecorator: VFSDecorator;
-  readonly activity: ActivityStore;
+  readonly activity: ActivityStore<AppActivity>;
   readonly analysis: AnalysisStore;
   readonly anchors: AnchorStore;
   readonly presenter: AnchorPresenter;
 
   constructor(public ctx: vscode.ExtensionContext) {
+    this.activity = new ActivityStore<AppActivity>(this);
     this.activity = new ActivityStore(this);
     this.anchors = new AnchorStore(this);
     this.analysis = new AnalysisStore(this);

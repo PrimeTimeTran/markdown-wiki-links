@@ -32,7 +32,7 @@
   },
   "main": "./dist/extension.js",
   "scripts": {
-    "commands:sync": "tsx ./cmds/command-sync.ts",
+    "commands:sync": "tsx ./src/cmd/command-sync.ts",
     "build": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch; echo 'watching'",
     "compile:tests": "tsc -p ./",
@@ -78,104 +78,68 @@
     "menus": {
       "view/title": [
         {
-          "command": "estate.bookmark.create",
-          "when": "view == estateExplorer",
+          "command": "estate.explore.options",
           "group": "navigation"
         },
         {
-          "command": "estate.refresh",
-          "when": "view == estateExplorer",
+          "command": "estate.bookmark.create",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
-          "command": "estate.bookmark.delete",
+          "command": "estate.bookmark.update",
           "group": "inline"
         }
       ],
       "editor/context": [
         {
           "command": "estate.settings.create",
-          "group": "navigation"
-        },
-        {
-          "command": "estate.settings.read",
-          "group": "navigation"
-        },
-        {
-          "command": "estate.settings.update",
-          "group": "navigation"
+          "group": "navigation",
+          "when": "estate.hasAnchor"
         },
         {
           "command": "estate.settings.delete",
-          "group": "navigation"
-        },
-        {
-          "command": "estate.settings.configure",
-          "group": "navigation"
-        },
-        {
-          "command": "estate.anchor.pipeline",
-          "group": "navigation"
-        },
-        {
-          "command": "estate.snippet.export",
-          "group": "navigation"
-        },
-        {
-          "command": "estate.bookmark.read",
-          "group": "navigation"
+          "group": "navigation",
+          "when": "estate.hasAnchor"
         }
       ],
       "editor/title": [
         {
-          "command": "estate.enterLeader",
-          "group": "navigation",
-          "when": "!estate.leader"
-        },
-        {
-          "command": "estate.exitLeader",
-          "group": "navigation",
-          "when": "estate.leader"
-        },
-        {
-          "command": "estate.anchor.pipeline",
-          "group": "navigation",
-          "when": "estate.input"
-        },
-        {
-          "command": "estate.anchor.pipeline",
-          "group": "navigation",
-          "when": "!estate.input"
-        },
-        {
-          "command": "estate.settings.create",
-          "group": "navigation"
-        },
-        {
-          "command": "estate.settings.read",
-          "group": "navigation"
-        },
-        {
-          "command": "estate.settings.update",
-          "group": "navigation"
-        },
-        {
-          "command": "estate.settings.delete",
-          "group": "navigation"
-        },
-        {
-          "command": "estate.settings.configure",
-          "group": "navigation"
-        },
-        {
-          "command": "estate.snippet.export",
+          "command": "estate.bookmark.create",
+          "when": "!estate.hasAnchor",
           "group": "navigation"
         },
         {
           "command": "estate.bookmark.read",
+          "when": "!estateExplorer.visible && estate.hasAnchor",
           "group": "navigation"
+        },
+        {
+          "command": "estate.bookmark.filter",
+          "when": "estateExplorer.visible && estate.hasAnchor",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.bookmark.delete",
+          "when": "estate.hasAnchor",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.settings.create",
+          "group": "navigation",
+          "when": "estate.hasAnchor && estateExplorer.visible",
+          "enablement": "estate.hasAnchor"
+        },
+        {
+          "command": "estate.settings.read",
+          "group": "navigation",
+          "when": "estate.hasAnchor"
+        },
+        {
+          "command": "estate.settings.update",
+          "group": "navigation",
+          "when": "estate.hasAnchor"
         }
       ],
       "editor/title/context": [
@@ -185,17 +149,12 @@
           "when": "estateExplorer.visible"
         },
         {
-          "command": "estate.bookmark.read",
+          "command": "estate.bookmark.filter",
+          "when": "estateExplorer.active",
           "group": "navigation"
         }
       ]
     },
-    "keybindings": [
-      {
-        "key": "cmd+alt+k",
-        "command": "bookmark.create"
-      }
-    ],
     "commands": [
       {
         "command": "estate.settings.create",
@@ -205,7 +164,8 @@
       {
         "command": "estate.settings.read",
         "title": "Estate: View settings",
-        "icon": "$(view)"
+        "icon": "$(gear)",
+        "enablement": "estateExplorer.visible"
       },
       {
         "command": "estate.settings.update",
@@ -248,6 +208,12 @@
         "icon": "$(view)"
       },
       {
+        "command": "estate.bookmark.filter",
+        "title": "Estate: Filter bookmarks",
+        "group": "navigation",
+        "icon": "$(filter)"
+      },
+      {
         "command": "estate.bookmark.update",
         "title": "Estate: Edit bookmark",
         "icon": "$(edit)"
@@ -256,12 +222,6 @@
         "command": "estate.bookmark.delete",
         "title": "Estate: Delete bookmark",
         "icon": "$(trash)"
-      },
-      {
-        "command": "estate.filter",
-        "title": "Estate: Filter",
-        "shortTitle": "estate filter",
-        "icon": "$(filter)"
       },
       {
         "command": "estate.anchor.view",
@@ -280,25 +240,25 @@
         "command": "estate.snippet.create",
         "title": "Estate: Create snippet",
         "shortTitle": "Create a snippet in any language quick and easy.",
-        "icon": "$(filter)"
+        "icon": "$(add)"
       },
       {
         "command": "estate.snippet.read",
         "title": "Estate: Read snippet",
         "shortTitle": "View snippets",
-        "icon": "$(filter)"
+        "icon": "$(view)"
       },
       {
         "command": "estate.snippet.update",
         "title": "Estate: Update snippet",
         "shortTitle": "Update snippts",
-        "icon": "$(filter)"
+        "icon": "$(edit)"
       },
       {
         "command": "estate.snippet.delete",
         "title": "Estate: Delete snippet",
         "shortTitle": "Delete snippet",
-        "icon": "$(filter)"
+        "icon": "$(trash)"
       },
       {
         "command": "estate.anchor.pipeline",
@@ -317,31 +277,16 @@
         "enablement": "estate.rustAnalyzerReady"
       },
       {
-        "command": "estate.enterLeader",
-        "title": "Estate: Enter Leader",
-        "icon": "$(symbol-interface)"
-      },
-      {
-        "command": "estate.exitLeader",
-        "title": "Exit Leader",
-        "icon": "$(close)"
-      },
-      {
         "key": "f24",
         "title": "Estate: Flow Next",
         "icon": "$(symbol-interface)",
         "command": "estate.flow.next"
       },
       {
-        "command": "estate.refresh",
-        "title": "Refresh Bookmark",
+        "command": "estate.explore.options",
+        "title": "Estate: View Options",
         "icon": "$(filter)",
-        "shortTitle": "estate refresh"
-      },
-      {
-        "command": "bookmark.create",
-        "title": "Estate: Create Bookmark",
-        "icon": "$(add)"
+        "shortTitle": "Explore Options"
       },
       {
         "command": "wikiLinks.rebuildIndex",
@@ -354,15 +299,6 @@
       {
         "command": "estate.snippet-maker",
         "title": "Estate: Snippet Maker"
-      },
-      {
-        "command": "estate.bookmark.create",
-        "title": "Estate: Create",
-        "icon": "$(add)"
-      },
-      {
-        "command": "estate.snippet.export",
-        "title": "Export"
       },
       {
         "command": "refPanel.open",

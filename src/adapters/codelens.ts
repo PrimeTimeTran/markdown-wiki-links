@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import { Anchor, AnchorRef } from './anchorService';
-import { Activity, captureScope } from '../activity';
+import { AppActivity, captureScope } from '../activity';
 import { EstateContext } from '../estate';
+// {file: undefined, column: undefined, line: undefined, text: undefined, scope: undefined}
 import { icons } from '../ownership';
 import { AppStore } from '../app';
 import { CMD } from '../../generated/cmd';
@@ -13,25 +14,26 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
   }
   constructor(private app: AppStore) {
     app.activity.subscribe((activity) => {
-      this.analyzeLine(activity);
+      // vscode.DebugConsoleMode
+      console.log('[WikiCodeLensProvider].subscription', activity);
       this.refresh();
+      this.analyzeLine(activity);
     });
   }
-  private analyzeLine(activity: Activity) {
+  private analyzeLine(activity: AppActivity) {
     // console.log('analyzeLine WikiCodeLensProvider event', activity);
   }
   init(context: vscode.ExtensionContext) {
-    icons;
     context.subscriptions.push(
       this.app.activity.subscribe((a) => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) return;
-        this.update(editor, a);
+        this.update(a);
       }),
     );
   }
-  private update(editor: vscode.TextEditor, activity: Activity) {
-    console.log('decorate based on', activity.scope);
+  private update(activity: AppActivity) {
+    console.log('decorate based on', activity);
   }
   public folded = new Set<string>();
   public renderedFoldAll: boolean = false;
@@ -194,17 +196,17 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
           lenses.push(
             new vscode.CodeLens(range, {
               title: `🏠 Open ${anchor?.label ?? match.id}`,
-              command: CMD.anchor.open,
+              command: CMD.estate.anchor.view,
               arguments: [this.makeCtx(doc, match, range)],
             }),
           );
-          lenses.push(
-            new vscode.CodeLens(range, {
-              title: `🔖 Present ${anchor?.label ?? match.id}`,
-              command: CMD.anchor.present,
-              arguments: [this.makeCtx(doc, match, range), anchor],
-            }),
-          );
+          // lenses.push(
+          //   new vscode.CodeLens(range, {
+          //     title: `🔖 Present ${anchor?.label ?? match.id}`,
+          //     command: CMD.anchor.present,
+          //     arguments: [this.makeCtx(doc, match, range), anchor],
+          //   }),
+          // );
           new vscode.CodeLens(range, {
             title: '🔖 Anchor',
             command: 'anchor.edit',
@@ -432,6 +434,7 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
     return lenses;
   }
   renderAnchor(b: Anchor) {
+    console.log('[WikiCodeLensProvider].renderAnchor', b);
     const range = this.app.anchors.getRange(b);
     return new vscode.CodeLens(range, {
       title: `🔖 ${b.label ?? 'Anchor'}`,

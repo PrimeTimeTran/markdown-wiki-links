@@ -18,7 +18,7 @@ import {
 import { EstateContext } from './estate';
 import { AppStore, registerGiantQuickPickCommand } from './app';
 import { WikiDecorations } from './adapters/decorations';
-// import { OwnershipInlayProvider } from './ownership';
+import { OwnershipInlayProvider } from './ownership';
 import { OwnershipCodeActionProvider } from './adapters/codeAction';
 import { OwnershipContentProvider, OwnershipEngine, showOwnershipView } from './diff';
 
@@ -28,52 +28,38 @@ let indexService: IndexService | undefined;
 type WikiLinksApi = { extendMarkdownIt(md: any): any };
 
 export async function activate(context: vscode.ExtensionContext): Promise<WikiLinksApi> {
+  console.log('activate');
   indexService = new IndexService();
   await indexService.initialize();
+  console.log('app');
   const app = new AppStore(context);
   app.init(context);
   context.subscriptions.push(
     vscode.commands.registerCommand('estate.enterLeader', async () => {
       app.enterLeader();
-      console.log('app.inputapp.input', app.input);
+      console.log('[activate].estate.enterLeader', app.input);
       await vscode.commands.executeCommand('setContext', 'estate.leader', app.input);
       app.tree.refresh();
     }),
   );
   registerGiantQuickPickCommand(context, app);
+  console.log('ownership');
   const ownershipEngine = new OwnershipEngine();
   const ownershipProvider = new OwnershipContentProvider(ownershipEngine);
 
   context.subscriptions.push(
     vscode.workspace.registerTextDocumentContentProvider('estate', ownershipProvider),
-  );
-
-  context.subscriptions.push(
     vscode.commands.registerCommand('estate.showOwnership', showOwnershipView),
-  );
-  context.subscriptions.push(
     vscode.workspace.onDidChangeTextDocument((e) => {
       const ownershipUri = vscode.Uri.parse(`estate://ownership${e.document.uri.path}`);
       ownershipProvider.refresh(ownershipUri);
     }),
-  );
-
-  // Code Action provider
-  context.subscriptions.push(
     vscode.languages.registerCodeActionsProvider('rust', new OwnershipCodeActionProvider()),
-  );
-  //   context.subscriptions.push(
-  //     vscode.commands.registerCommand('estate.showOwnership', (...args) => {
-  //       console.log('OWNERSHIP ARGS:', args);
-  //     }),
-  //   );
-  context.subscriptions.push(
     vscode.commands.registerCommand('estate.testOwnershipAction', (...args) => {
       console.log('COMMAND FIRED', args);
       vscode.window.showInformationMessage('Ownership command fired');
     }),
   );
-
   // Commands
   const commands = [
     'estate.ownership.lineage',
@@ -242,7 +228,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   const decorations = new WikiDecorations(app, indexService);
   decorations.register(context);
 
-  //   let inlineProvider = new OwnershipInlayProvider(app);
+  // let inlineProvider = new OwnershipInlayProvider(app);
   //   context.subscriptions.push(
   //     vscode.languages.registerInlayHintsProvider({ language: 'rust' }, inlineProvider),
   //   );

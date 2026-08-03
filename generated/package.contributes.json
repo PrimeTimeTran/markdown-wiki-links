@@ -1,52 +1,243 @@
 {
   "contributes": {
     "commands": [
-      
+      {
+        "command": "estate.explore.options",
+        "title": "Estate: View Options",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "estate.bookmark.create",
+        "title": "Estate: Create bookmark",
+        "icon": "$(add)"
+      },
+      {
+        "command": "estate.bookmark.read",
+        "title": "Estate: View bookmark",
+        "icon": "$(view)"
+      },
+      {
+        "command": "estate.bookmark.update",
+        "title": "Estate: Edit bookmark",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "estate.bookmark.delete",
+        "title": "Estate: Delete bookmark",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "estate.bookmark.filter",
+        "title": "Estate: Filter bookmarks",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "estate.settings.create",
+        "title": "Estate: Create settings",
+        "icon": "$(add)"
+      },
+      {
+        "command": "estate.settings.read",
+        "title": "Estate: View settings",
+        "icon": "$(view)"
+      },
+      {
+        "command": "estate.settings.update",
+        "title": "Estate: Edit settings",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "estate.settings.delete",
+        "title": "Estate: Delete settings",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "estate.series.create",
+        "title": "Estate: Create series",
+        "icon": "$(add)"
+      },
+      {
+        "command": "estate.series.read",
+        "title": "Estate: View series",
+        "icon": "$(view)"
+      },
+      {
+        "command": "estate.series.update",
+        "title": "Estate: Edit series",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "estate.series.delete",
+        "title": "Estate: Delete series",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "estate.filter",
+        "title": "Estate: Filter",
+        "shortTitle": "estate filter",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "estate.anchor.view",
+        "title": "Estate: View anchor",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "ui.toggleMDPreview",
+        "title": "Wiki Links: Preview Mode (Toggle)"
+      },
+      {
+        "command": "flowify.analyzeLine",
+        "title": "Estate: Analyze Subject"
+      },
+      {
+        "command": "estate.snippet.create",
+        "title": "Estate: Create snippet",
+        "shortTitle": "Create a snippet in any language quick and easy.",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "estate.snippet.read",
+        "title": "Estate: Read snippet",
+        "shortTitle": "View snippets",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "estate.snippet.update",
+        "title": "Estate: Update snippet",
+        "shortTitle": "Update snippts",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "estate.snippet.delete",
+        "title": "Estate: Delete snippet",
+        "shortTitle": "Delete snippet",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "estate.anchor.pipeline",
+        "title": "Estate: Anchor a pipeline's flow",
+        "shortTitle": "Understand your code by noting steps through configuration files, branches, and variants",
+        "category": "Estate",
+        "icon": "$(type-hierarchy-sub)",
+        "enablement": "estate.input"
+      },
+      {
+        "command": "estate.show.ownership",
+        "title": "Estate: Show Ownership Analysis",
+        "shortTitle": "Visualize ownership relationships and affected code regions",
+        "category": "Analysis",
+        "icon": "$(references)",
+        "enablement": "estate.rustAnalyzerReady"
+      }
     ],
     "menus": {
-      "view/item/context": [
+      "view/title": [
         {
-          "command": "estate.series.create",
-          "group": "plan"
-        },
-        {
-          "command": "estate.series.read",
-          "group": "plan"
-        },
-        {
-          "command": "estate.series.update",
-          "group": "plan"
-        },
-        {
-          "command": "estate.series.delete",
-          "group": "plan"
+          "command": "estate.explore.options",
+          "when": "view == estateExplorer",
+          "group": "navigation"
         },
         {
           "command": "estate.bookmark.create",
-          "group": "plan"
+          "group": "navigation"
+        },
+        {
+          "command": "estate.filter",
+          "group": "navigation"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "estate.bookmark.create",
+          "when": "!estate.hasAnchor",
+          "group": "navigation"
         },
         {
           "command": "estate.bookmark.read",
-          "group": "plan"
-        },
-        {
-          "command": "estate.bookmark.update",
-          "group": "plan"
+          "when": "estate.hasAnchor && !estateExplorer.visible",
+          "group": "navigation"
         },
         {
           "command": "estate.bookmark.delete",
-          "group": "plan"
+          "when": "estate.hasAnchor",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.bookmark.filter",
+          "when": "estate.hasAnchor && estateExplorer.visible",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.settings.create",
+          "when": "estate.hasAnchor && estateExplorer.visible",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.settings.read",
+          "when": "estate.hasAnchor",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.settings.update",
+          "when": "estate.hasAnchor",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.settings.delete",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.show.ownership",
+          "when": "editorLangId == rust",
+          "group": "estate"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "estate.bookmark.create",
+          "group": "inline"
+        },
+        {
+          "command": "estate.bookmark.read",
+          "when": "estate.hasAnchor",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.bookmark.update",
+          "when": "estate.hasAnchor",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.bookmark.delete",
+          "when": "estate.hasAnchor",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.bookmark.filter",
+          "when": "estate.hasAnchor",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.series.create",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.series.read",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.series.update",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.series.delete",
+          "group": "navigation"
         },
         {
           "command": "estate.anchor.pipeline",
           "when": "view == estateTree",
           "group": "estate@1"
-        }
-      ],
-      "view/title": [
-        {
-          "command": "estate.filter",
-          "group": "navigation"
         }
       ],
       "editor/title/context": [
@@ -60,13 +251,6 @@
           "command": "estate.anchor.pipeline",
           "when": "editorLangId == rust",
           "group": "estate@1"
-        }
-      ],
-      "editor/title": [
-        {
-          "command": "estate.show.ownership",
-          "when": "editorLangId == rust",
-          "group": "estate"
         }
       ]
     },

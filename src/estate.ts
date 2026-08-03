@@ -7,7 +7,7 @@ import { AppStore } from './app';
 import { SECTIONS_LIST, SNIPPET_ITEMS } from './consts';
 
 import { CMD } from '../generated/cmd';
-s
+
 export interface EstateContext {
   anchor: string;
   uri: vscode.Uri;
@@ -199,6 +199,7 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
       return SECTIONS_LIST.map((s) => new EstateNode('folder', s));
     }
     const anchors = this.app.anchors.list();
+    console.log('[EstateTreeProvider].getChildren anchors', anchors.length);
     switch (node.label) {
       case SECTIONS_LIST[0]:
         return anchors
@@ -265,7 +266,7 @@ export class EstateNode extends vscode.TreeItem {
     //   arguments: [anchor],
     // };
     if (SECTIONS_LIST.includes(this.label)) {
-      vscode.window.showInformationMessage('clicked title');
+      // vscode.window.showInformationMessage('clicked title');
     } else {
       this.command = {
         command: CMD.estate.bookmark.read,
@@ -293,7 +294,6 @@ export class EstateNode extends vscode.TreeItem {
     const isSettingsFile = /settings\.json$/i.test(uri);
     const tags = anchor.tags ?? [];
     this.iconPath = new vscode.ThemeIcon('pinned', new vscode.ThemeColor('charts.red'));
-
     if (isSettingsFile) {
       this.iconPath = new vscode.ThemeIcon('settings-gear');
     } else if (tags.includes('index')) {
