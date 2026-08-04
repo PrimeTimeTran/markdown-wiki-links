@@ -138,6 +138,7 @@ none
 Menus:
 - editor/title
 - view/item/context
+- editor/title/context
 
 ---
 

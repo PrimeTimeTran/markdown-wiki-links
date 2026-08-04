@@ -54,7 +54,7 @@ function generateCommandConstants(commands: typeof COMMANDS) {
     lines.push(`  ${name}: "${cmd.id}",`);
   }
 
-  lines.push("};", "");
+  lines.push("};");
 
   return lines.join("\n");
 }

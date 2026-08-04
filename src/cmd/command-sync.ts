@@ -155,15 +155,11 @@ function generatePackageJson(commands: typeof COMMANDS) {
 
 function generateCommandConstants(commands: typeof COMMANDS) {
   const tree: Record<string, any> = {};
-
   for (const cmd of commands) {
     const parts = cmd.id.split(".");
-
     let cursor = tree;
-
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
-
       if (i === parts.length - 1) {
         cursor[part] = cmd.id;
       } else {
@@ -172,12 +168,9 @@ function generateCommandConstants(commands: typeof COMMANDS) {
       }
     }
   }
-
   function emit(obj: Record<string, any>, indent = 2): string {
     const spaces = " ".repeat(indent);
-
     const lines = ["{"];
-
     for (const [key, value] of Object.entries(obj)) {
       if (typeof value === "string") {
         lines.push(`${spaces}${key}: "${value}",`);
@@ -185,13 +178,15 @@ function generateCommandConstants(commands: typeof COMMANDS) {
         lines.push(`${spaces}${key}: ${emit(value, indent + 2)},`);
       }
     }
-
     lines.push(" ".repeat(indent - 2) + "}");
-
     return lines.join("\n");
   }
-
-  return ["// GENERATED FILE", "", "export const CMD = ", emit(tree), " as const;", ""].join("\n");
+  return [
+    "// GENERATED FILE",
+    "",
+    "export const CMD = ",
+    [emit(tree), " as const;", ""].join(""),
+  ].join("\n");
 }
 
 function generateDocs(commands: typeof COMMANDS) {
