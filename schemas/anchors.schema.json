@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://estate.dev/schema/anchors.schema.json",
+  "title": "Estate Anchor Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "items"
+  ],
+  "properties": {
+    "items": {
+      "type": "object",
+      "description": "Map of anchor id -> anchor",
+      "propertyNames": {
+        "format": "uuid"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/Anchor"
+      }
+    }
+  },
+  "$defs": {
+    "SourceRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uri",
+        "startLine",
+        "endLine",
+        "startCharacter",
+        "endCharacter"
+      ],
+      "properties": {
+        "uri": {
+          "type": "string"
+        },
+        "languageId": {
+          "type": "string"
+        },
+        "startLine": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "endLine": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "startCharacter": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "endCharacter": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "Anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "src",
+        "type",
+        "privacy",
+        "scope",
+        "origin",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "code",
+            "note",
+            "pipeline",
+            "task",
+            "decision",
+            "design",
+            "documentation"
+          ]
+        },
+        "src": {
+          "$ref": "#/$defs/SourceRange"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "privacy": {
+          "type": "string",
+          "enum": [
+            "private",
+            "workspace",
+            "public"
+          ]
+        },
+        "origin": {
+          "type": "string",
+          "enum": [
+            "personal",
+            "workspace",
+            "generated",
+            "imported"
+          ]
+        },
+        "scope": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        },
+        "context": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "scratchpadBody": {
+          "type": "string"
+        },
+        "scratchpadExt": {
+          "type": "string"
+        },
+        "repo": {
+          "type": "string"
+        },
+        "commit": {
+          "type": "string"
+        },
+        "anchors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "uniqueItems": true
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}
