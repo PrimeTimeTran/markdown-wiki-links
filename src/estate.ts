@@ -150,7 +150,7 @@ export class VFSProvider implements vscode.TextDocumentContentProvider {
 export class VFSDecorator implements vscode.FileDecorationProvider {
   constructor(ctx: vscode.ExtensionContext, app: AppStore) {
     app.activity.subscribe((a) => {
-      console.log("VFSDecorator click");
+      console.log("[VFSDecorator.constructor].subscription");
     });
   }
 

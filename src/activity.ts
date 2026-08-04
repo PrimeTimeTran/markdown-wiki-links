@@ -125,7 +125,7 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
         console.log("[Activity].onDidChangeActiveTextEditor for ownership feature");
         const hasAnchor = editor ? this.app.anchors.has(editor.document.uri.fsPath) : false;
         console.log("[Activity].checkingAnchor", hasAnchor);
-        await vscode.commands.executeCommand("setContext", "estate.hasAnchor", hasAnchor);
+        // await vscode.commands.executeCommand("setContext", "estate.hasAnchor", hasAnchor);
       }),
     );
     context.subscriptions.push(

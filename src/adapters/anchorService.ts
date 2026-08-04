@@ -9,9 +9,8 @@ import { AppStore } from "../app";
 import { capability, flags } from "../cmd/cmd";
 import { CMD } from "../../generated/cmd";
 import { anchorShowPage, getHtml } from "./htmlAnchor";
-import { AppActivity } from "../activity";
+import { AnchorActivity, AppActivity } from "../activity";
 import { PATHS } from "../cfg";
-import { CLIENT_RENEG_LIMIT } from "node:tls";
 // # Flag
 // - Fold flags: show prevent 'above' from 'unfolding' no matter how many depths I've unfolded. Think about how I might want to 'ignore' tests of rust or imports or 'first impl'
 // # Anchor capabilities
@@ -414,12 +413,12 @@ export class AnchorStore implements AnchorStoreType {
   }
   inFile(a: Anchor, file: vscode.Uri) {
     let result = this.getUri(a);
-    let resultLa = this.getUri(a).fsPath == file.fsPath;
-    console.log("[AnchorStore].inFile", file.fsPath);
-    console.log("[AnchorStore].inFile", a.src?.uri);
-    console.log("[AnchorStore].inFile", resultLa);
-    console.log("[AnchorStore].inFile", result.fsPath);
-    return resultLa;
+    // let result = this.getUri(a).fsPath == file.fsPath;
+    // console.log("[AnchorStore].inFile", file.fsPath);
+    // console.log("[AnchorStore].inFile", a.src?.uri);
+    // console.log("[AnchorStore].inFile", resultLa);
+    // console.log("[AnchorStore].inFile", result.fsPath);
+    return result;
   }
   find(file: vscode.Uri, text: string, line: number): AnchorRef[] {
     const results = [...findAnchors(text, this, line), ...findFlags(text, this, line)];
@@ -437,8 +436,8 @@ export class AnchorStore implements AnchorStoreType {
   }
   findInFile(file: vscode.Uri): Anchor[] {
     let items = this.list().filter((a) => this.inFile(a, file));
-    console.log("[AnchorStore].findInFile", file);
-    console.log("[AnchorStore].findInFile", items);
+    // console.log("[AnchorStore].findInFile", file);
+    // console.log("[AnchorStore].findInFile", items);
     return items;
   }
   findSortedIndex(file: vscode.Uri, line: number): Anchor[] {
@@ -527,34 +526,46 @@ export class AnchorSeries {}
 export class AnchorPresenter {
   private anchorPanels = new Map<string, vscode.WebviewPanel>();
   constructor(public app: AppStore) {
+    // app.logger.debug("[AnchorPresenter]");
     app.ctx.subscriptions.push(
       vscode.commands.registerCommand(
         CMD.estate.bookmark.read,
-        // async (anchor: Anchor) => {
         async (node: EstateNode, anchor: Anchor) => {
+          await vscode.commands.executeCommand("setContext", "estate.hasAnchor", true);
           console.log("[AnchorPresenter].bookmark.read");
           await this.app.tree.treeView.reveal(node, {
             expand: true,
             focus: false,
             select: true,
           });
-          await vscode.commands.executeCommand("setContext", "estate.hasAnchor", true);
-          // let activity: AnchorActivity = {
-          //   type: "anchor",
-          //   anchor,
-          //   editor: vscode.window.activeTextEditor,
-          // };
+
+          let activity: AnchorActivity = {
+            type: "anchor",
+            anchor,
+            editor: vscode.window.activeTextEditor,
+          };
           // this.app.activity.emit(activity);
-          await this.showAnchor(anchor);
+          // await this.showAnchor(anchor);
+          // await this.refresh(activity);
+          this.showAnchor(anchor);
         },
         this,
       ),
     );
-    app.activity.subscribe((a: AppActivity) => {
+    app.activity.subscribe(async (a: AppActivity) => {
+      // app.logger.debug("[AnchorPresenter.constructor].construct");
       if (!a.editor) return;
+      // Use a type guard to narrow the union type
+      if (a.type === "anchor") {
+        //   await this.refresh(a); // TypeScript now knows 'a' is strictly AnchorActivity
+      }
     });
   }
+  async refresh(a: AnchorActivity) {
+    this.showAnchor(a.anchor);
+  }
   private async showAnchor(anchor: Anchor, mode: "source" | "page" | "popup" = "source") {
+    this.app.logger.debug("[AnchorPresenter.showAnchor]");
     const id = anchor.id;
 
     //
@@ -564,10 +575,10 @@ export class AnchorPresenter {
       if (!anchor.uri()) {
         return;
       }
-      console.log("Hi there showAnchor");
+      // console.log("Hi there showAnchor");
       // TODO:
       // Fix bug, logic is right but it takes a second click to show buttons in editor tabs row
-      console.log("estate.hasAnchor =", true);
+      // console.log("estate.hasAnchor =", true);
       // await vscode.commands.executeCommand("setContext", "estate.hasAnchor", true);
 
       const uri = vscode.Uri.file(anchor.uri());
@@ -891,15 +902,6 @@ export class AnchorPresenter {
     // </html>
     // `;
   }
-}
-export interface AnchorAnchor {
-  //   uri: vscode.Uri;
-  //   line: number;
-  //   // optional placement info
-  //   start?: number;
-  //   end?: number;
-  //   // why it exists
-  //   source: 'reference' | 'position';
 }
 // export interface Anchor {
 //   id: string;

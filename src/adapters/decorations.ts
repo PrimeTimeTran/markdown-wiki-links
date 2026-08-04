@@ -53,7 +53,7 @@ export class WikiDecorations {
     app: AppStore,
     private idx: IndexService,
   ) {
-    console.log("[WikiDecorations].constructor");
+    console.log("[j].constructor");
     this.initIcons();
     this.initStateIcons();
     this.providers = [
@@ -85,8 +85,13 @@ export class WikiDecorations {
 
     // 2. Anchor review workflow.
     app.activity.subscribe((activity) => {
+      // app.logger.debug("[WikiDecorations]");
       console.log("[WikiDecorations].constructor subscribe");
       const editor = vscode.window.activeTextEditor;
+      if (editor && activity.type == "anchor") {
+        console.log("[WikiDecorations.constructor].subscription");
+        this.refresh(editor, activity);
+      }
       if (!editor) return;
       if (editor) {
         this.decorate(editor);
@@ -1011,4 +1016,3 @@ export class GutterProvider implements DecorationProvider {
 // class WikiLinkDecorationProvider implements DecorationProvider {
 //   provide(editor: vscode.TextEditor, activity: AppActivity): DecorationResult[] {}
 // }
-

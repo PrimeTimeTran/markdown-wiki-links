@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { TraceApi } from "@primetimetran/logger";
 
 import { ActivityStore, AppActivity } from "./activity";
 import { AnalysisStore } from "./analysis";
@@ -28,11 +29,38 @@ export class AppStore {
   readonly anchors: AnchorStore;
   readonly presenter: AnchorPresenter;
   readonly codeLens: WikiCodeLensProvider;
-
   constructor(
     public ctx: vscode.ExtensionContext,
+    public logger: TraceApi,
     indexService: IndexService,
   ) {
+    // this.logger = {
+    //   mark() {},
+    //   debug() {},
+    //   info() {},
+    //   warn() {},
+    //   error() {},
+    // };
+    // const originalLog = console.log;
+    // console.log = (...args: unknown[]) => {
+    //   originalLog(...args);
+    //   this.outputChannel.appendLine(
+    //     args.map((arg) => (typeof arg === "string" ? arg : JSON.stringify(arg))).join(" "),
+    //   );
+    // };
+    // ctx.subscriptions.push(this.outputChannel);
+    // setLoggerConfig({
+    //   LOG_LEVEL: "debug",
+    //   TRACE_ENABLED: true,
+    //   // // If your logger supports a custom transport/sink function:
+    //   // transport: (formattedLogString: string) => {
+    //   //   this.outputChannel.appendLine(formattedLogString);
+    //   // },
+    // });
+
+    // const trace = createTrace("ext:app.constructor");
+    // trace.mark("app.constructor.start");
+
     this.activity = new ActivityStore<AppActivity>(this);
 
     this.anchors = new AnchorStore(this);
@@ -88,7 +116,7 @@ export class AppStore {
     this.activity.subscribe((activity) => {
       console.log("[AppStore].init Activity Click");
       //   vscode.window.showInformationMessage(`app ${this.input}`);
-      this.analysis.analyzeLine(activity);
+      // this.analysis.analyzeLine(activity);
     });
   }
 
@@ -190,4 +218,20 @@ export function registerGiantQuickPickCommand(context: vscode.ExtensionContext, 
   }
 }
 
-
+// [2026-08-04T06:44:02.376Z] [DEBUG] [ext:activate] [WikiDecorations]
+// [2026-08-04T06:44:02.376Z] [DEBUG] [ext:activate] [WikiCodeLensProvider]
+// [2026-08-04T06:44:02.379Z] [DEBUG] [ext:activate] [AnchorPresenter.constructor].construct
+// [2026-08-04T06:44:02.380Z] [DEBUG] [ext:activate] [WikiDecorations]
+// [2026-08-04T06:44:02.381Z] [DEBUG] [ext:activate] [WikiCodeLensProvider]
+// [2026-08-04T06:44:02.411Z] [DEBUG] [ext:activate] [AnchorPresenter.constructor].construct
+// [2026-08-04T06:44:02.412Z] [DEBUG] [ext:activate] [WikiDecorations]
+// [2026-08-04T06:44:02.412Z] [DEBUG] [ext:activate] [WikiCodeLensProvider]
+// [2026-08-04T06:44:02.426Z] [DEBUG] [ext:activate] [AnchorPresenter.constructor].construct
+// [2026-08-04T06:44:02.426Z] [DEBUG] [ext:activate] [WikiDecorations]
+// [2026-08-04T06:44:02.427Z] [DEBUG] [ext:activate] [WikiCodeLensProvider]
+// [2026-08-04T06:44:02.431Z] [DEBUG] [ext:activate] [AnchorPresenter.constructor].construct
+// [2026-08-04T06:44:02.431Z] [DEBUG] [ext:activate] [WikiDecorations]
+// [2026-08-04T06:44:02.432Z] [DEBUG] [ext:activate] [WikiCodeLensProvider]
+// [2026-08-04T06:44:02.438Z] [DEBUG] [ext:activate] [AnchorPresenter.constructor].construct
+// [2026-08-04T06:44:02.439Z] [DEBUG] [ext:activate] [WikiDecorations]
+// [2026-08-04T06:44:02.440Z] [DEBUG] [ext:activate] [WikiCodeLensProvider]

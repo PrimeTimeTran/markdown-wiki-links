@@ -4,10 +4,10 @@ import { IndexService } from "./adapters/indexService";
 import { RenameHandler } from "./adapters/renameHandler";
 import { createPreviewResolver } from "./adapters/previewResolver";
 import { WikiHoverProvider } from "./adapters/hoverProvider";
-import { WikiDocumentLinkProvider } from "./adapters/documentLinkProvider";
+// import { WikiDocumentLinkProvider } from "./adapters/documentLinkProvider";
 import { WikiDiagnostics } from "./adapters/diagnostics";
 import { WikiCompletionProvider } from "./adapters/completionProvider";
-import { WikiCodeLensProvider } from "./adapters/codelens";
+// import { WikiCodeLensProvider } from "./adapters/codelens";
 
 import { longLangs, supportedLanguages } from "./consts";
 import {
@@ -17,21 +17,65 @@ import {
 } from "./markdownItPlugin/index";
 import { EstateContext } from "./estate";
 import { AppStore, registerGiantQuickPickCommand } from "./app";
-import { WikiDecorations } from "./adapters/decorations";
-import { OwnershipInlayProvider } from "./ownership";
+// import { WikiDecorations } from "./adapters/decorations";
+// import { OwnershipInlayProvider } from "./ownership";
 import { OwnershipCodeActionProvider } from "./adapters/codeAction";
 import { OwnershipContentProvider, OwnershipEngine, showOwnershipView } from "./diff";
+import {
+  setLoggerConfig,
+  setLoggerOutput,
+  createTrace,
+  getLoggerConfig,
+} from "@primetimetran/logger";
+import { newEditorGroupTabContent } from "./adapters/htmlAnchor";
 
 export let indexService: IndexService | undefined;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type WikiLinksApi = { extendMarkdownIt(md: any): any };
 
+export function setupExtensionLogger(pipeline: string, stream: string) {
+  const channel = vscode.window.createOutputChannel(pipeline);
+  channel.show(true);
+
+  // Match the exact stream name to guarantee it passes shouldLog()
+  setLoggerConfig({
+    LOG_LEVEL: "info",
+    TRACE_ENABLED: true,
+    LOG_NAMESPACE: stream,
+  });
+
+  setLoggerOutput((...args: any[]) => {
+    const message = args
+      .map((arg) => (typeof arg === "string" ? arg : JSON.stringify(arg, null, 2)))
+      .join(" ");
+    channel.appendLine(message);
+  });
+
+  channel.appendLine(`[INIT] Pipeline: ${pipeline}, Stream: ${stream}`);
+  channel.appendLine(`[Preflight] Config Active: ${JSON.stringify(getLoggerConfig(), null, 2)}`);
+
+  return {
+    trace: createTrace(stream),
+    channel,
+  };
+}
+
 export async function activate(context: vscode.ExtensionContext): Promise<WikiLinksApi> {
+  const { trace, channel } = setupExtensionLogger("Flowify", "ext:activate");
+  context.subscriptions.push(channel);
+
+  trace.mark("activate using logger mark");
+  trace.debug("activate using logger debug");
+  trace.warn("activate using logger warn");
+  trace.info("activate using logger info");
+  trace.error("activate using logger error");
+
   indexService = new IndexService();
   await indexService.initialize();
-  const app = new AppStore(context, indexService);
+  const app = new AppStore(context, trace, indexService);
   app.init(context);
+
   context.subscriptions.push(
     vscode.commands.registerCommand("estate.enterLeader", async () => {
       app.enterLeader();
@@ -222,6 +266,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   //   );
 
   // VSCode reads `extendMarkdownIt` off the extension's exports — i.e. activate's return value.
+  // context.subscriptions.push(trace);
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     extendMarkdownIt(md: any): any {
@@ -251,19 +296,3 @@ function embedMaxDepth(): number {
     .get<number>("embed.maxDepth", DEFAULT_EMBED_MAX_DEPTH);
   return typeof configured === "number" && configured >= 1 ? configured : DEFAULT_EMBED_MAX_DEPTH;
 }
-
-const newEditorGroupTabContent = `
-## 🏠 Foo Architecture
-
-Foo desc
-
-@spam
-@foo
-@ham
-
-**Context**
-
-Foo context
-
-[Open Graph](command:wiki.showGraph)
-      `;

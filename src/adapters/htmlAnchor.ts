@@ -1,14 +1,14 @@
-import { Anchor } from './anchorService';
+import { Anchor } from "./anchorService";
 
 export function anchorShowPage(anchor: Anchor) {
-  console.log('anchorShowPage', {
+  console.log("anchorShowPage", {
     id: anchor.id,
     code: anchor.code?.length,
     body: anchor.body?.length,
   });
 
   return rootHtml({
-    title: anchor.label ?? 'Anchor',
+    title: anchor.label ?? "Anchor",
     body: rootBody2(anchor),
   });
 }
@@ -87,18 +87,18 @@ export function rootBody(anchor: Anchor) {
 `;
 }
 export function anchorCode(anchor: Anchor) {
-  let source = '';
+  let source = "";
 
-  if (typeof anchor.code === 'string' && anchor.code.trim()) {
+  if (typeof anchor.code === "string" && anchor.code.trim()) {
     source = anchor.code;
-  } else if (typeof anchor.body === 'string') {
+  } else if (typeof anchor.body === "string") {
     source = anchor.body;
   } else if (anchor.body) {
     source = JSON.stringify(anchor.body, null, 2);
   }
 
   if (!source.trim()) {
-    return '';
+    return "";
   }
 
   return `
@@ -115,16 +115,16 @@ export function anchorMeta(anchor: Anchor) {
 <section class="card">
     <h3>Metadata</h3>
     <label> Type </label>
-    <div>${anchor.type ?? ''}</div>
+    <div>${anchor.type ?? ""}</div>
     <label> Scope </label>
-    <div>${anchor.scope ?? ''}</div>
+    <div>${anchor.scope ?? ""}</div>
     <label> Privacy </label>
-    <div>${anchor.privacy ?? ''}</div>
+    <div>${anchor.privacy ?? ""}</div>
 </section>
 `;
 }
 export function anchorLocations(anchor: Anchor) {
-  if (!anchor.locations?.length) return '';
+  if (!anchor.locations?.length) return "";
 
   return `
 <section class="card">
@@ -155,7 +155,7 @@ ${loc.uri}:${loc.line}
 
 `,
   )
-  .join('')}
+  .join("")}
 
 </ul>
 
@@ -164,7 +164,7 @@ ${loc.uri}:${loc.line}
 `;
 }
 export function anchorLinks(anchor: Anchor) {
-  if (!anchor.anchors?.length) return '';
+  if (!anchor.anchors?.length) return "";
 
   return `
 <section class="card">
@@ -189,7 +189,7 @@ data-anchor="${id}">
 
 `,
   )
-  .join('')}
+  .join("")}
 
 </ul>
 
@@ -387,11 +387,11 @@ Tags
 grid grid-cols-2 sm:grid-cols-3 gap-2
 ">
 
-// ${renderTag('architecture', anchor.tags)}
-// ${renderTag('parser', anchor.tags)}
-// ${renderTag('compiler', anchor.tags)}
-// ${renderTag('rust', anchor.tags)}
-// ${renderTag('vscode', anchor.tags)}
+// ${renderTag("architecture", anchor.tags)}
+// ${renderTag("parser", anchor.tags)}
+// ${renderTag("compiler", anchor.tags)}
+// ${renderTag("rust", anchor.tags)}
+// ${renderTag("vscode", anchor.tags)}
 
 </div>
 
@@ -487,7 +487,7 @@ tags
 `;
 }
 export function renderTag(tag: string, selected: string[]) {
-  const checked = selected?.includes(tag) ? 'checked' : '';
+  const checked = selected?.includes(tag) ? "checked" : "";
   return /* html */ `
 
 <label
@@ -868,13 +868,13 @@ input {
 }
 `;
 }
-export function escapeHtml(value: string = '') {
+export function escapeHtml(value: string = "") {
   return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 export function anchorScratchpad(anchor: Anchor) {
   if (!anchor.scratchpadBody) {
@@ -912,14 +912,14 @@ export function rootBody2(anchor: Anchor) {
         <div class="hero-top">
             <div>
                 <h1 class="hero-title">
-                    ${escapeHtml(anchor.label ?? 'Anchor')}
+                    ${escapeHtml(anchor.label ?? "Anchor")}
                 </h1>
                 ${
                   anchor.description
                     ? `
                 <p class="hero-desc">${escapeHtml(anchor.description)}</p>
                 `
-                    : ''
+                    : ""
                 }
             </div>
             <div class="controls">
@@ -946,10 +946,10 @@ export function rootBody2(anchor: Anchor) {
             <span class="tag"> ${escapeHtml(tag)} </span>
             `,
               )
-              .join('')}
+              .join("")}
         </div>
         `
-            : ''
+            : ""
         }
     </section>
     ${anchorCode2(anchor)} ${anchorScratchpad(anchor)}
@@ -961,7 +961,7 @@ export function rootBody2(anchor: Anchor) {
         ${anchorLocations(anchor)} ${anchorLinks(anchor)}
     </section>
     `
-        : ''
+        : ""
     }
 
     <section class="card">${anchorMeta(anchor)}</section>
@@ -971,15 +971,31 @@ export function rootBody2(anchor: Anchor) {
 export function anchorCode2(anchor: Anchor) {
   const source =
     anchor.code ||
-    (typeof anchor.body === 'string'
+    (typeof anchor.body === "string"
       ? anchor.body
       : anchor.body
         ? JSON.stringify(anchor.body, null, 2)
-        : '');
+        : "");
   if (!source.trim()) {
-    return '';
+    return "";
   }
   return `
 <pre class="code"><code class="language-rust">${escapeHtml(source)}</code></pre>
 `;
 }
+
+export const newEditorGroupTabContent = `
+## 🏠 Foo Architecture
+
+Foo desc
+
+@spam
+@foo
+@ham
+
+**Context**
+
+Foo context
+
+[Open Graph](command:wiki.showGraph)
+      `;

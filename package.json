@@ -2,7 +2,7 @@
   "name": "markdown-wiki-links",
   "displayName": "Markdown Wiki Links",
   "publisher": "ltvan",
-  "version": "0.2.17",
+  "version": "0.2.18",
   "description": "Obsidian-style [[wiki-links]] between Markdown files in the workspace.",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -58,7 +58,7 @@
     "workspaceContains:**/*.{ts,mjs}",
     "workspaceContains:**/*.{js,cjs}"
   ],
-  "capabilities": {
+  "capabilitie`s": {
     "untrustedWorkspaces": {
       "supported": "limited",
       "description": "Wiki-link click-to-follow, hover, completion, and preview embeds work in untrusted workspaces. Rename-aware link rewriting is disabled until the workspace is trusted (it modifies files on disk)."
@@ -561,7 +561,12 @@
     "typescript-eslint": "^8.59.4"
   },
   "dependencies": {
+    "@primetimetran/logger": "workspace:*",
+    "and": "^0.0.3",
+    "build": "^0.1.4",
     "highlight.js": "^11.11.1",
+    "pnpm": "^11.19.0",
+    "run": "^1.5.0",
     "tsx": "^4.23.1"
   }
 }
