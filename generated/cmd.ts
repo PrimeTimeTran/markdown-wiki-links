@@ -24,7 +24,6 @@ export const CMD = {
       update: "estate.series.update",
       delete: "estate.series.delete",
     },
-    filter: "estate.filter",
     anchor: {
       view: "estate.anchor.view",
       pipeline: "estate.anchor.pipeline",

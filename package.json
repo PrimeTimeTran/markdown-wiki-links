@@ -2,7 +2,7 @@
   "name": "markdown-wiki-links",
   "displayName": "Markdown Wiki Links",
   "publisher": "ltvan",
-  "version": "0.2.18",
+  "version": "0.2.19",
   "description": "Obsidian-style [[wiki-links]] between Markdown files in the workspace.",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -58,7 +58,7 @@
     "workspaceContains:**/*.{ts,mjs}",
     "workspaceContains:**/*.{js,cjs}"
   ],
-  "capabilitie`s": {
+  "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
       "description": "Wiki-link click-to-follow, hover, completion, and preview embeds work in untrusted workspaces. Rename-aware link rewriting is disabled until the workspace is trusted (it modifies files on disk)."
@@ -79,17 +79,28 @@
       "view/title": [
         {
           "command": "estate.explore.options",
+          "when": "view == estateExplorer",
           "group": "navigation"
         },
         {
           "command": "estate.bookmark.create",
+          "when": "view == estateExplorer",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
+          "command": "estate.bookmark.create",
+          "when": "viewItem == folder",
+          "group": "inline@1"
+        },
+        {
           "command": "estate.bookmark.update",
-          "group": "inline"
+          "group": "inline@2"
+        },
+        {
+          "command": "estate.bookmark.delete",
+          "group": "inline@3"
         }
       ],
       "editor/context": [
@@ -551,6 +562,7 @@
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.9.1",
+    "@vscode/webview-ui-toolkit": "^1.4.0",
     "esbuild": "^0.28.0",
     "eslint": "^10.8.0",
     "eslint-plugin-import": "^2.32.0",

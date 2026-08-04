@@ -1,16 +1,18 @@
 import * as fs from "fs";
+import { randomUUID } from "node:crypto";
 import * as fsPromise from "node:fs/promises";
 import * as os from "os";
 import * as path from "path";
+
 import * as vscode from "vscode";
-import { EstateContext, EstateFlag, EstateNode } from "../estate";
-import { randomUUID } from "node:crypto";
-import { AppStore } from "../app";
-import { capability, flags } from "../cmd/cmd";
+
 import { CMD } from "../../generated/cmd";
-import { anchorShowPage, getHtml } from "./htmlAnchor";
 import { AnchorActivity, AppActivity } from "../activity";
+import { AppStore } from "../app";
 import { PATHS } from "../cfg";
+import { capability, flags } from "../cmd/cmd";
+import { EstateContext, EstateFlag, EstateNode } from "../estate";
+import { anchorShowPage, getHtml } from "./htmlAnchor";
 // # Flag
 // - Fold flags: show prevent 'above' from 'unfolding' no matter how many depths I've unfolded. Think about how I might want to 'ignore' tests of rust or imports or 'first impl'
 // # Anchor capabilities
@@ -110,7 +112,7 @@ export interface AnchorStoreType {
     opts: CreateAnchorOptions,
     anchor: Partial<Anchor>,
   ): Partial<Anchor>;
-  update(id: string, patch: Partial<Anchor>): void;
+  update(anchor: Anchor): void;
   delete(id: string): void;
   find(file: vscode.Uri, text: string, line: number): AnchorRef[];
   findByUri(uri: vscode.Uri): Anchor[];
@@ -174,7 +176,25 @@ export class AnchorStore implements AnchorStoreType {
     // - Pass app, ctx, or a 3rd argument to have it later. Otherwise the properties of this will be lost
     app.ctx.subscriptions.push(
       vscode.commands.registerCommand(CMD.estate.bookmark.create, this.addAnchor, this),
-      vscode.commands.registerCommand(CMD.estate.bookmark.update, this.update, this),
+      vscode.commands.registerCommand(
+        CMD.estate.bookmark.update,
+        (node: EstateNode) => {
+          // Safely extract the anchor from your node without stringifying the whole circular tree node
+          const anchor = node.anchor; // Adjust property name based on your EstateNode implementation
+
+          if (!anchor) {
+            vscode.window.showErrorMessage("No anchor found on this node.");
+            return;
+          }
+
+          console.log("[AnchorStorage.update] anchor id:", anchor.id);
+
+          // Call your webview pane opener instead of just doing a background update,
+          // since this is an "Edit bookmark" action!
+          this.app.presenter.showAnchorPane(anchor);
+        },
+        this,
+      ),
     );
     app.activity.subscribe(() => {
       //   console.log('Anchor store... activity detcted');
@@ -448,12 +468,14 @@ export class AnchorStore implements AnchorStoreType {
   findInIndex(file: vscode.Uri): Anchor[] {
     return this.fileIndex.get(file.toString()) ?? [];
   }
-  update(
-    id: string,
-    patch: Partial<Anchor>,
+  async update(
+    anchor: Anchor,
     // opts: CreateAnchorOptions,
-  ): Anchor {
-    throw new Error("AnchorStore.create() has not been implemented.");
+  ) {
+    console.log("hi");
+    vscode.window.showInformationMessage(`hi "hi" anchor ${anchor}`);
+    vscode.window.showInformationMessage(`hi "hi" anchor ${anchor.id.split(":")[2]}`);
+    await this.app?.presenter?.showAnchorPane(anchor);
   }
   delete(id: string) {
     throw new Error("TODO");
@@ -530,7 +552,7 @@ export class AnchorPresenter {
     app.ctx.subscriptions.push(
       vscode.commands.registerCommand(
         CMD.estate.bookmark.read,
-        async (node: EstateNode, anchor: Anchor) => {
+        async (node: EstateNode, anchor: Anchor, ...args) => {
           await vscode.commands.executeCommand("setContext", "estate.hasAnchor", true);
           console.log("[AnchorPresenter].bookmark.read");
           await this.app.tree.treeView.reveal(node, {
@@ -538,6 +560,10 @@ export class AnchorPresenter {
             focus: false,
             select: true,
           });
+
+          if (args[0]) {
+            vscode.window.showInformationMessage("good work!");
+          }
 
           let activity: AnchorActivity = {
             type: "anchor",
@@ -564,6 +590,7 @@ export class AnchorPresenter {
   async refresh(a: AnchorActivity) {
     this.showAnchor(a.anchor);
   }
+
   private async showAnchor(anchor: Anchor, mode: "source" | "page" | "popup" = "source") {
     this.app.logger.debug("[AnchorPresenter.showAnchor]");
     const id = anchor.id;
@@ -642,7 +669,7 @@ export class AnchorPresenter {
       async (message) => {
         switch (message.type) {
           case "saveAnchor":
-            this.app.anchors.update(id, message.anchor);
+            // this.app.anchors.update(id, message.anchor);
             this.app.anchors.save();
             break;
 
@@ -670,7 +697,76 @@ export class AnchorPresenter {
   // - Full
   // - Panel
 
-  private async showAnchorPane(anchor: Anchor) {
+  async showAnchorPane(anchor: Anchor) {
+    const id = anchor.id;
+
+    // 1. Focus existing anchor panel
+    const existingPanel = this.anchorPanels.get(id);
+    if (existingPanel) {
+      existingPanel.reveal(vscode.ViewColumn.Active);
+      // Optionally push fresh data if needed
+      existingPanel.webview.postMessage({ type: "loadAnchor", anchor });
+      return;
+    }
+
+    // 2. Create anchor panel
+    const panel = vscode.window.createWebviewPanel(
+      "anchor",
+      anchor.label ?? "Anchor",
+      vscode.ViewColumn.Active,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        // Optional: restrict resource loading to your extension directory
+        localResourceRoots: [vscode.Uri.file(path.join(this.app.ctx.extensionPath, "media"))],
+      },
+    );
+
+    this.anchorPanels.set(id, panel);
+    panel.onDidDispose(() => {
+      this.anchorPanels.delete(id);
+    });
+
+    panel.webview.onDidReceiveMessage(
+      async (message) => {
+        switch (message.type) {
+          case "saveAnchor":
+            // this.app.anchors.update(id, message.anchor);
+            this.app.anchors.save();
+            vscode.window.showInformationMessage(`Saved anchor ${id}`);
+            break;
+          case "openSource":
+            this.openAnchorSource(anchor);
+            break;
+        }
+      },
+      undefined,
+      this.app.ctx.subscriptions,
+    );
+
+    // 3. Load HTML from file path safely
+    panel.webview.html = this.getHtmlForWebview(panel.webview, anchor);
+  }
+
+  private getHtmlForWebview(webview: vscode.Webview, anchor: Anchor): string {
+    const htmlPath = path.join(this.app.ctx.extensionPath, "media", "pipeline.html");
+    let htmlContent = fs.readFileSync(htmlPath, "utf8");
+
+    // Optional: Handle CSP (Content Security Policy) or local file URIs if using local scripts/styles.
+    // If loading scripts via CDN (like the toolkit snippet above), it's straightforward.
+
+    // Inject initial anchor state directly into a script tag so it's ready on DOMContentLoaded,
+    // or send it via postMessage immediately. Here we inject a bootstrap script:
+    const bootstrapScript = `
+    <script>
+      window.initialAnchor = ${JSON.stringify(anchor)};
+    </script>
+  `;
+
+    return htmlContent.replace("</head>", `${bootstrapScript}</head>`);
+  }
+
+  private async showAnchorPane2(anchor: Anchor) {
     const id = anchor.id;
 
     // 1. Focus existing anchor panel
@@ -701,7 +797,7 @@ export class AnchorPresenter {
       async (message) => {
         switch (message.type) {
           case "saveAnchor":
-            this.app.anchors.update(id, message.anchor);
+            // this.app.anchors.update(id, message.anchor);
             this.app.anchors.save();
             break;
           case "openSource":
@@ -795,7 +891,7 @@ export class AnchorPresenter {
       async (message) => {
         switch (message.type) {
           case "saveAnchor":
-            this.app.anchors.update(id, message.anchor);
+            // this.app.anchors.update(id, message.anchor);
             this.app.anchors.save();
             break;
 
@@ -810,6 +906,7 @@ export class AnchorPresenter {
       this.app.ctx.subscriptions,
     );
 
+    // panel.webview.html = anchorShowPage(anchor);
     panel.webview.html = anchorShowPage(anchor);
   }
   async present(ctx: vscode.ExtensionContext, anchor: Anchor) {
@@ -825,7 +922,7 @@ export class AnchorPresenter {
     panel.webview.html = getHtml(anchor);
     panel.webview.onDidReceiveMessage((msg) => {
       if (msg.type === "save") {
-        this.app.anchors.update(anchor?.id || "", msg.anchor);
+        // this.app.anchors.update(anchor?.id || "", msg.anchor);
         this.app.tree.refresh();
         vscode.window.showInformationMessage("Anchor saved.");
       }

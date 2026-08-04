@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pipeline Anchor Editor</title>
+
+    <!-- Load VS Code Webview UI Toolkit -->
+    <script
+      type="module"
+      src="https://cdn.jsdelivr.net/npm/@vscode/webview-ui-toolkit/dist/toolkit.min.js"
+    ></script>
+
+    <style>
+      /* Fallback VS Code variables for browser testing. 
+         Inside an actual VS Code Webview, these are injected automatically. */
+      :root {
+        --vscode-editor-background: #1e1e1e;
+        --vscode-editor-foreground: #cccccc;
+        --vscode-font-family: Consolas, "Courier New", monospace;
+        --vscode-textLink-foreground: #3794ff;
+        --vscode-editorWidget-border: #454545;
+        --gap: 12px;
+      }
+
+      body {
+        background-color: var(--vscode-editor-background);
+        color: var(--vscode-editor-foreground);
+        font-family: var(--vscode-font-family);
+        padding: 20px;
+        margin: 0;
+        font-size: 13px;
+      }
+
+      header {
+        margin-bottom: 24px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--vscode-editorWidget-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+        color: #ffffff;
+      }
+      p.subtitle {
+        margin: 4px 0 0 0;
+        color: #999;
+      }
+
+      /* Dense Grid Layout for Forms */
+      .anchor-form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--gap);
+        padding: 12px 0;
+      }
+
+      .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .field-group label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #888;
+      }
+
+      /* Full width overrides for grid */
+      .full-width {
+        grid-column: span 2;
+      }
+
+      /* Toolkit element sizing overrides for density */
+      vscode-text-field,
+      vscode-text-area {
+        width: 100%;
+      }
+      vscode-text-area::part(control) {
+        font-family: var(--vscode-font-family);
+      }
+
+      .code-block::part(control) {
+        background-color: #111 !important; /* Darker bg for code */
+        color: #ce9178; /* String/code color */
+      }
+
+      /* Backlink visual styling */
+      .backlinks-container {
+        margin-top: 12px;
+        padding: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px dashed var(--vscode-editorWidget-border);
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .backlinks-label {
+        font-size: 11px;
+        color: #aaa;
+      }
+
+      vscode-tag {
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+
+      vscode-tag:hover {
+        opacity: 0.8;
+      }
+    </style>
+
+    <style>
+      /* Progress Badge styling in accordion header */
+      .progress-badge {
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #888;
+        margin-left: auto;
+      }
+      .progress-badge.complete {
+        background: rgba(46, 160, 67, 0.2);
+        color: #3fb950;
+      }
+
+      /* Phase visibility control */
+      .pipeline-phase {
+        display: none;
+      }
+      .pipeline-phase.active {
+        display: grid;
+      }
+
+      .phase-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 12px;
+        grid-column: span 2;
+        border-top: 1px solid var(--vscode-editorWidget-border);
+        padding-top: 8px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <div>
+        <h1 id="main-pipeline-title">Root Pipeline: Data Ingestion</h1>
+        <p class="subtitle">Editing 10 Nested Anchors</p>
+      </div>
+      <vscode-button id="save-btn">Save All Anchors to Pipeline</vscode-button>
+    </header>
+
+    <!-- The dense, collapsible list of items -->
+    <vscode-accordion id="anchors-container" multiple></vscode-accordion>
+
+    <script>
+      // 1. Generate Mock Data for 10 Anchors
+      // const generateMockAnchors = () => {
+      //   const anchors = [];
+      //   for (let i = 1; i <= 10; i++) {
+      //     anchors.push({
+      //       id: `anchor_00${i}`,
+      //       title: `Transform Step ${i}`,
+      //       caption: `Handles stage ${i} mutations`,
+      //       body: `This node is responsible for ensuring the data integrity of stage ${i} before passing it to the standard out.`,
+      //       description: `Filters nulls and remaps the JSON keys.`,
+      //       whatItDoes: `Ingests a raw string, parses JSON, and emits a structured typed object.`,
+      //       codeBlock: `function mutate(data) {\n  return data.map(x => x * ${i});\n}`,
+      //       // Backlink placeholders indicating which other nodes reference this one
+      //       mentions: i % 2 === 0 ? [`anchor_00${i - 1}`, "anchor_009"] : [],
+      //     });
+      //   }
+      //   return anchors;
+      // };
+      const generateMockAnchors = () => {
+        const anchors = [];
+        for (let i = 1; i <= 10; i++) {
+          anchors.push({
+            id: `anchor_00${i}`,
+            title: i === 1 ? `Transform Step ${i}` : "", // Pre-fill first one as an example
+            description: i === 1 ? `Filters nulls and remaps JSON keys.` : "",
+            whatItDoes: "",
+            codeBlock: "",
+            body: "",
+            mentions: [],
+          });
+        }
+        return anchors;
+      };
+
+      const anchors = generateMockAnchors();
+      const container = document.getElementById("anchors-container");
+
+      // 2. Render the UI
+      function renderAnchors2() {
+        container.innerHTML = "";
+
+        anchors.forEach((anchor, index) => {
+          // Generate Backlink Tags
+          const backlinkHtml =
+            anchor.mentions.length > 0
+              ? anchor.mentions.map((m) => `<vscode-tag>${m}</vscode-tag>`).join("")
+              : `<span style="font-size: 11px; color: #666;">No incoming mentions</span>`;
+
+          const accordionItem = document.createElement("vscode-accordion-item");
+          accordionItem.heading = `[${anchor.id}] ${anchor.title}`;
+
+          accordionItem.innerHTML = `
+            <div class="anchor-form-grid" data-id="${anchor.id}">
+              
+              <!-- Relationship / Identity (Left Column) -->
+              <div class="field-group">
+                <label>Title</label>
+                <vscode-text-field class="input-title" value="${anchor.title}" placeholder="Anchor Title"></vscode-text-field>
+              </div>
+
+              <div class="field-group">
+                <label>Caption</label>
+                <vscode-text-field class="input-caption" value="${anchor.caption}" placeholder="Short summary"></vscode-text-field>
+              </div>
+
+              <div class="field-group full-width">
+                <label>Body (Self-Purpose)</label>
+                <vscode-text-area class="input-body" resize="vertical" rows="2" value="${anchor.body}" placeholder="Describe relationship to the world..."></vscode-text-area>
+              </div>
+
+              <hr class="full-width" style="border:0; border-top: 1px solid var(--vscode-editorWidget-border); width: 100%; margin: 4px 0;">
+
+              <!-- Technical Logic (Right Column / Bottom) -->
+              <div class="field-group">
+                <label>Technical Description</label>
+                <vscode-text-area class="input-desc" resize="vertical" rows="3" value="${anchor.description}"></vscode-text-area>
+              </div>
+
+              <div class="field-group">
+                <label>What It Does</label>
+                <vscode-text-area class="input-does" resize="vertical" rows="3" value="${anchor.whatItDoes}"></vscode-text-area>
+              </div>
+
+              <div class="field-group full-width">
+                <label>Execution Code Block</label>
+                <vscode-text-area class="input-code code-block" resize="vertical" rows="4" value="${anchor.codeBlock}"></vscode-text-area>
+              </div>
+
+              <!-- Backlink Awareness -->
+              <div class="full-width backlinks-container">
+                <span class="backlinks-label">🔗 Mentioned in:</span>
+                ${backlinkHtml}
+              </div>
+            </div>
+          `;
+
+          container.appendChild(accordionItem);
+        });
+      }
+      function renderAnchors() {
+        container.innerHTML = "";
+        anchors.forEach((anchor) => {
+          // Check if foundational step is completed
+          const isBaseCompleted = Boolean(
+            anchor.title && anchor.title.trim() && anchor.description && anchor.description.trim(),
+          );
+
+          const { completed, total } = calculateProgress(anchor);
+          const isComplete = completed === total;
+          const badgeClass = isComplete ? "progress-badge complete" : "progress-badge";
+
+          const accordionItem = document.createElement("vscode-accordion-item");
+
+          accordionItem.innerHTML = `
+            <div style="display: flex; align-items: center; width: 100%; justify-content: space-between; padding-right: 8px;" slot="heading">
+              <span>[${anchor.id}] ${anchor.title || "Untitled Anchor"}</span>
+              <span class="${badgeClass}">${completed}/${total} Enriched</span>
+            </div>
+
+            <div class="anchor-form-grid" data-id="${anchor.id}">
+              
+              <!-- PHASE 1: Basic Identity (Always Open) -->
+              <div class="pipeline-phase active" data-phase="1">
+                <div class="field-group full-width">
+                  <label>Phase 1: Title & Core Description (Required)</label>
+                </div>
+                <div class="field-group full-width">
+                  <label>Title</label>
+                  <vscode-text-field class="input-title" value="${anchor.title || ""}" placeholder="Give this anchor a clear name" oninput="handleFieldChange(this)"></vscode-text-field>
+                </div>
+                <div class="field-group full-width">
+                  <label>Description</label>
+                  <vscode-text-area class="input-desc" rows="2" value="${anchor.description || ""}" placeholder="What is the baseline intent?" oninput="handleFieldChange(this)"></vscode-text-area>
+                </div>
+                <div class="phase-nav">
+                  <span style="font-size:11px; color:#888;">Step 1 of 3</span>
+                  <vscode-button appearance="secondary" class="next-to-phase2" ${!isBaseCompleted ? "disabled" : ""} onclick="switchPhase(this, 2)">Next: Technical Scope ➡</vscode-button>
+                </div>
+              </div>
+
+              <!-- PHASE 2: Technical Behavior (Locked until Phase 1 is done) -->
+              <div class="pipeline-phase" data-phase="2">
+                <div class="field-group full-width">
+                  <label>Phase 2: Execution Mechanics</label>
+                </div>
+                <div class="field-group full-width">
+                  <label>What It Does</label>
+                  <vscode-text-area class="input-does" rows="3" value="${anchor.whatItDoes || ""}" placeholder="Describe execution behavior..."></vscode-text-area>
+                </div>
+                <div class="phase-nav">
+                  <vscode-button appearance="secondary" onclick="switchPhase(this, 1)">⬅ Back</vscode-button>
+                  <vscode-button appearance="secondary" onclick="switchPhase(this, 3)">Next: Code & Context ➡</vscode-button>
+                </div>
+              </div>
+
+              <!-- PHASE 3: Code & Relationships -->
+              <div class="pipeline-phase" data-phase="3">
+                <div class="field-group full-width">
+                  <label>Phase 3: Code Block & World Relationship</label>
+                </div>
+                <div class="field-group full-width">
+                  <label>Execution Code Block</label>
+                  <vscode-text-area class="input-code code-block" rows="3" value="${anchor.codeBlock || ""}"></vscode-text-area>
+                </div>
+                <div class="field-group full-width">
+                  <label>Body / Self-Purpose</label>
+                  <vscode-text-area class="input-body" rows="2" value="${anchor.body || ""}"></vscode-text-area>
+                </div>
+                <div class="phase-nav">
+                  <vscode-button appearance="secondary" onclick="switchPhase(this, 2)">⬅ Back</vscode-button>
+                  <span style="font-size:11px; color:var(--vscode-textLink-foreground);">Fully Configured ✨</span>
+                </div>
+              </div>
+
+            </div>
+          `;
+
+          container.appendChild(accordionItem);
+        });
+      }
+
+      // 3. Handle Saving Data
+      document.getElementById("save-btn").addEventListener("click", () => {
+        const grids = document.querySelectorAll(".anchor-form-grid");
+        const updatedPipeline = [];
+
+        grids.forEach((grid) => {
+          updatedPipeline.push({
+            id: grid.getAttribute("data-id"),
+            title: grid.querySelector(".input-title").value,
+            caption: grid.querySelector(".input-caption").value,
+            body: grid.querySelector(".input-body").value,
+            description: grid.querySelector(".input-desc").value,
+            whatItDoes: grid.querySelector(".input-does").value,
+            codeBlock: grid.querySelector(".input-code").value,
+          });
+        });
+
+        console.log("Saving pipeline anchors:", updatedPipeline);
+
+        // Change button to show feedback
+        const btn = document.getElementById("save-btn");
+        btn.innerText = "✓ Saved to Main Pipeline";
+        setTimeout(() => (btn.innerText = "Save All Anchors to Pipeline"), 2000);
+      });
+
+      // Initialize
+      renderAnchors();
+
+      function handleFieldChange(element) {
+        const grid = element.closest(".anchor-form-grid");
+        const titleVal = grid.querySelector(".input-title").value.trim();
+        const descVal = grid.querySelector(".input-desc").value.trim();
+        const nextBtn = grid.querySelector(".next-to-phase2");
+
+        if (titleVal && descVal) {
+          nextBtn.removeAttribute("disabled");
+        } else {
+          nextBtn.setAttribute("disabled", "true");
+        }
+      }
+    </script>
+
+    <script>
+      const vscode = acquireVsCodeApi();
+
+      // Listen for data sent from the extension host
+      window.addEventListener("message", (event) => {
+        const message = event.data;
+        if (message.type === "loadAnchor") {
+          const anchor = message.anchor;
+          document.getElementById("anchor-title").innerText = anchor.title;
+          // populate your fields here...
+        }
+      });
+
+      function saveChanges(updatedData) {
+        vscode.postMessage({
+          type: "saveAnchor",
+          anchor: updatedData,
+        });
+      }
+    </script>
+
+    <script>
+      // Calculate completion score (out of 4 phases/key fields)
+      function calculateProgress(anchor) {
+        let completed = 0;
+        if (anchor.title && anchor.title.trim() !== "") completed++;
+        if (anchor.description && anchor.description.trim() !== "") completed++;
+        if (anchor.whatItDoes && anchor.whatItDoes.trim() !== "") completed++;
+        if (anchor.codeBlock && anchor.codeBlock.trim() !== "") completed++;
+        return { completed, total: 4 };
+      }
+
+      function renderAnchors() {
+        container.innerHTML = "";
+
+        anchors.forEach((anchor) => {
+          const { completed, total } = calculateProgress(anchor);
+          const isComplete = completed === total;
+
+          const accordionItem = document.createElement("vscode-accordion-item");
+          accordionItem.heading = `[${anchor.id}] ${anchor.title || "Untitled Anchor"}`;
+
+          // Add a custom badge slot or indicator in heading area
+          const badgeClass = isComplete ? "progress-badge complete" : "progress-badge";
+
+          accordionItem.innerHTML = `
+        <div style="display: flex; align-items: center; width: 100%; justify-content: space-between; padding-right: 8px;" slot="heading">
+          <span>[${anchor.id}] ${anchor.title || "Untitled Anchor"}</span>
+          <span class="${badgeClass}">${completed}/${total} Enriched</span>
+        </div>
+
+        <div class="anchor-form-grid" data-id="${anchor.id}">
+          
+          <!-- PHASE 1: Basic Identity (Always first) -->
+          <div class="pipeline-phase active" data-phase="1">
+            <div class="field-group full-width">
+              <label>Phase 1: Title & Core Description</label>
+            </div>
+            <div class="field-group full-width">
+              <label>Title</label>
+              <vscode-text-field class="input-title" value="${anchor.title || ""}" placeholder="Give this anchor a clear name"></vscode-text-field>
+            </div>
+            <div class="field-group full-width">
+              <label>Description</label>
+              <vscode-text-area class="input-desc" rows="2" value="${anchor.description || ""}" placeholder="What is the baseline intent?"></vscode-text-area>
+            </div>
+            <div class="phase-nav">
+              <span style="font-size:11px; color:#888;">Step 1 of 3</span>
+              <vscode-button appearance="secondary" onclick="switchPhase(this, 2)">Next: Technical Scope ➡</vscode-button>
+            </div>
+          </div>
+
+          <!-- PHASE 2: Technical Behavior -->
+          <div class="pipeline-phase" data-phase="2">
+            <div class="field-group full-width">
+              <label>Phase 2: Execution Mechanics</label>
+            </div>
+            <div class="field-group full-width">
+              <label>What It Does</label>
+              <vscode-text-area class="input-does" rows="3" value="${anchor.whatItDoes || ""}" placeholder="Describe execution behavior..."></vscode-text-area>
+            </div>
+            <div class="phase-nav">
+              <vscode-button appearance="secondary" onclick="switchPhase(this, 1)">⬅ Back</vscode-button>
+              <vscode-button appearance="secondary" onclick="switchPhase(this, 3)">Next: Code & Context ➡</vscode-button>
+            </div>
+          </div>
+
+          <!-- PHASE 3: Code & Relationships -->
+          <div class="pipeline-phase" data-phase="3">
+            <div class="field-group full-width">
+              <label>Phase 3: Code Block & World Relationship</label>
+            </div>
+            <div class="field-group full-width">
+              <label>Execution Code Block</label>
+              <vscode-text-area class="input-code code-block" rows="3" value="${anchor.codeBlock || ""}"></vscode-text-area>
+            </div>
+            <div class="field-group full-width">
+              <label>Body / Self-Purpose</label>
+              <vscode-text-area class="input-body" rows="2" value="${anchor.body || ""}"></vscode-text-area>
+            </div>
+            <div class="phase-nav">
+              <vscode-button appearance="secondary" onclick="switchPhase(this, 2)">⬅ Back</vscode-button>
+              <span style="font-size:11px; color:var(--vscode-textLink-foreground);">Fully Configured ✨</span>
+            </div>
+          </div>
+
+        </div>
+      `;
+
+          container.appendChild(accordionItem);
+        });
+      }
+
+      // Simple phase tab switcher logic
+      function switchPhase(button, targetPhaseNum) {
+        const grid = button.closest(".anchor-form-grid");
+        grid.querySelectorAll(".pipeline-phase").forEach((phase) => {
+          phase.classList.remove("active");
+        });
+        grid.querySelector(`[data-phase="${targetPhaseNum}"]`).classList.add("active");
+      }
+    </script>
+  </body>
+</html>

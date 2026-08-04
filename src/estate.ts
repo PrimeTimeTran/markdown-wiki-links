@@ -1,12 +1,12 @@
 import * as path from "path";
+
 import * as vscode from "vscode";
+
+import { CMD } from "../generated/cmd";
 import { ScopeInfo } from "./activity";
 import { Anchor } from "./adapters/anchorService";
 import { AppStore } from "./app";
-
 import { SECTIONS_LIST, SNIPPET_ITEMS } from "./consts";
-
-import { CMD } from "../generated/cmd";
 
 export interface EstateContext {
   anchor: string;
@@ -226,7 +226,6 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
     if (node.parent?.isStageNode) return null;
     return node.parent;
   }
-
   buildStage(section: string) {
     return new EstateNode(true, section, undefined, undefined);
   }
@@ -269,7 +268,6 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
     // const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
   }
 }
-
 export class EstateNode extends vscode.TreeItem {
   constructor(
     public isStageNode: boolean,
@@ -290,6 +288,10 @@ export class EstateNode extends vscode.TreeItem {
       this.applyAnchorStyle(anchor);
     } else {
       this.contextValue = "folder";
+    }
+
+    if (isStageNode) {
+      
     }
 
     this.command = {

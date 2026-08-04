@@ -326,29 +326,6 @@ Menus:
 ---
 
 
-# Estate: Filter
-
-Command:
-
-`estate.filter`
-
-estate filter
-
-Category:
-
-
-Documentation:
-none
-
-Implementation:
-none
-
-Menus:
-- view/title
-
----
-
-
 # Estate: View anchor
 
 Command:

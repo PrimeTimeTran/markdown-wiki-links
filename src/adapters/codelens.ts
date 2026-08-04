@@ -19,10 +19,11 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
     });
   }
   public refresh(): void {
-    console.log("[WikiCodeLensProvider].refresh");
     this._onDidChangeCodeLenses.fire();
   }
   provideCodeLenses(doc: vscode.TextDocument): vscode.CodeLens[] {
+    console.log("[WikiCodeLensProvider].refresh");
+    // this.app.logger.debug("[WikiCodeLensProvider].subscribe/refresh");
     let inlineFlags = this.addIntrinsicAnchors(doc);
     let documentAnchors = this.addDocumentAnchors(doc);
     const lenses: vscode.CodeLens[] = [...inlineFlags, ...documentAnchors];

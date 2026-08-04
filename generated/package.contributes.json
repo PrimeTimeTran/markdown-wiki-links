@@ -72,12 +72,6 @@
         "icon": "$(trash)"
       },
       {
-        "command": "estate.filter",
-        "title": "Estate: Filter",
-        "shortTitle": "estate filter",
-        "icon": "$(filter)"
-      },
-      {
         "command": "estate.anchor.view",
         "title": "Estate: View anchor",
         "icon": "$(preview)"
@@ -140,10 +134,7 @@
         },
         {
           "command": "estate.bookmark.create",
-          "group": "navigation"
-        },
-        {
-          "command": "estate.filter",
+          "when": "view == estateExplorer",
           "group": "navigation"
         }
       ],
@@ -196,6 +187,7 @@
       "view/item/context": [
         {
           "command": "estate.bookmark.create",
+          "when": "viewItem == folder",
           "group": "inline"
         },
         {
@@ -205,8 +197,8 @@
         },
         {
           "command": "estate.bookmark.update",
-          "when": "estate.hasAnchor",
-          "group": "navigation"
+          "when": "viewItem == folder",
+          "group": "inline"
         },
         {
           "command": "estate.bookmark.delete",

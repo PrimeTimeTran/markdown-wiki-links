@@ -34,13 +34,7 @@ export class AppStore {
     public logger: TraceApi,
     indexService: IndexService,
   ) {
-    // this.logger = {
-    //   mark() {},
-    //   debug() {},
-    //   info() {},
-    //   warn() {},
-    //   error() {},
-    // };
+    logger.debug("[AppStore.constructor.start]");
     // const originalLog = console.log;
     // console.log = (...args: unknown[]) => {
     //   originalLog(...args);
@@ -106,6 +100,7 @@ export class AppStore {
       this.tree.treeView,
     );
     this.activity.init(this.ctx);
+    logger.debug("[AppStore.constructor.end]");
   }
 
   init(context: vscode.ExtensionContext) {
@@ -217,21 +212,3 @@ export function registerGiantQuickPickCommand(context: vscode.ExtensionContext, 
     vscode.window.showErrorMessage("No context provided for registering the command.");
   }
 }
-
-// [2026-08-04T06:44:02.376Z] [DEBUG] [ext:activate] [WikiDecorations]
-// [2026-08-04T06:44:02.376Z] [DEBUG] [ext:activate] [WikiCodeLensProvider]
-// [2026-08-04T06:44:02.379Z] [DEBUG] [ext:activate] [AnchorPresenter.constructor].construct
-// [2026-08-04T06:44:02.380Z] [DEBUG] [ext:activate] [WikiDecorations]
-// [2026-08-04T06:44:02.381Z] [DEBUG] [ext:activate] [WikiCodeLensProvider]
-// [2026-08-04T06:44:02.411Z] [DEBUG] [ext:activate] [AnchorPresenter.constructor].construct
-// [2026-08-04T06:44:02.412Z] [DEBUG] [ext:activate] [WikiDecorations]
-// [2026-08-04T06:44:02.412Z] [DEBUG] [ext:activate] [WikiCodeLensProvider]
-// [2026-08-04T06:44:02.426Z] [DEBUG] [ext:activate] [AnchorPresenter.constructor].construct
-// [2026-08-04T06:44:02.426Z] [DEBUG] [ext:activate] [WikiDecorations]
-// [2026-08-04T06:44:02.427Z] [DEBUG] [ext:activate] [WikiCodeLensProvider]
-// [2026-08-04T06:44:02.431Z] [DEBUG] [ext:activate] [AnchorPresenter.constructor].construct
-// [2026-08-04T06:44:02.431Z] [DEBUG] [ext:activate] [WikiDecorations]
-// [2026-08-04T06:44:02.432Z] [DEBUG] [ext:activate] [WikiCodeLensProvider]
-// [2026-08-04T06:44:02.438Z] [DEBUG] [ext:activate] [AnchorPresenter.constructor].construct
-// [2026-08-04T06:44:02.439Z] [DEBUG] [ext:activate] [WikiDecorations]
-// [2026-08-04T06:44:02.440Z] [DEBUG] [ext:activate] [WikiCodeLensProvider]

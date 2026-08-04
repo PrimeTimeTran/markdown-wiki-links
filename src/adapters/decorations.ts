@@ -11,7 +11,6 @@ import { innerRange } from "../core/parser/refRange";
 import { parseEmbeds } from "../core/parser/embedParser";
 import { parseLinks } from "../core/parser/linkParser";
 import { resolveTarget } from "../core/resolver/resolveTarget";
-import { connected } from "process";
 
 const DEBOUNCE_MS = 250;
 // Colours `[[...]]` / `![[...]]` in the editor by whether the resolver can actually resolve

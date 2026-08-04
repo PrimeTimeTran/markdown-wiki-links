@@ -40,7 +40,7 @@ export function setupExtensionLogger(pipeline: string, stream: string) {
 
   // Match the exact stream name to guarantee it passes shouldLog()
   setLoggerConfig({
-    LOG_LEVEL: "info",
+    LOG_LEVEL: "debug",
     TRACE_ENABLED: true,
     LOG_NAMESPACE: stream,
   });
@@ -65,16 +65,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   const { trace, channel } = setupExtensionLogger("Flowify", "ext:activate");
   context.subscriptions.push(channel);
 
-  trace.mark("activate using logger mark");
+  trace.mark("[ext.activate]");
   trace.debug("activate using logger debug");
-  trace.warn("activate using logger warn");
   trace.info("activate using logger info");
+  trace.warn("activate using logger warn");
   trace.error("activate using logger error");
 
   indexService = new IndexService();
   await indexService.initialize();
   const app = new AppStore(context, trace, indexService);
   app.init(context);
+  app.logger.debug("[activate.app.logger]");
 
   context.subscriptions.push(
     vscode.commands.registerCommand("estate.enterLeader", async () => {
@@ -267,6 +268,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
 
   // VSCode reads `extendMarkdownIt` off the extension's exports — i.e. activate's return value.
   // context.subscriptions.push(trace);
+  app.logger.debug("[activate.end]");
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     extendMarkdownIt(md: any): any {

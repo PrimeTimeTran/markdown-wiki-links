@@ -39,6 +39,7 @@ export const COMMANDS: CommandDefinition[] = [
         // Sidebar top level menu
         menu: "view/title",
         group: "navigation",
+        when: "view == estateExplorer",
       },
       {
         // Editor top tabs menu
@@ -49,7 +50,9 @@ export const COMMANDS: CommandDefinition[] = [
       {
         // Sidebar tree list row
         menu: "view/item/context",
-        group: "inline",
+        group: "inline@1",
+        // Section header?
+        when: "viewItem == folder",
       },
     ],
   },
@@ -78,8 +81,8 @@ export const COMMANDS: CommandDefinition[] = [
     menus: [
       {
         menu: "view/item/context",
-        group: "navigation",
-        when: "estate.hasAnchor",
+        group: "inline@2",
+        when: "viewItem == folder",
       },
     ],
   },
@@ -97,7 +100,7 @@ export const COMMANDS: CommandDefinition[] = [
       },
       {
         menu: "view/item/context",
-        group: "navigation",
+        group: "inline@3",
         when: "estate.hasAnchor",
       },
     ],
@@ -106,6 +109,12 @@ export const COMMANDS: CommandDefinition[] = [
     title: "Estate: Filter bookmarks",
     id: "estate.bookmark.filter",
     icon: "$(filter)",
+    // Adding to the maain contributes.commands reveals in editor group right click reveal panel
+    // {
+    //     "command": "estate.bookmark.filter",
+    //     "title": "Estate: Filter bookmarks",
+    //     "icon": "$(filter)"
+    //   },
     menus: [
       {
         menu: "editor/title",
@@ -116,6 +125,12 @@ export const COMMANDS: CommandDefinition[] = [
         menu: "view/item/context",
         group: "navigation",
         when: "estate.hasAnchor",
+      },
+      // Editor group right click context.
+      // The pop up panel when user right clicks
+      {
+        menu: "editor/title/context",
+        group: "navigation",
       },
     ],
   },

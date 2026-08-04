@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pipeline Anchor Editor</title>
+
+    <!-- Load VS Code Webview UI Toolkit -->
+    <script
+      type="module"
+      src="https://cdn.jsdelivr.net/npm/@vscode/webview-ui-toolkit/dist/toolkit.min.js"
+    ></script>
+    <link rel="stylesheet" href="https://microsoft.github.io/vscode-codicons/dist/codicon.css" />
+
+    <style>
+      /* Fallback VS Code variables for browser testing. 
+         Inside an actual VS Code Webview, these are injected automatically. */
+      :root {
+        --vscode-editor-background: #1e1e1e;
+        --vscode-editor-foreground: #cccccc;
+        --vscode-font-family: Consolas, "Courier New", monospace;
+        --vscode-textLink-foreground: #3794ff;
+        --vscode-editorWidget-border: #454545;
+        --gap: 12px;
+      }
+
+      body {
+        background-color: var(--vscode-editor-background);
+        color: var(--vscode-editor-foreground);
+        font-family: var(--vscode-font-family);
+        padding: 20px;
+        margin: 0;
+        font-size: 13px;
+      }
+
+      /* header {
+        margin-bottom: 24px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--vscode-editorWidget-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+      } */
+      /* Header clean-up overrides */
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        padding-bottom: 12px;
+        margin-bottom: 24px;
+        border-bottom: 1px solid var(--vscode-editorWidget-border);
+      }
+
+      /* Clean up button sizing without breaking internal bounds */
+      #save-btn {
+        flex-shrink: 0;
+        /* Remove explicit height override that breaks toolkit scaling; 
+       instead, let padding handle it or use a secondary appearance smoothly */
+      }
+
+      /* Ensure the text span inside the button stays neatly inline */
+      #save-btn span {
+        line-height: normal;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+        color: #ffffff;
+      }
+      p.subtitle {
+        margin: 4px 0 0 0;
+        color: #999;
+      }
+
+      /* Dense Grid Layout for Forms */
+      .anchor-form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--gap);
+        padding: 12px 0;
+      }
+
+      .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .field-group label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #888;
+      }
+
+      /* Full width overrides for grid */
+      .full-width {
+        grid-column: span 2;
+      }
+
+      /* Toolkit element sizing overrides for density */
+      vscode-text-field,
+      vscode-text-area {
+        width: 100%;
+      }
+      vscode-text-area::part(control) {
+        font-family: var(--vscode-font-family);
+      }
+
+      .code-block::part(control) {
+        background-color: #111 !important; /* Darker bg for code */
+        color: #ce9178; /* String/code color */
+      }
+
+      /* Backlink visual styling */
+      .backlinks-container {
+        margin-top: 12px;
+        padding: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px dashed var(--vscode-editorWidget-border);
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .backlinks-label {
+        font-size: 11px;
+        color: #aaa;
+      }
+
+      vscode-tag {
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+
+      vscode-tag:hover {
+        opacity: 0.8;
+      }
+      /* By default, progressive layers are hidden until their pass is active */
+      .pass-layer {
+        display: none;
+      }
+      .pass-layer.active {
+        display: contents; /* Keeps them neatly inline with the grid layout */
+      }
+    </style>
+
+    <style>
+      /* Progress Badge styling in accordion header */
+      .progress-badge {
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #888;
+        margin-left: auto;
+      }
+      .progress-badge.complete {
+        background: rgba(46, 160, 67, 0.2);
+        color: #3fb950;
+      }
+
+      /* Phase visibility control */
+      .pipeline-phase {
+        display: none;
+      }
+      .pipeline-phase.active {
+        display: grid;
+      }
+
+      .phase-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 12px;
+        grid-column: span 2;
+        border-top: 1px solid var(--vscode-editorWidget-border);
+        padding-top: 8px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <div>
+        <h1 id="main-pipeline-title">Root Pipeline: Data Ingestion</h1>
+        <p class="subtitle" id="pipeline-pass-subtitle">
+          Viewing Pass <span id="current-pass-num">1</span> of 3: Layered Architecture
+        </p>
+      </div>
+
+      <div style="display: flex; gap: 12px; align-items: center">
+        <!-- Frictionless Pass Switcher -->
+        <div
+          style="
+            display: flex;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 3px;
+            border-radius: 4px;
+            border: 1px solid var(--vscode-editorWidget-border);
+            gap: 2px;
+          "
+        >
+          <vscode-button id="pass-btn-1" appearance="primary" onclick="switchPass(1)"
+            >1. Identity</vscode-button
+          >
+          <vscode-button id="pass-btn-2" appearance="secondary" onclick="switchPass(2)"
+            >2. Mechanics</vscode-button
+          >
+          <vscode-button id="pass-btn-3" appearance="secondary" onclick="switchPass(3)"
+            >3. Polish</vscode-button
+          >
+        </div>
+
+        <vscode-button id="save-btn" appearance="secondary"> Save Pipeline </vscode-button>
+      </div>
+    </header>
+
+    <!-- Global Pass Navigation Bar -->
+    <!-- <div
+      style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 8px 12px;
+        border-radius: 4px;
+        margin-bottom: 16px;
+        border: 1px solid var(--vscode-editorWidget-border);
+      "
+    >
+      <span style="font-size: 12px; color: #aaa" id="pass-indicator-text"
+        >Currently viewing Pass 1 (Foundational Draft)</span
+      >
+      <div>
+        <vscode-button
+          appearance="secondary"
+          id="prev-pass-btn"
+          onclick="revertPass()"
+          style="display: none"
+          >⬅ Previous Pass</vscode-button
+        >
+        <vscode-button appearance="primary" id="next-pass-btn" onclick="advancePass()"
+          >Proceed to Pass 2: Execution Mechanics ➡</vscode-button
+        >
+      </div>
+    </div> -->
+
+    <!-- The dense, collapsible list of items -->
+    <vscode-accordion id="anchors-container" multiple></vscode-accordion>
+
+    <script>
+      const vscode = acquireVsCodeApi();
+
+      // Listen for data sent from the extension host
+      window.addEventListener("message", (event) => {
+        const message = event.data;
+        if (message.type === "loadAnchor") {
+          const anchor = message.anchor;
+          document.getElementById("anchor-title").innerText = anchor.title;
+          // populate your fields here...
+        }
+      });
+
+      function saveChanges(updatedData) {
+        vscode.postMessage({
+          type: "saveAnchor",
+          anchor: updatedData,
+        });
+      }
+    </script>
+
+    <script>
+      function updateHeaderState() {
+        const subtitle = document.getElementById("pipeline-pass-subtitle");
+        const indicator = document.getElementById("pass-indicator-text");
+        const nextBtn = document.getElementById("next-pass-btn");
+        const prevBtn = document.getElementById("prev-pass-btn");
+        if (currentPipelinePass === 1) {
+          subtitle.innerText = "Pass 1: First Draft - Core Identity";
+          indicator.innerText =
+            "Pass 1 of 3: Define titles and basic intents before unlocking mechanics.";
+          if (prevBtn) prevBtn.style.display = "none";
+          if (nextBtn) nextBtn.innerText = "Proceed to Pass 2: Execution Mechanics ➡";
+        } else if (currentPipelinePass === 2) {
+          subtitle.innerText = "Pass 2: Second Draft - Execution Mechanics";
+          indicator.innerText = "Pass 2 of 3: Define what each anchor actually does behaviorally.";
+          if (prevBtn) prevBtn.style.display = "inline-flex";
+          if (nextBtn) nextBtn.innerText = "Proceed to Pass 3: Code & Polish ➡";
+        } else {
+          subtitle.innerText = "Pass 3: Final Polish - Code & Relationships";
+          indicator.innerText = "Pass 3 of 3: Fully configured pipeline expansion.";
+          if (prevBtn) prevBtn.style.display = "inline-flex";
+          if (nextBtn) {
+            nextBtn.innerText = "Pipeline Fully Unlocked ✨";
+            nextBtn.setAttribute("disabled", "true");
+          }
+        }
+      }
+
+      // 1. Generate Mock Data for 10 Anchors
+      const generateMockAnchors = () => {
+        const anchors = [];
+        for (let i = 1; i <= 10; i++) {
+          anchors.push({
+            id: `anchor_00${i}`,
+            title: i === 1 ? `Transform Step ${i}` : "",
+            description: i === 1 ? `Filters nulls and remaps JSON keys.` : "",
+            whatItDoes: "",
+            codeBlock: "",
+            body: "",
+            mentions: i === 1 ? ["parser", "lexer"] : [], // Initial mock tags as a comma-separated string or array
+          });
+        }
+        return anchors;
+      };
+
+      const anchors = generateMockAnchors();
+      let currentPipelinePass = 1;
+
+      // 2. Progress Calculator Helper
+      function calculateProgress(anchor) {
+        let completed = 0;
+        let total = 5;
+
+        if (anchor.title && anchor.title.trim() !== "") completed++;
+        if (anchor.description && anchor.description.trim() !== "") completed++;
+        if (anchor.whatItDoes && anchor.whatItDoes.trim() !== "") completed++;
+        if (anchor.codeBlock && anchor.codeBlock.trim() !== "") completed++;
+        if (anchor.body && anchor.body.trim() !== "") completed++;
+
+        return { completed, total };
+      }
+
+      // 3. Frictionless Stage Switcher
+      function switchPass(targetPass) {
+        syncAllVisibleInputs();
+        currentPassState(targetPass);
+        renderAnchors();
+      }
+
+      function currentPassState(targetPass) {
+        currentPipelinePass = targetPass;
+        for (let i = 1; i <= 3; i++) {
+          const btn = document.getElementById(`pass-btn-${i}`);
+          if (btn) {
+            if (i === targetPass) {
+              btn.setAttribute("appearance", "primary");
+            } else {
+              btn.setAttribute("appearance", "secondary");
+            }
+          }
+        }
+        const numSpan = document.getElementById("current-pass-num");
+        if (numSpan) {
+          numSpan.innerText = currentPipelinePass;
+        }
+      }
+
+      // 4. Master Cumulative Renderer
+      function renderAnchors() {
+        const container = document.getElementById("anchors-container");
+        if (!container) return;
+        container.innerHTML = "";
+
+        anchors.forEach((anchor) => {
+          const item = document.createElement("vscode-accordion-item");
+          const { completed, total } = calculateProgress(anchor);
+          const isComplete = completed === total;
+          const badgeClass = isComplete ? "progress-badge complete" : "progress-badge";
+
+          // Format mentions array into a comma-separated string for editable input field
+          const tagsString = Array.isArray(anchor.mentions)
+            ? anchor.mentions.join(", ")
+            : anchor.mentions || "";
+
+          item.innerHTML = `
+            <!-- Rich Custom Accordion Header with Icons and Quick Actions -->
+            <div style="display: flex; align-items: center; width: 100%; justify-content: space-between; padding-right: 12px;" slot="heading">
+              <div class="field-group full-width" style="display: flex; flex-direction: row; align-items: center; gap: 6px;">
+                <span class="codicon codicon-info" style="color: var(--vscode-textLink-foreground);"></span>
+                <label style="color: var(--vscode-textLink-foreground); font-weight: bold;">${anchor.id || "Pass 1: Foundational Identity"}</label>
+              </div>
+              
+              <div style="display: flex; align-items: center; gap: 10px;" onclick="event.stopPropagation()">
+                <!-- Quick Inline Action Buttons -->
+                <div style="display: flex; gap: 4px;">
+                  <vscode-button appearance="icon" aria-label="View Source" title="View Source File" onclick="handleViewSource('${anchor.id}')">
+                    <span class="codicon codicon-file-code"></span>
+                  </vscode-button>
+                  <vscode-button appearance="icon" aria-label="Edit Anchor" title="Edit Properties" onclick="handleEditAnchor('${anchor.id}')">
+                    <span class="codicon codicon-edit"></span>
+                  </vscode-button>
+                </div>
+                <span class="${badgeClass}">${completed}/${total} Enriched</span>
+              </div>
+            </div>
+
+            <!-- Form Content Grid -->
+            <div class="anchor-form-grid" data-id="${anchor.id}">
+              <div class="field-group full-width">
+                <label>Title</label>
+                <vscode-text-field class="input-title" value="www ${anchor.title || ""}" placeholder="Give this anchor a clear name"></vscode-text-field>
+              </div>
+              
+              <div class="field-group full-width">
+                <label>Description</label>
+                <vscode-text-area class="input-desc" rows="2" value="${anchor.description || ""}" placeholder="What is the baseline intent?"></vscode-text-area>
+              </div>
+
+              <!-- Editable Tags Section -->
+              <div class="field-group full-width" style="margin-top: 4px;">
+                <label style="display: flex; align-items: center; gap: 6px;">
+                  <span class="codicon codicon-tag" style="color: var(--vscode-textLink-foreground);"></span> Associated Tags & Mentions (comma-separated)
+                </label>
+                <vscode-text-field class="input-tags" value="${tagsString}" placeholder="e.g. parser, ast, tokens"></vscode-text-field>
+              </div>
+
+              <!-- PASS 2: Execution Mechanics -->
+              <div class="pass-layer pass-2-layer ${currentPipelinePass >= 2 ? "active" : ""}">
+                <hr class="full-width" style="border:0; border-top: 1px solid var(--vscode-editorWidget-border); width: 100%; margin: 12px 0 8px 0;">
+                <div class="field-group full-width" style="display: flex; flex-direction: row; align-items: center; gap: 6px;">
+                  <span class="codicon codicon-gear" style="color: var(--vscode-textLink-foreground);"></span>
+                  <label style="color: var(--vscode-textLink-foreground); font-weight: bold;">Pass 2: Execution Mechanics</label>
+                </div>
+                <div class="field-group full-width">
+                  <label>What It Does</label>
+                  <vscode-text-area class="input-does" rows="3" value="${anchor.whatItDoes || ""}" placeholder="Describe execution behavior, Pratt parsing, mutations..."></vscode-text-area>
+                </div>
+              </div>
+
+              <!-- PASS 3: Code & Relationships -->
+              <div class="pass-layer pass-3-layer ${currentPipelinePass >= 3 ? "active" : ""}">
+                <hr class="full-width" style="border:0; border-top: 1px solid var(--vscode-editorWidget-border); width: 100%; margin: 12px 0 8px 0;">
+                <div class="field-group full-width" style="display: flex; flex-direction: row; align-items: center; gap: 6px;">
+                  <span class="codicon codicon-code" style="color: var(--vscode-textLink-foreground);"></span>
+                  <label style="color: var(--vscode-textLink-foreground); font-weight: bold;">Pass 3: Code Block & World Relationship</label>
+                </div>
+                <div class="field-group full-width">
+                  <label>Execution Code Block</label>
+                  <vscode-text-area class="input-code code-block" rows="3" value="${anchor.codeBlock || ""}"></vscode-text-area>
+                </div>
+                <div class="field-group full-width">
+                  <label>Body / Self-Purpose</label>
+                  <vscode-text-area class="input-body" rows="2" value="${anchor.body || ""}"></vscode-text-area>
+                </div>
+              </div>
+
+            </div>
+          `;
+          container.appendChild(item);
+        });
+      }
+
+      // Action hooks for header icon buttons
+      function handleViewSource(anchorId) {
+        console.log("View source triggered for:", anchorId);
+      }
+
+      function handleEditAnchor(anchorId) {
+        console.log("Focus/edit triggered for:", anchorId);
+      }
+
+      // Memory Synchronization Helper
+      function syncAllVisibleInputs() {
+        const grids = document.querySelectorAll(".anchor-form-grid");
+        grids.forEach((grid) => {
+          const anchorId = grid.getAttribute("data-id");
+          const anchor = anchors.find((a) => a.id === anchorId);
+          if (!anchor) return;
+
+          const titleEl = grid.querySelector(".input-title");
+          const descEl = grid.querySelector(".input-desc");
+          const tagsEl = grid.querySelector(".input-tags");
+          const doesEl = grid.querySelector(".input-does");
+          const codeEl = grid.querySelector(".input-code");
+          const bodyEl = grid.querySelector(".input-body");
+
+          if (titleEl) anchor.title = titleEl.value;
+          if (descEl) anchor.description = descEl.value;
+          if (tagsEl) {
+            // Convert comma-separated input back to an array of trimmed strings
+            anchor.mentions = tagsEl.value
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean);
+          }
+          if (doesEl) anchor.whatItDoes = doesEl.value;
+          if (codeEl) anchor.codeBlock = codeEl.value;
+          if (bodyEl) anchor.body = bodyEl.value;
+        });
+      }
+
+      // Handle Saving Data
+      document.getElementById("save-btn").addEventListener("click", () => {
+        syncAllVisibleInputs();
+        console.log("Saving pipeline anchors:", anchors);
+
+        const btn = document.getElementById("save-btn");
+        if (btn) {
+          btn.innerText = "✓ Saved to Main Pipeline";
+          setTimeout(() => (btn.innerText = "Save Pipeline"), 2000);
+        }
+      });
+
+      // Kickoff initialization
+      renderAnchors();
+    </script>
+  </body>
+</html>
