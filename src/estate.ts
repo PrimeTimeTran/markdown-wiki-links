@@ -1,12 +1,12 @@
-import * as path from 'path';
-import * as vscode from 'vscode';
-import { ScopeInfo } from './activity';
-import { Anchor } from './adapters/anchorService';
-import { AppStore } from './app';
+import * as path from "path";
+import * as vscode from "vscode";
+import { ScopeInfo } from "./activity";
+import { Anchor } from "./adapters/anchorService";
+import { AppStore } from "./app";
 
-import { SECTIONS_LIST, SNIPPET_ITEMS } from './consts';
+import { SECTIONS_LIST, SNIPPET_ITEMS } from "./consts";
 
-import { CMD } from '../generated/cmd';
+import { CMD } from "../generated/cmd";
 
 export interface EstateContext {
   anchor: string;
@@ -19,25 +19,25 @@ export interface EstateFlag {
   label: string;
   description?: string;
   capabilities: any[];
-  scope: 'language' | 'workspace';
+  scope: "language" | "workspace";
   action: string;
 }
 export type EstateFlags = EstateFlag[];
 export interface EstateScope {
   language: string;
   kind:
-    | 'workspace'
-    | 'module'
-    | 'file'
-    | 'struct'
-    | 'enum'
-    | 'trait'
-    | 'impl'
-    | 'function'
-    | 'method'
-    | 'block'
-    | 'heading'
-    | 'paragraph';
+    | "workspace"
+    | "module"
+    | "file"
+    | "struct"
+    | "enum"
+    | "trait"
+    | "impl"
+    | "function"
+    | "method"
+    | "block"
+    | "heading"
+    | "paragraph";
   name?: string;
   symbol?: string;
   range: vscode.Range;
@@ -46,18 +46,18 @@ export interface EstateScope {
 }
 export interface EstateFocus {
   id?: string;
-  kind: 'anchor' | 'symbol' | 'heading' | 'codeblock' | 'file' | 'unknown';
+  kind: "anchor" | "symbol" | "heading" | "codeblock" | "file" | "unknown";
   range: vscode.Range;
   scope?: ScopeInfo;
   relations?: EstateRelation[];
 }
 export interface EstateRelation {
-  type: 'owns' | 'owned-by' | 'influences' | 'derived-from' | 'related';
+  type: "owns" | "owned-by" | "influences" | "derived-from" | "related";
 
   target: string;
 }
 export interface EstateEvent {
-  type: 'cursor.changed' | 'file.opened' | 'panel.changed' | 'mode.changed' | 'shortcut.triggered';
+  type: "cursor.changed" | "file.opened" | "panel.changed" | "mode.changed" | "shortcut.triggered";
   payload: unknown;
   timestamp: number;
   // # Primitives Planned
@@ -70,7 +70,7 @@ export interface EstateEvent {
 }
 export interface EventStoreType {
   emit(event: EstateEvent): void;
-  on(type: EstateEvent['type'], handler: (event: EstateEvent) => void): vscode.Disposable;
+  on(type: EstateEvent["type"], handler: (event: EstateEvent) => void): vscode.Disposable;
 }
 export class EventStore implements EventStoreType {
   private handlers = new Map<string, Set<(event: EstateEvent) => void>>();
@@ -83,7 +83,7 @@ export class EventStore implements EventStoreType {
       listener(event);
     }
   }
-  on(type: EstateEvent['type'], handler: (event: EstateEvent) => void): vscode.Disposable {
+  on(type: EstateEvent["type"], handler: (event: EstateEvent) => void): vscode.Disposable {
     let listeners = this.handlers.get(type);
     if (!listeners) {
       listeners = new Set();
@@ -103,23 +103,23 @@ export class VFSProvider implements vscode.TextDocumentContentProvider {
     this.documents.set(uri.toString(), content);
   }
   provideTextDocumentContent(uri: vscode.Uri): string {
-    return this.documents.get(uri.toString()) ?? '';
+    return this.documents.get(uri.toString()) ?? "";
   }
   constructor(ctx: vscode.ExtensionContext, app: AppStore) {
     ctx.subscriptions.push(
-      vscode.commands.registerCommand('estate.snippet.save', () => {
-        vscode.window.showInformationMessage('Saving snippet');
+      vscode.commands.registerCommand("estate.snippet.save", () => {
+        vscode.window.showInformationMessage("Saving snippet");
       }),
-      vscode.commands.registerCommand('estate.snippet.preview', () => {
-        vscode.window.showInformationMessage('Preview');
+      vscode.commands.registerCommand("estate.snippet.preview", () => {
+        vscode.window.showInformationMessage("Preview");
       }),
 
-      vscode.commands.registerCommand('estate.snippet.export', () => {
-        vscode.window.showInformationMessage('Export');
+      vscode.commands.registerCommand("estate.snippet.export", () => {
+        vscode.window.showInformationMessage("Export");
       }),
     );
     ctx.subscriptions.push(
-      vscode.commands.registerCommand('estate.snippet-maker', async () => {
+      vscode.commands.registerCommand("estate.snippet-maker", async () => {
         const language = await this.pickSnippetLanguage();
         if (!language) {
           return;
@@ -129,18 +129,18 @@ export class VFSProvider implements vscode.TextDocumentContentProvider {
         //   content: language.template,
         // });
         // const editor = await vscode.window.showTextDocument(doc);
-        await vscode.commands.executeCommand('editor.action.formatDocument');
+        await vscode.commands.executeCommand("editor.action.formatDocument");
       }),
     );
 
     app.activity.subscribe((a) => {
-      console.log('VFS Click');
+      console.log("VFS Click");
     });
   }
 
   private async pickSnippetLanguage() {
     return vscode.window.showQuickPick(SNIPPET_ITEMS, {
-      placeHolder: 'Choose snippet type',
+      placeHolder: "Choose snippet type",
     });
   }
   // When a anchor has been tagged to be of a certain
@@ -150,21 +150,22 @@ export class VFSProvider implements vscode.TextDocumentContentProvider {
 export class VFSDecorator implements vscode.FileDecorationProvider {
   constructor(ctx: vscode.ExtensionContext, app: AppStore) {
     app.activity.subscribe((a) => {
-      console.log('VFSDecorator click');
+      console.log("VFSDecorator click");
     });
   }
 
   provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
-    if (uri.scheme !== 'estate') {
+    if (uri.scheme !== "estate") {
       return;
     }
 
     return {
-      badge: '•',
+      badge: "•",
       //   color: new vscode.ThemeColor('charts.green'),
-      tooltip: 'Active anchor',
+      tooltip: "Active anchor",
     };
   }
+
   // 'charts.red'
   // 'charts.orange'
   // 'charts.yellow'
@@ -177,48 +178,101 @@ export class VFSDecorator implements vscode.FileDecorationProvider {
   // 'editorInfo.foreground'
   // 'terminal.ansiGreen'
 }
+type NodeKind = "section" | "anchor";
 export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
-  constructor(public app: AppStore) {}
+  icons: any;
+  treeView: vscode.TreeView<EstateNode>;
+  constructor(public app: AppStore) {
+    this.treeView = vscode.window.createTreeView("estateExplorer", {
+      treeDataProvider: this,
+    });
+    app.ctx.subscriptions.push(
+      this.onDidChangeTreeData(async (e) => {
+        console.log("[EstateTreeProvider].onDidChangeTreeData");
+        // if (e.visible) {
+        //   //   await this.tree.ensureEditorOpen();
+        // }
+      }),
+    );
+    return this;
+  }
   private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<
     EstateNode | null | undefined
   >();
   readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
-  icons: any;
   refresh(): void {
-    console.log('[EstateTreeProvider].refresh');
+    console.log("[EstateTreeProvider].refresh");
     this.onDidChangeTreeDataEmitter.fire();
   }
   refreshNode(node: EstateNode): void {
+    console.log("[EstateTreeProvider].refreshNode");
     this.onDidChangeTreeDataEmitter.fire(node);
   }
-  getTreeItem(node: EstateNode): vscode.TreeItem {
+  getTreeItem(node: EstateNode): any {
     return node;
   }
+  // getChildren2(node?: EstateNode): EstateNode[] {
+  //   if (!node) {
+  //     return SECTIONS_LIST.map(this.buildStage);
+  //   }
+  //   switch (node.label) {
+  //     case SECTIONS_LIST[0]:
+  //       return this.buildSection(SECTIONS_LIST[0], node);
+  //     case SECTIONS_LIST[1]:
+  //       return this.buildSection(SECTIONS_LIST[1], node);
+  //     default:
+  //       return this.buildSection("draft", node);
+  //   }
+  // }
   getChildren(node?: EstateNode): EstateNode[] {
     if (!node) {
-      return SECTIONS_LIST.map((s) => new EstateNode('folder', s));
+      return SECTIONS_LIST.map(this.buildStage);
     }
-    const anchors = this.app.anchors.list();
-    console.log('[EstateTreeProvider].getChildren anchors', anchors.length);
-    switch (node.label) {
-      case SECTIONS_LIST[0]:
-        return anchors
-          .filter((b) => !b.tags.includes('sequence') && !b.tags.includes('misc'))
-          .map((b) => new EstateNode('anchor', path.basename(b.uri() ?? '') ?? '', b));
 
-      case SECTIONS_LIST[1]:
-        return anchors
-          .filter((b) => b.tags.includes('sequence'))
-          .map((b) => new EstateNode('anchor', path.basename(b.uri() ?? '') ?? '', b));
-
-      case SECTIONS_LIST[2]:
-        return anchors
-          .filter((b) => b.tags.includes('misc'))
-          .map((b) => new EstateNode('anchor', path.basename(b.uri() ?? '') ?? '', b));
-
-      default:
-        return [];
+    if (node.isStageNode) {
+      return this.buildSection(node.label, node);
     }
+
+    return this.buildChildren(node);
+  }
+  getParent(node: EstateNode) {
+    if (node.parent?.isStageNode) return null;
+    return node.parent;
+  }
+
+  buildStage(section: string) {
+    return new EstateNode(true, section, undefined, undefined);
+  }
+  buildSection(section: string, node: EstateNode) {
+    let anchors = this.app.anchors.list();
+    return anchors
+      .filter((b) => section == "draft" || b.tags.includes(section))
+      .map((a) => this.buildNode(node, a));
+  }
+  // buildChildren(node: EstateNode) {
+  //   let children = (node.anchor?.anchors ?? [])
+  //     .map((id) => this.app.anchors.get(id))
+  //     .filter((a): a is Anchor => !!a)
+  //     .map((a) => this.buildNode(node, a));
+  //   console.log("childrenchildren", children);
+  //   return children;
+  // }
+  buildChildren(node: EstateNode) {
+    
+    console.log("parent", node.anchor?.id);
+    console.log("anchor ids", node.anchor?.anchors);
+    
+
+    const resolved = (node.anchor?.anchors ?? []).map((id) => {
+      const a = this.app.anchors.get(id);
+      console.log(id, "->", a);
+      return a;
+    });
+
+    return resolved.filter((a): a is Anchor => !!a).map((a) => this.buildNode(node, a));
+  }
+  buildNode(node: EstateNode, a: Anchor) {
+    return new EstateNode(false, path.basename(a.uri() ?? ""), a, node);
   }
   async ensureEditorOpen() {
     // const editors = vscode.window.visibleTextEditors;
@@ -230,50 +284,42 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
     // const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
   }
 }
+
 export class EstateNode extends vscode.TreeItem {
   constructor(
-    public readonly type: 'folder' | 'anchor',
+    public isStageNode: boolean,
     public readonly label: string,
     public readonly anchor?: Anchor,
+    public readonly parent?: EstateNode,
   ) {
+    const hasChildren = isStageNode || (anchor?.anchors?.length ?? 0) > 0;
     super(
       label,
-      type === 'folder'
-        ? label === 'main'
-          ? vscode.TreeItemCollapsibleState.Expanded
-          : vscode.TreeItemCollapsibleState.Collapsed
+      hasChildren
+        ? vscode.TreeItemCollapsibleState.Collapsed
         : vscode.TreeItemCollapsibleState.None,
     );
-
-    this.id = anchor?.id ?? label;
-    this.contextValue = type;
-
-    if (type === 'anchor') {
-      this.contextValue = 'anchor';
-    } else {
-      this.contextValue = 'folder';
-    }
+    this.id = anchor ? `${parent?.id ?? "root"}:${anchor.id}` : `section:${label}`;
 
     if (anchor) {
-      //   sections.includes(capitalizeFirstLetter(label));
+      this.contextValue = "anchor";
       this.resourceUri = vscode.Uri.parse(`estate://${anchor.id}`);
       this.applyAnchorStyle(anchor);
-    }
-    // this.applyCommand(anchor);
-    // this.command = {
-    //   command: CMD.anchor.open,
-    //   title: 'Open Anchor',
-    //   arguments: [anchor],
-    // };
-    if (SECTIONS_LIST.includes(this.label)) {
-      // vscode.window.showInformationMessage('clicked title');
     } else {
-      this.command = {
-        command: CMD.estate.bookmark.read,
-        title: 'Open Anchor',
-        arguments: [anchor],
-      };
+      this.contextValue = "folder";
     }
+
+    this.command = {
+      command: CMD.estate.bookmark.read,
+      title: "Open Anchor",
+      arguments: [this, anchor],
+    };
+  }
+  get hasChildren() {
+    return (this.anchor?.anchors?.length ?? 0) > 0;
+  }
+  getParent(element: EstateNode): vscode.ProviderResult<EstateNode> {
+    return element.parent;
   }
   private applyCommand(anchor: Anchor) {
     // switch (anchor.label) {
@@ -290,26 +336,26 @@ export class EstateNode extends vscode.TreeItem {
     // }
   }
   private applyAnchorStyle(anchor: Anchor) {
-    const uri = anchor?.uri?.() || '';
+    const uri = anchor?.uri?.() || "";
     const isSettingsFile = /settings\.json$/i.test(uri);
     const tags = anchor.tags ?? [];
-    this.iconPath = new vscode.ThemeIcon('pinned', new vscode.ThemeColor('charts.red'));
+    this.iconPath = new vscode.ThemeIcon("pinned", new vscode.ThemeColor("charts.red"));
     if (isSettingsFile) {
-      this.iconPath = new vscode.ThemeIcon('settings-gear');
-    } else if (tags.includes('index')) {
+      this.iconPath = new vscode.ThemeIcon("settings-gear");
+    } else if (tags.includes("index")) {
       // https://microsoft.github.io/vscode-codicons/dist/codicon.html?utm_source=chatgpt.com
-      this.iconPath = new vscode.ThemeIcon('list-unordered');
-    } else if (tags.includes('tools')) {
-      this.iconPath = new vscode.ThemeIcon('tools');
+      this.iconPath = new vscode.ThemeIcon("list-unordered");
+    } else if (tags.includes("tools")) {
+      this.iconPath = new vscode.ThemeIcon("tools");
     }
-    if (tags.includes('todo')) {
-      this.iconPath = new vscode.ThemeIcon('checklist');
+    if (tags.includes("todo")) {
+      this.iconPath = new vscode.ThemeIcon("checklist");
     }
-    if (tags.includes('important')) {
-      this.iconPath = new vscode.ThemeIcon('star-full');
+    if (tags.includes("important")) {
+      this.iconPath = new vscode.ThemeIcon("star-full");
     }
     this.description = this.getDescription(tags);
-    this.contextValue = tags.join('.');
+    this.contextValue = tags.join(".");
     // 'anchor'          // anchors
     // 'star-full'         // favorites
     // 'flag'              // flags
@@ -328,11 +374,11 @@ export class EstateNode extends vscode.TreeItem {
     // Inside your TreeItem constructor or method:
   }
   private getDescription(tags: string[]) {
-    return tags.join(' · ');
+    return tags.join(" · ");
   }
 }
 
 function capitalizeFirstLetter(str: string) {
-  if (!str) return '';
+  if (!str) return "";
   return str.charAt(0).toUpperCase() + str.slice(1);
 }

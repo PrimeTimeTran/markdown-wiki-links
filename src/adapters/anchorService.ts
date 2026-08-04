@@ -1,16 +1,16 @@
-import * as fs from 'fs';
-import * as fsPromise from 'node:fs/promises';
-import * as os from 'os';
-import * as path from 'path';
-import * as vscode from 'vscode';
-import { EstateContext, EstateFlag } from '../estate';
-import { randomUUID } from 'node:crypto';
-import { AppStore } from '../app';
-import { capability, flags } from '../cmd/cmd';
-import { CMD } from '../../generated/cmd';
-import { anchorShowPage, getHtml } from './htmlAnchor';
-import { AnchorActivity, AppActivity } from '../activity';
-import { PATHS } from '../cfg';
+import * as fs from "fs";
+import * as fsPromise from "node:fs/promises";
+import * as os from "os";
+import * as path from "path";
+import * as vscode from "vscode";
+import { EstateContext, EstateFlag, EstateNode } from "../estate";
+import { randomUUID } from "node:crypto";
+import { AppStore } from "../app";
+import { capability, flags } from "../cmd/cmd";
+import { CMD } from "../../generated/cmd";
+import { anchorShowPage, getHtml } from "./htmlAnchor";
+import { AnchorActivity, AppActivity } from "../activity";
+import { PATHS } from "../cfg";
 // # Flag
 // - Fold flags: show prevent 'above' from 'unfolding' no matter how many depths I've unfolded. Think about how I might want to 'ignore' tests of rust or imports or 'first impl'
 // # Anchor capabilities
@@ -80,12 +80,12 @@ export class Anchor {
   }
   uri(): string {
     if (!this.src?.uri) {
-      throw new Error('Invalid URI');
+      throw new Error("Invalid URI");
     }
     return this.src.uri.toString();
   }
 }
-export type AnchorOrigin = 'system' | 'personal' | 'workspace';
+export type AnchorOrigin = "system" | "personal" | "workspace";
 export interface AnchorSource {
   uri: string;
   startLine: number;
@@ -104,7 +104,12 @@ export interface AnchorStoreType {
   get(id: string): Anchor | undefined;
   loadRegistry(path: string): void;
   save(): void;
-  create(ctx: EstateContext, opts: CreateAnchorOptions, anchor: Partial<Anchor>): Partial<Anchor>;
+  create(
+    id: string,
+    ctx: EstateContext,
+    opts: CreateAnchorOptions,
+    anchor: Partial<Anchor>,
+  ): Partial<Anchor>;
   update(id: string, patch: Partial<Anchor>): void;
   delete(id: string): void;
   find(file: vscode.Uri, text: string, line: number): AnchorRef[];
@@ -123,11 +128,11 @@ export class AnchorStore implements AnchorStoreType {
   private registryPath = PATHS.anchors();
   public roots: any[] = [];
   private anchorDecoration = vscode.window.createTextEditorDecorationType({
-    gutterIconPath: vscode.Uri.file('/path/to/anchor.svg'),
-    overviewRulerColor: '#888888',
+    gutterIconPath: vscode.Uri.file("/path/to/anchor.svg"),
+    overviewRulerColor: "#888888",
     overviewRulerLane: vscode.OverviewRulerLane.Right,
     after: {
-      contentText: 'Hi there! 🔖',
+      contentText: "Hi there! 🔖",
     },
   });
   private decorateAnchors(editor: vscode.TextEditor): void {
@@ -154,14 +159,14 @@ export class AnchorStore implements AnchorStoreType {
   constructor(public app: AppStore) {
     this.anchorDecoration = vscode.window.createTextEditorDecorationType({
       before: {
-        margin: '0 0 0 1rem',
-        color: new vscode.ThemeColor('descriptionForeground'),
-        fontStyle: 'italic',
+        margin: "0 0 0 1rem",
+        color: new vscode.ThemeColor("descriptionForeground"),
+        fontStyle: "italic",
       },
     });
     const estates = this.findEstates();
     for (const estate of estates) {
-      this.loadRegistry(path.join(estate, 'anchors.json'));
+      this.loadRegistry(path.join(estate, "anchors.json"));
     }
     this.initIntrinsic();
     this.initializeRegistry();
@@ -176,7 +181,7 @@ export class AnchorStore implements AnchorStoreType {
       //   this.decorateAnchors();
     });
 
-    console.log('this.registryPath', this.registryPath);
+    console.log("this.registryPath", this.registryPath);
   }
   private initIntrinsic(): EstateFlag[] {
     for (const f of flags) {
@@ -192,24 +197,24 @@ export class AnchorStore implements AnchorStoreType {
     if (!estate) {
       return;
     }
-    const registry = path.join(estate, 'registry', PATHS.anchors());
+    const registry = path.join(estate, "registry", PATHS.anchors());
     if (!fs.existsSync(registry)) {
       return;
     }
-    const json = JSON.parse(fs.readFileSync(registry, 'utf8'));
+    const json = JSON.parse(fs.readFileSync(registry, "utf8"));
     for (const [id, anchor] of Object.entries(json.items ?? {})) {
       this.items.set(id, anchor as Anchor);
     }
   }
   public loadRegistry(file: string): void {
     if (!fs.existsSync(file)) {
-      console.log('Missing registry:', file);
+      console.log("Missing registry:", file);
       return;
     }
-    const raw = fs.readFileSync(file, 'utf8');
+    const raw = fs.readFileSync(file, "utf8");
     const json = JSON.parse(raw);
     const items = json.items ?? {};
-    console.log('itemsitems', items);
+    console.log("itemsitems", items);
     for (const [id, anchor] of Object.entries(items as Record<string, Partial<Anchor>>)) {
       const b = new Anchor(id, anchor);
       this.register(id, b);
@@ -218,12 +223,12 @@ export class AnchorStore implements AnchorStoreType {
   loadFsPath(filePath: string): void {
     const estates = this.findEstatesFs(filePath);
     for (const estate of estates) {
-      this.loadRegistry(path.join(estate, 'anchors.json'));
+      this.loadRegistry(path.join(estate, "anchors.json"));
     }
   }
   private findEstates(): string[] {
     const estates: string[] = [];
-    const homeEstate = path.join(os.homedir(), '.estate');
+    const homeEstate = path.join(os.homedir(), ".estate");
     if (fs.existsSync(homeEstate)) {
       estates.push(homeEstate);
     }
@@ -233,7 +238,7 @@ export class AnchorStore implements AnchorStoreType {
     const estates: string[] = [];
     let current = path.dirname(filePath);
     while (true) {
-      const candidate = path.join(current, '.estate');
+      const candidate = path.join(current, ".estate");
       if (fs.existsSync(candidate)) {
         estates.push(candidate);
       }
@@ -270,29 +275,33 @@ export class AnchorStore implements AnchorStoreType {
   //     }
   //     return undefined;
   //   }
-  create(ctx: EstateContext, opts: CreateAnchorOptions, anchor: Partial<Anchor>): Anchor {
+  create(
+    id: string,
+    ctx: EstateContext,
+    opts: CreateAnchorOptions,
+    anchor: Partial<Anchor>,
+  ): Anchor {
     const now = new Date().toISOString();
-    let id = randomUUID();
     let b = new Anchor(id, {
       id,
       tags: [],
-      type: anchor.type ?? 'concept',
+      type: anchor.type ?? "concept",
       label: opts.label,
-      description: anchor.description ?? '',
-      privacy: opts.privacy ?? 'personal',
-      body: anchor.body ?? '',
-      context: anchor.context ?? '',
-      code: anchor.code ?? '',
-      repo: anchor.repo ?? '',
-      commit: anchor.commit ?? '',
-      scope: anchor.scope ?? 'unknown',
+      description: anchor.description ?? "",
+      privacy: opts.privacy ?? "personal",
+      body: anchor.body ?? "",
+      context: anchor.context ?? "",
+      code: anchor.code ?? "",
+      repo: anchor.repo ?? "",
+      commit: anchor.commit ?? "",
+      scope: anchor.scope ?? "unknown",
       src: anchor.src,
       anchors: [],
-      origin: 'personal',
+      origin: "personal",
       createdAt: now,
       updatedAt: now,
-      scratchpadBody: '',
-      scratchpadExt: '',
+      scratchpadBody: "",
+      scratchpadExt: "",
     });
     this.register(id, b);
     return b;
@@ -310,8 +319,9 @@ export class AnchorStore implements AnchorStoreType {
     // }
     const document = editor.document;
     const selectedText = document.getText(selection);
-    const id = `@${Date.now()}`;
+    let id = randomUUID();
     this.create(
+      id,
       {
         anchor: id,
         uri: document.uri,
@@ -319,13 +329,13 @@ export class AnchorStore implements AnchorStoreType {
       },
       {
         label: `Anchor ${id}`,
-        description: 'Captured source block',
-        privacy: 'workspace',
+        description: "Captured source block",
+        privacy: "workspace",
       },
       {
-        type: 'code',
+        type: "code",
         body: selectedText,
-        scope: 'source.selection',
+        scope: "source.selection",
         src: {
           uri: document.uri.fsPath,
           startLine: selection.start.line,
@@ -352,7 +362,7 @@ export class AnchorStore implements AnchorStoreType {
     );
   }
   register(id: string, anchor: Anchor) {
-    console.log('registering');
+    console.log("registering");
     try {
       this.items.set(id, anchor);
       const key = anchor.uri().toString();
@@ -368,11 +378,13 @@ export class AnchorStore implements AnchorStoreType {
     const data = {
       items: Object.fromEntries(this.items),
     };
-    console.log('this.registryPath', this.registryPath);
+    console.log("this.registryPath", this.registryPath);
     await fsPromise.mkdir(path.dirname(this.registryPath), { recursive: true });
-    await fsPromise.writeFile(this.registryPath, JSON.stringify(data, null, 2), 'utf8');
+    await fsPromise.writeFile(this.registryPath, JSON.stringify(data, null, 2), "utf8");
   }
   get(id: string) {
+    console.log("lookup:", id);
+    console.log("keys:", [...this.items.keys()]);
     return this.items.get(id);
   }
   has(id: string) {
@@ -389,7 +401,7 @@ export class AnchorStore implements AnchorStoreType {
   }
   getUri(b: Anchor): vscode.Uri {
     if (!b?.src?.uri) {
-      throw Error('Invalid Uri');
+      throw Error("Invalid Uri");
     }
     return vscode.Uri.file(b.src.uri);
   }
@@ -405,8 +417,8 @@ export class AnchorStore implements AnchorStoreType {
   find(file: vscode.Uri, text: string, line: number): AnchorRef[] {
     const results = [...findAnchors(text, this, line), ...findFlags(text, this, line)];
     for (const anchor of this.findSortedIndex(file, line)) {
-      console.log('anchoranchor', anchor);
-      console.log('anchoranchor', anchor.id);
+      console.log("anchoranchor", anchor);
+      console.log("anchoranchor", anchor.id);
       results.push({
         id: anchor.id,
         line,
@@ -432,12 +444,11 @@ export class AnchorStore implements AnchorStoreType {
     patch: Partial<Anchor>,
     // opts: CreateAnchorOptions,
   ): Anchor {
-    throw new Error('AnchorStore.create() has not been implemented.');
+    throw new Error("AnchorStore.create() has not been implemented.");
   }
   delete(id: string) {
-    throw new Error('TODO');
+    throw new Error("TODO");
   }
-  // @connected
   // Globals available as u type
   registerFlag(flag: EstateFlag): void {
     this.flags.set(flag.id, flag);
@@ -445,7 +456,7 @@ export class AnchorStore implements AnchorStoreType {
   getRange(b: Anchor) {
     try {
       let { src } = b;
-      if (!src) throw Error('Invalid Anchor');
+      if (!src) throw Error("Invalid Anchor");
       return new vscode.Range(
         src.startLine,
         src.startCharacter ?? 0,
@@ -453,17 +464,17 @@ export class AnchorStore implements AnchorStoreType {
         src.endCharacter ?? 0,
       );
     } catch (error) {
-      console.log('Get Range Error: ', error);
+      console.log("Get Range Error: ", error);
     }
   }
   private registerFlagsUser(filePath: string): EstateFlag[] {
     const flags: EstateFlag[] = [
       {
-        id: '1',
-        label: 'save',
-        description: 'hi',
-        scope: 'language',
-        action: 'wiki.click',
+        id: "1",
+        label: "save",
+        description: "hi",
+        scope: "language",
+        action: "wiki.click",
         capabilities: [],
       },
     ];
@@ -473,7 +484,7 @@ export class AnchorStore implements AnchorStoreType {
     for (const root of this.roots) {
       let current = root;
       while (current !== path.dirname(current)) {
-        const candidate = path.join(current, '.estate');
+        const candidate = path.join(current, ".estate");
         if (fs.existsSync(candidate)) {
           return candidate;
         }
@@ -486,7 +497,7 @@ export class AnchorStore implements AnchorStoreType {
 export interface CreateAnchorOptions {
   label?: string;
   description?: string;
-  privacy: 'personal' | 'repo' | 'workspace';
+  privacy: "personal" | "repo" | "workspace";
   captureCode?: boolean;
   captureScope?: boolean;
   captureContext?: boolean;
@@ -511,14 +522,21 @@ export class AnchorPresenter {
     app.ctx.subscriptions.push(
       vscode.commands.registerCommand(
         CMD.estate.bookmark.read,
-        async (anchor: Anchor) => {
-          await vscode.commands.executeCommand('setContext', 'estate.hasAnchor', true);
-          let activity: AnchorActivity = {
-            type: 'anchor',
-            anchor,
-            editor: vscode.window.activeTextEditor,
-          };
-          this.app.activity.emit(activity);
+        // async (anchor: Anchor) => {
+        async (node: EstateNode, anchor: Anchor) => {
+          console.log("[AnchorPresenter].bookmark.read");
+          await this.app.tree.treeView.reveal(node, {
+            expand: true,
+            focus: false,
+            select: true,
+          });
+          await vscode.commands.executeCommand("setContext", "estate.hasAnchor", true);
+          // let activity: AnchorActivity = {
+          //   type: "anchor",
+          //   anchor,
+          //   editor: vscode.window.activeTextEditor,
+          // };
+          // this.app.activity.emit(activity);
           await this.showAnchor(anchor);
         },
         this,
@@ -528,21 +546,21 @@ export class AnchorPresenter {
       if (!a.editor) return;
     });
   }
-  private async showAnchor(anchor: Anchor, mode: 'source' | 'page' | 'popup' = 'source') {
+  private async showAnchor(anchor: Anchor, mode: "source" | "page" | "popup" = "source") {
     const id = anchor.id;
 
     //
     // Source view
     //
-    if (mode === 'source') {
+    if (mode === "source") {
       if (!anchor.uri()) {
         return;
       }
-      console.log('Hi there showAnchor');
+      console.log("Hi there showAnchor");
       // TODO:
       // Fix bug, logic is right but it takes a second click to show buttons in editor tabs row
-      console.log('estate.hasAnchor =', true);
-      await vscode.commands.executeCommand('setContext', 'estate.hasAnchor', true);
+      console.log("estate.hasAnchor =", true);
+      // await vscode.commands.executeCommand("setContext", "estate.hasAnchor", true);
 
       const uri = vscode.Uri.file(anchor.uri());
 
@@ -570,7 +588,7 @@ export class AnchorPresenter {
     //
     // Popup (TODO)
     //
-    if (mode === 'popup') {
+    if (mode === "popup") {
       // TODO
       return;
     }
@@ -586,8 +604,8 @@ export class AnchorPresenter {
     }
 
     const panel = vscode.window.createWebviewPanel(
-      'anchor',
-      anchor.label ?? 'Anchor',
+      "anchor",
+      anchor.label ?? "Anchor",
       vscode.ViewColumn.Active,
       {
         enableScripts: true,
@@ -604,21 +622,21 @@ export class AnchorPresenter {
     panel.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.type) {
-          case 'saveAnchor':
+          case "saveAnchor":
             this.app.anchors.update(id, message.anchor);
             this.app.anchors.save();
             break;
 
-          case 'openSource':
-            await this.showAnchor(anchor, 'source');
+          case "openSource":
+            await this.showAnchor(anchor, "source");
             break;
 
-          case 'openPopup':
-            await this.showAnchor(anchor, 'popup');
+          case "openPopup":
+            await this.showAnchor(anchor, "popup");
             break;
 
-          case 'openPage':
-            await this.showAnchor(anchor, 'page');
+          case "openPage":
+            await this.showAnchor(anchor, "page");
             break;
         }
       },
@@ -648,8 +666,8 @@ export class AnchorPresenter {
     // 2. Create anchor panel
     //
     const panel = vscode.window.createWebviewPanel(
-      'anchor',
-      anchor.label ?? 'Anchor',
+      "anchor",
+      anchor.label ?? "Anchor",
       vscode.ViewColumn.Active,
       {
         enableScripts: true,
@@ -663,11 +681,11 @@ export class AnchorPresenter {
     panel.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.type) {
-          case 'saveAnchor':
+          case "saveAnchor":
             this.app.anchors.update(id, message.anchor);
             this.app.anchors.save();
             break;
-          case 'openSource':
+          case "openSource":
             this.openAnchorSource(anchor);
             break;
         }
@@ -716,11 +734,10 @@ export class AnchorPresenter {
       } else {
         await vscode.window.showTextDocument(editor.document, editor.viewColumn);
       }
-      await vscode.commands.executeCommand('setContext', 'estate.hasAnchor', true);
+      // await vscode.commands.executeCommand("setContext", "estate.hasAnchor", true);
       const pos = new vscode.Position(anchor.src?.startLine ?? 0, anchor.src?.startCharacter ?? 0);
       editor.selection = new vscode.Selection(pos, pos);
       editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter);
-
       return;
     }
 
@@ -740,8 +757,8 @@ export class AnchorPresenter {
     // 3. Create new panel
     //
     const panel = vscode.window.createWebviewPanel(
-      'anchor',
-      anchor.label ?? 'Anchor',
+      "anchor",
+      anchor.label ?? "Anchor",
       vscode.ViewColumn.Active,
       {
         enableScripts: true,
@@ -758,12 +775,12 @@ export class AnchorPresenter {
     panel.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.type) {
-          case 'saveAnchor':
+          case "saveAnchor":
             this.app.anchors.update(id, message.anchor);
             this.app.anchors.save();
             break;
 
-          case 'openSource':
+          case "openSource":
             await this.showPagePane(anchor, {
               openSource: true,
             });
@@ -778,8 +795,8 @@ export class AnchorPresenter {
   }
   async present(ctx: vscode.ExtensionContext, anchor: Anchor) {
     const panel = vscode.window.createWebviewPanel(
-      'estateAnchor',
-      'Edit Anchor',
+      "estateAnchor",
+      "Edit Anchor",
       vscode.ViewColumn.Active,
       {
         enableScripts: true,
@@ -788,10 +805,10 @@ export class AnchorPresenter {
     if (!anchor) return;
     panel.webview.html = getHtml(anchor);
     panel.webview.onDidReceiveMessage((msg) => {
-      if (msg.type === 'save') {
-        this.app.anchors.update(anchor?.id || '', msg.anchor);
+      if (msg.type === "save") {
+        this.app.anchors.update(anchor?.id || "", msg.anchor);
         this.app.tree.refresh();
-        vscode.window.showInformationMessage('Anchor saved.');
+        vscode.window.showInformationMessage("Anchor saved.");
       }
     });
   }
@@ -810,8 +827,8 @@ export class AnchorPresenter {
         100, // Priority
       );
       // 2. Style it to stand out slightly as a notification/reference
-      refStatusBar.text = '$(info) Reference: Keep typing...';
-      refStatusBar.tooltip = 'This stays out of your way and auto-hides.';
+      refStatusBar.text = "$(info) Reference: Keep typing...";
+      refStatusBar.tooltip = "This stays out of your way and auto-hides.";
       refStatusBar.show();
       // 3. Make it automatically close/hide after a few seconds or when an action completes
       let hideTimeout: NodeJS.Timeout;
@@ -826,7 +843,7 @@ export class AnchorPresenter {
         }, durationMs);
       }
       // Example usage: trigger this when a specific action happens
-      showTransientReference('Action complete - reference updated', 4000);
+      showTransientReference("Action complete - reference updated", 4000);
     }
     // createStatusBar();
     // const panel = vscode.window.createWebviewPanel(
