@@ -50,6 +50,7 @@ export class AppStore {
 
     ctx.subscriptions.push(
       vscode.languages.registerCodeLensProvider(longLangs, this.codeLens),
+      // Anchor flags.
       vscode.languages.registerDocumentLinkProvider(
         longLangs,
         new WikiDocumentLinkProvider(indexService),
@@ -188,3 +189,5 @@ export function registerGiantQuickPickCommand(context: vscode.ExtensionContext, 
     vscode.window.showErrorMessage("No context provided for registering the command.");
   }
 }
+
+

@@ -9,8 +9,9 @@ import { AppStore } from "../app";
 import { capability, flags } from "../cmd/cmd";
 import { CMD } from "../../generated/cmd";
 import { anchorShowPage, getHtml } from "./htmlAnchor";
-import { AnchorActivity, AppActivity } from "../activity";
+import { AppActivity } from "../activity";
 import { PATHS } from "../cfg";
+import { CLIENT_RENEG_LIMIT } from "node:tls";
 // # Flag
 // - Fold flags: show prevent 'above' from 'unfolding' no matter how many depths I've unfolded. Think about how I might want to 'ignore' tests of rust or imports or 'first impl'
 // # Anchor capabilities
@@ -399,11 +400,11 @@ export class AnchorStore implements AnchorStoreType {
   hasFlag(id: string) {
     return this.flags.has(id);
   }
-  getUri(b: Anchor): vscode.Uri {
-    if (!b?.src?.uri) {
+  getUri(a: Anchor): vscode.Uri {
+    if (!a?.src?.uri) {
       throw Error("Invalid Uri");
     }
-    return vscode.Uri.file(b.src.uri);
+    return vscode.Uri.file(a.src.uri);
   }
   ids() {
     return [...this.items.keys()];
@@ -411,8 +412,14 @@ export class AnchorStore implements AnchorStoreType {
   list(): Anchor[] {
     return [...this.items.values()];
   }
-  inFile(b: Anchor, file: vscode.Uri) {
-    return file == this.getUri(b);
+  inFile(a: Anchor, file: vscode.Uri) {
+    let result = this.getUri(a);
+    let resultLa = this.getUri(a).fsPath == file.fsPath;
+    console.log("[AnchorStore].inFile", file.fsPath);
+    console.log("[AnchorStore].inFile", a.src?.uri);
+    console.log("[AnchorStore].inFile", resultLa);
+    console.log("[AnchorStore].inFile", result.fsPath);
+    return resultLa;
   }
   find(file: vscode.Uri, text: string, line: number): AnchorRef[] {
     const results = [...findAnchors(text, this, line), ...findFlags(text, this, line)];
@@ -429,7 +436,10 @@ export class AnchorStore implements AnchorStoreType {
     return results;
   }
   findInFile(file: vscode.Uri): Anchor[] {
-    return this.list().filter((b) => this.inFile(b, file));
+    let items = this.list().filter((a) => this.inFile(a, file));
+    console.log("[AnchorStore].findInFile", file);
+    console.log("[AnchorStore].findInFile", items);
+    return items;
   }
   findSortedIndex(file: vscode.Uri, line: number): Anchor[] {
     return this.findInIndex(file).filter(
@@ -502,13 +512,11 @@ export interface CreateAnchorOptions {
   captureScope?: boolean;
   captureContext?: boolean;
 }
-
 export interface Result<T> {
   ok: boolean;
   value?: T;
   error?: string;
 }
-
 export function findFlags(text: string, store: AnchorStore, line: number): AnchorRef[] {
   return findAnchorsLocations(text, line).flatMap((t) => {
     const flag = store.getFlag(t.id);
