@@ -263,27 +263,6 @@
     <vscode-accordion id="anchors-container" multiple></vscode-accordion>
 
     <script>
-      const vscode = acquireVsCodeApi();
-
-      // Listen for data sent from the extension host
-      window.addEventListener("message", (event) => {
-        const message = event.data;
-        if (message.type === "loadAnchor") {
-          const anchor = message.anchor;
-          document.getElementById("anchor-title").innerText = anchor.title;
-          // populate your fields here...
-        }
-      });
-
-      function saveChanges(updatedData) {
-        vscode.postMessage({
-          type: "saveAnchor",
-          anchor: updatedData,
-        });
-      }
-    </script>
-
-    <script>
       function updateHeaderState() {
         const subtitle = document.getElementById("pipeline-pass-subtitle");
         const indicator = document.getElementById("pass-indicator-text");
@@ -515,6 +494,70 @@
           setTimeout(() => (btn.innerText = "Save Pipeline"), 2000);
         }
       });
+    </script>
+
+    <script>
+      // Initialize VS Code API safely (cached for entire lifecycle)
+      const vscode = acquireVsCodeApi();
+
+      // // In-memory state store for the pipeline
+      // let anchors = [];
+      // let currentPipelinePass = 1;
+
+      // ---------------------------------------------------------
+      // 1. VS CODE ASYNC COMMUNICATION ENGINE
+      // ---------------------------------------------------------
+
+      // Listen for incoming messages asynchronously from the extension host
+      window.addEventListener("message", (event) => {
+        const message = event.data;
+        switch (message.type) {
+          case "loadPipeline":
+            anchors = message.anchors || [];
+            renderAnchors();
+            break;
+          case "updateAnchor":
+            const index = anchors.findIndex((a) => a.id === message.anchor.id);
+            if (index !== -1) {
+              anchors[index] = message.anchor;
+            } else {
+              anchors.push(message.anchor);
+            }
+            renderAnchors();
+            break;
+          case "saveConfirm":
+            const saveBtn = document.getElementById("save-btn");
+            if (saveBtn) {
+              saveBtn.innerText = "✓ Saved to Disk";
+              setTimeout(() => (saveBtn.innerText = "Save Pipeline to Disk"), 2000);
+            }
+            break;
+          default:
+            console.warn("Unknown message type received from extension host:", message.type);
+        }
+      });
+
+      // Request initial payload asynchronously from the extension host on boot
+      function requestInitialData() {
+        vscode.postMessage({ type: "fetchPipelineData" });
+      }
+
+      // Post async mutations to extension host
+      function persistPipelineToDisk() {
+        syncAllVisibleInputs();
+        vscode.postMessage({
+          type: "savePipeline",
+          anchors: anchors,
+        });
+      }
+
+      function handleViewSource(anchorId) {
+        vscode.postMessage({ type: "viewSource", anchorId: anchorId });
+      }
+
+      function handleEditAnchor(anchorId) {
+        vscode.postMessage({ type: "focusAnchor", anchorId: anchorId });
+      }
 
       // Kickoff initialization
       renderAnchors();
