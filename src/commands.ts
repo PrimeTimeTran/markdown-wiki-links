@@ -10,13 +10,13 @@ export type Command = {
 
 const commands: Command[] = [
   {
-    id: '@mdPreviewMode',
-    label: 'MD Preview Mode',
-    title: 'Wiki Links: Toggle Preview Mode',
-    command: 'ui.toggleMDPreview',
-    scope: 'language',
-    action: 'ui.toggleMDPreview',
-    description: 'View rendered .md files ',
+    id: "@mdPreviewMode",
+    label: "MD Preview Mode",
+    title: "Wiki Links: Toggle Preview Mode",
+    command: "ui.toggleMDPreview",
+    scope: "language",
+    action: "ui.toggleMDPreview",
+    description: "View rendered .md files ",
   },
 ];
 

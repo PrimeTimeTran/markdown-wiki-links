@@ -1,7 +1,7 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import fs from "node:fs";
+import path from "node:path";
 
-import { COMMANDS } from './CMDS';
+import { COMMANDS } from "./CMDS";
 
 function generatePackageJson(commands: typeof COMMANDS) {
   return {
@@ -42,21 +42,21 @@ function generatePackageJson(commands: typeof COMMANDS) {
 }
 
 function generateCommandConstants(commands: typeof COMMANDS) {
-  const lines = ['// GENERATED FILE', '', 'export const CMD = {'];
+  const lines = ["// GENERATED FILE", "", "export const CMD = {"];
 
   for (const cmd of commands) {
     const name = cmd.id
-      .replace(/^estate\./, '')
-      .split('.')
+      .replace(/^estate\./, "")
+      .split(".")
       .map((x) => x.replace(/^./, (c) => c.toUpperCase()))
-      .join('');
+      .join("");
 
     lines.push(`  ${name}: "${cmd.id}",`);
   }
 
-  lines.push('};', '');
+  lines.push("};", "");
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 function generateDocs(commands: typeof COMMANDS) {
@@ -69,24 +69,24 @@ Command:
 
 \`${cmd.id}\`
 
-${cmd.shortTitle ?? ''}
+${cmd.shortTitle ?? ""}
 
 Category:
-${cmd.category ?? ''}
+${cmd.category ?? ""}
 
 Documentation:
-${cmd.docs?.path ?? 'none'}
+${cmd.docs?.path ?? "none"}
 
 Implementation:
-${cmd.implementation?.file ?? 'none'}
+${cmd.implementation?.file ?? "none"}
 
 Menus:
-${(cmd.menus ?? []).map((m) => `- ${m.menu}`).join('\n')}
+${(cmd.menus ?? []).map((m) => `- ${m.menu}`).join("\n")}
 
 ---
 `;
     })
-    .join('\n');
+    .join("\n");
 }
 
 function write(file: string, content: string) {
@@ -104,19 +104,19 @@ export function syncCommands() {
   // package.json fragment
   //
   write(
-    path.join(root, 'generated/package.contributes.json'),
+    path.join(root, "generated/package.contributes.json"),
     JSON.stringify(generatePackageJson(COMMANDS), null, 2),
   );
 
   //
   // typed command constants
   //
-  write(path.join(root, 'generated/cmd.ts'), generateCommandConstants(COMMANDS));
+  write(path.join(root, "generated/cmd.ts"), generateCommandConstants(COMMANDS));
 
   //
   // docs index
   //
-  write(path.join(root, 'generated/commands.md'), generateDocs(COMMANDS));
+  write(path.join(root, "generated/commands.md"), generateDocs(COMMANDS));
 }
 
 syncCommands();

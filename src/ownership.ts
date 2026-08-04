@@ -1,27 +1,28 @@
-import * as vscode from 'vscode';
-import { AppStore } from './app';
+import * as vscode from "vscode";
 
-export const flowitryMode = '';
+import { AppStore } from "./app";
+
+export const flowitryMode = "";
 
 export const icons = [
-  'alias',
-  'binding',
-  'declaration',
-  'identifier',
-  'memory',
-  'shadowing',
-  'symbol',
+  "alias",
+  "binding",
+  "declaration",
+  "identifier",
+  "memory",
+  "shadowing",
+  "symbol",
 ];
 
 type SymbolAnnotation = {
   line: number;
   symbol: string;
-  roles: ['binding', 'owner', 'child', 'borrow'];
-  actions: ['showChildren', 'showLineage'];
+  roles: ["binding", "owner", "child", "borrow"];
+  actions: ["showChildren", "showLineage"];
 };
 
 type SymbolDecoration = {
-  kind: 'binding' | 'shadowing' | 'alias';
+  kind: "binding" | "shadowing" | "alias";
   state: {
     selected: boolean;
     focused: boolean;
@@ -39,7 +40,7 @@ export class OwnershipInlayProvider implements vscode.InlayHintsProvider {
     // private activityStore: ActivityStore,
     // private anchorStore: AnchorStore,
   ) {
-    console.log('OwnershipInlayProvider constructor');
+    console.log("OwnershipInlayProvider constructor");
     app.activity.subscribe((activity) => {
       //   console.log('click', activity);
       this.currentLine = activity.editor.line;
@@ -60,7 +61,7 @@ export class OwnershipInlayProvider implements vscode.InlayHintsProvider {
     // console.log('provideInlayHints', this.currentLine);
     const hints: vscode.InlayHint[] = [];
     const line = this.currentLine;
-    hints.push(this.createRightAlignedHint(document, line, 80, '🔒 owns: 3 children'));
+    hints.push(this.createRightAlignedHint(document, line, 80, "🔒 owns: 3 children"));
     // hints.push(
     //   new vscode.InlayHint(new vscode.Position(line, 0), '🔒 Binding', vscode.InlayHintKind.Type),
     // );
@@ -90,7 +91,7 @@ export class OwnershipInlayProvider implements vscode.InlayHintsProvider {
     const padding = Math.max(1, targetColumn - currentColumn);
     const hint = new vscode.InlayHint(
       new vscode.Position(line, currentColumn),
-      ' '.repeat(padding) + text,
+      " ".repeat(padding) + text,
       vscode.InlayHintKind.Type,
     );
     hint.paddingLeft = false;

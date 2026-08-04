@@ -1,17 +1,16 @@
-import * as fs from 'fs/promises';
+import * as fs from "fs/promises";
 
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
-import { parseLinks } from '../core/parser/linkParser';
-import { parseEmbeds } from '../core/parser/embedParser';
-import { buildFenceMask } from '../core/fenceMask';
-import { resolveTarget } from '../core/resolver/resolveTarget';
-import { sliceSection } from '../core/blocks/sectionSlice';
-import { stripFrontmatter } from '../core/frontmatter';
-import { imageSize } from '../core/imageSize';
-
-import { IndexService } from './indexService';
-import { isInsideWorkspaceReal } from './workspaceBoundary';
+import { sliceSection } from "../core/blocks/sectionSlice";
+import { buildFenceMask } from "../core/fenceMask";
+import { stripFrontmatter } from "../core/frontmatter";
+import { imageSize } from "../core/imageSize";
+import { parseEmbeds } from "../core/parser/embedParser";
+import { parseLinks } from "../core/parser/linkParser";
+import { resolveTarget } from "../core/resolver/resolveTarget";
+import { IndexService } from "./indexService";
+import { isInsideWorkspaceReal } from "./workspaceBoundary";
 
 const IMAGE_RE = /\.(png|jpe?g|gif|webp|svg)$/i;
 
@@ -43,7 +42,7 @@ export class WikiHoverProvider implements vscode.HoverProvider {
   private async hoverForLink(
     ref: { target: string; fragment?: string; range: { start: number; end: number } },
     doc: vscode.TextDocument,
-    snap: ReturnType<IndexService['snapshotFor']>,
+    snap: ReturnType<IndexService["snapshotFor"]>,
   ): Promise<vscode.Hover | undefined> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const resolved = resolveTarget(ref as any, doc.uri.fsPath, snap);
@@ -55,7 +54,7 @@ export class WikiHoverProvider implements vscode.HoverProvider {
     const targetText =
       resolved.fsPath === doc.uri.fsPath
         ? doc.getText()
-        : await fs.readFile(resolved.fsPath, 'utf8').catch(() => '');
+        : await fs.readFile(resolved.fsPath, "utf8").catch(() => "");
     const snippet = ref.fragment
       ? sliceSection(ref.fragment, targetText)
       : firstLines(stripFrontmatter(targetText), 40);
@@ -70,15 +69,15 @@ export class WikiHoverProvider implements vscode.HoverProvider {
       range: { start: number; end: number };
     },
     doc: vscode.TextDocument,
-    snap: ReturnType<IndexService['snapshotFor']>,
+    snap: ReturnType<IndexService["snapshotFor"]>,
   ): Promise<vscode.Hover | undefined> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const resolved = resolveTarget({ ...ref, kind: 'embed' } as any, doc.uri.fsPath, snap);
+    const resolved = resolveTarget({ ...ref, kind: "embed" } as any, doc.uri.fsPath, snap);
     if (!resolved) return;
     if (IMAGE_RE.test(resolved.fsPath)) {
       return imageHover(vscode.Uri.file(resolved.fsPath), ref.target);
     }
-    const targetText = await fs.readFile(resolved.fsPath, 'utf8').catch(() => '');
+    const targetText = await fs.readFile(resolved.fsPath, "utf8").catch(() => "");
     const body = ref.fragment
       ? sliceSection(ref.fragment, targetText)
       : stripFrontmatter(targetText);
@@ -94,9 +93,9 @@ const HOVER_IMAGE_DEFAULT_MAX_HEIGHT = 240;
 
 function hoverImageMaxHeight(): number {
   const configured = vscode.workspace
-    .getConfiguration('wikiLinks')
-    .get<number>('hover.imageMaxHeight', HOVER_IMAGE_DEFAULT_MAX_HEIGHT);
-  return typeof configured === 'number' && configured > 0
+    .getConfiguration("wikiLinks")
+    .get<number>("hover.imageMaxHeight", HOVER_IMAGE_DEFAULT_MAX_HEIGHT);
+  return typeof configured === "number" && configured > 0
     ? configured
     : HOVER_IMAGE_DEFAULT_MAX_HEIGHT;
 }
@@ -108,7 +107,7 @@ async function imageHover(uri: vscode.Uri, displayName: string): Promise<vscode.
   // VSCode hovers have no markdown syntax for image dimensions; an <img> tag is the only way to
   // size the preview. supportHtml enables VSCode's sanitized HTML subset, which permits <img>.
   md.supportHtml = true;
-  md.baseUri = uri.with({ path: uri.path.replace(/[^/]+$/, '') });
+  md.baseUri = uri.with({ path: uri.path.replace(/[^/]+$/, "") });
   const width = await hoverImageWidth(uri);
   md.appendMarkdown(
     `<img src="${escapeHtmlAttr(uri.toString())}" width="${width}" ` +
@@ -119,10 +118,10 @@ async function imageHover(uri: vscode.Uri, displayName: string): Promise<vscode.
 
 function escapeHtmlAttr(s: string): string {
   return s
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 // Only the leading bytes are needed for dimensions: PNG/GIF headers are tiny and a JPEG's
@@ -133,7 +132,7 @@ const IMAGE_HEADER_BYTES = 128 * 1024;
 async function readImageHeader(fsPath: string): Promise<Uint8Array | undefined> {
   let handle: fs.FileHandle | undefined;
   try {
-    handle = await fs.open(fsPath, 'r');
+    handle = await fs.open(fsPath, "r");
     const buf = Buffer.alloc(IMAGE_HEADER_BYTES);
     const { bytesRead } = await handle.read(buf, 0, IMAGE_HEADER_BYTES, 0);
     return buf.subarray(0, bytesRead);
@@ -162,5 +161,5 @@ async function hoverImageWidth(uri: vscode.Uri): Promise<number> {
 }
 
 function firstLines(text: string, n: number): string {
-  return text.split(/\r?\n/).slice(0, n).join('\n');
+  return text.split(/\r?\n/).slice(0, n).join("\n");
 }

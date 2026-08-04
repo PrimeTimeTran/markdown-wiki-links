@@ -1,16 +1,16 @@
-import * as vscode from "vscode";
 import { TraceApi } from "@primetimetran/logger";
+import * as vscode from "vscode";
 
-import { ActivityStore, AppActivity } from "./activity";
-import { AnalysisStore } from "./analysis";
-import { AnchorPresenter, AnchorStore } from "./adapters/anchorService";
-import { VFSDecorator, EstateTreeProvider, VFSProvider } from "./estate";
 import { CMD } from "../generated/cmd";
-import { WikiDecorations } from "./adapters/decorations";
-import { IndexService } from "./adapters/indexService";
+import { ActivityStore, AppActivity } from "./activity";
+import { AnchorPresenter, AnchorStore } from "./adapters/anchorService";
 import { WikiCodeLensProvider } from "./adapters/codelens";
+import { WikiDecorations } from "./adapters/decorations";
 import { WikiDocumentLinkProvider } from "./adapters/documentLinkProvider";
+import { IndexService } from "./adapters/indexService";
+import { AnalysisStore } from "./analysis";
 import { longLangs } from "./consts";
+import { VFSDecorator, EstateTreeProvider, VFSProvider } from "./estate";
 
 export interface EstateState {
   mdPreviewMode: boolean;

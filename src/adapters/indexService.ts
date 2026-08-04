@@ -1,29 +1,29 @@
-import * as path from 'path';
+import * as path from "path";
 
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
-import { IndexEntry } from '../core/types';
+import { isExcludedPath, buildExcludeGlob } from "../core/pathFilter";
 import {
   IndexSnapshot,
   createSnapshot,
   isContained,
   makeIndexEntry,
-} from '../core/resolver/resolveTarget';
-import { isExcludedPath, buildExcludeGlob } from '../core/pathFilter';
+} from "../core/resolver/resolveTarget";
+import { IndexEntry } from "../core/types";
 
-const GLOB = '**/*.{md,markdown,png,jpg,jpeg,gif,webp,svg,rs,ts,js,py}';
+const GLOB = "**/*.{md,markdown,png,jpg,jpeg,gif,webp,svg,rs,ts,js,py}";
 // The same extension set as GLOB. add() must enforce it directly: rename events are not
 // filtered by the watcher glob, so without this a renamed folder (or a .md renamed to .txt)
 // would be inserted into the index as a link target.
 const INDEXABLE_RE = /\.(rs|js|ts|py|md|markdown|png|jpe?g|gif|webp|svg)$/i;
 
 const DEFAULT_EXCLUDED_FOLDERS = [
-  '.git',
-  'node_modules',
-  '.hg',
-  '.svn',
-  '.bzr',
-  'bower_components',
+  ".git",
+  "node_modules",
+  ".hg",
+  ".svn",
+  ".bzr",
+  "bower_components",
 ];
 
 // Soft cap on indexed files. Each entry is three short strings plus object/Map overhead —
@@ -70,14 +70,14 @@ export class IndexService {
       //   }),
       vscode.workspace.onDidChangeWorkspaceFolders(() => this.refresh()),
       vscode.workspace.onDidChangeConfiguration((e) => {
-        if (e.affectsConfiguration('wikiLinks.index.excludeFolders')) this.refresh();
+        if (e.affectsConfiguration("wikiLinks.index.excludeFolders")) this.refresh();
       }),
     );
   }
 
   snapshotFor(fromFsPath: string): IndexSnapshot {
     const folder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(fromFsPath));
-    const root = folder?.uri.fsPath ?? '';
+    const root = folder?.uri.fsPath ?? "";
     const cached = this.snapCache.get(root);
     if (cached && cached.generation === this.generation) return cached.snap;
     // isContained (separator-safe), not startsWith: a sibling root like /ws/docs must not
@@ -131,9 +131,9 @@ export class IndexService {
   }
 
   private readonly demoExternalLinks = [
-    'https://www.google.com',
-    'https://en.wikipedia.org/wiki/Quantopian',
-    'https://github.com/PrimeTimeTran',
+    "https://www.google.com",
+    "https://en.wikipedia.org/wiki/Quantopian",
+    "https://github.com/PrimeTimeTran",
   ];
 
   externalLinks(): readonly string[] {
@@ -145,31 +145,31 @@ export class IndexService {
       // Local file
       new vscode.DocumentLink(
         new vscode.Range(0, 0, 70, 0),
-        vscode.Uri.file('/Users/future/KB/project/app/loi/crates/learn/public/wikilinks.md'),
+        vscode.Uri.file("/Users/future/KB/project/app/loi/crates/learn/public/wikilinks.md"),
       ),
 
       // Workspace file
       new vscode.DocumentLink(
         new vscode.Range(72, 0, 72, 12),
-        vscode.Uri.file('/Users/future/KB/project/app/loi/README.md'),
+        vscode.Uri.file("/Users/future/KB/project/app/loi/README.md"),
       ),
 
       // GitHub
       new vscode.DocumentLink(
         new vscode.Range(74, 0, 74, 12),
-        vscode.Uri.parse('https://github.com/PrimeTimeTran'),
+        vscode.Uri.parse("https://github.com/PrimeTimeTran"),
       ),
 
       // Wikipedia
       new vscode.DocumentLink(
         new vscode.Range(76, 0, 76, 12),
-        vscode.Uri.parse('https://en.wikipedia.org/wiki/Quantopian'),
+        vscode.Uri.parse("https://en.wikipedia.org/wiki/Quantopian"),
       ),
 
       // Google
       new vscode.DocumentLink(
         new vscode.Range(78, 0, 78, 12),
-        vscode.Uri.parse('https://www.google.com'),
+        vscode.Uri.parse("https://www.google.com"),
       ),
     ];
   }
@@ -181,14 +181,14 @@ export class IndexService {
 
 function indexMaxFiles(): number {
   const configured = vscode.workspace
-    .getConfiguration('wikiLinks')
-    .get<number>('indexMaxFiles', DEFAULT_INDEX_MAX_FILES);
-  return typeof configured === 'number' && configured > 0 ? configured : DEFAULT_INDEX_MAX_FILES;
+    .getConfiguration("wikiLinks")
+    .get<number>("indexMaxFiles", DEFAULT_INDEX_MAX_FILES);
+  return typeof configured === "number" && configured > 0 ? configured : DEFAULT_INDEX_MAX_FILES;
 }
 
 export function excludedFolders(): string[] {
   const configured = vscode.workspace
-    .getConfiguration('wikiLinks')
-    .get<string[]>('index.excludeFolders');
+    .getConfiguration("wikiLinks")
+    .get<string[]>("index.excludeFolders");
   return Array.isArray(configured) ? configured : DEFAULT_EXCLUDED_FOLDERS;
 }

@@ -1,30 +1,29 @@
-import * as path from 'path';
+import * as path from "path";
 
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
+import { buildExcludeGlob } from "../core/pathFilter";
 import {
   rewriteWikiRefs,
   buildRenameContext,
   RenameContext,
   RenamePair,
-} from '../core/rename/rewriteWikiRefs';
+} from "../core/rename/rewriteWikiRefs";
 import {
   IndexSnapshot,
   createSnapshot,
   isContained,
   makeIndexEntry,
-} from '../core/resolver/resolveTarget';
-import { computeLineStarts, positionAt } from '../core/textPosition';
-import { buildExcludeGlob } from '../core/pathFilter';
-import { IndexEntry } from '../core/types';
-
-import { excludedFolders } from './indexService';
+} from "../core/resolver/resolveTarget";
+import { computeLineStarts, positionAt } from "../core/textPosition";
+import { IndexEntry } from "../core/types";
+import { excludedFolders } from "./indexService";
 
 // Files a wiki-link can target: Markdown documents plus embeddable media.
 const LINKABLE_RE = /\.(md|markdown|png|jpe?g|gif|webp|svg|rs|js|ts|py)$/i;
 // Files that can *contain* wiki-links — only these are scanned and rewritten.
 const MARKDOWN_RE = /\.(md|markdown|rs|js|ts|py)$/i;
-const INDEX_GLOB = '**/*.{md,markdown,png,jpg,jpeg,gif,webp,svg,rs,js,ts,py}';
+const INDEX_GLOB = "**/*.{md,markdown,png,jpg,jpeg,gif,webp,svg,rs,js,ts,py}";
 
 // The rename participant blocks VSCode's file operation until the edit is built (waitUntil),
 // so this path must stay fast even in multi-thousand-file workspaces: referrers are read in
@@ -38,7 +37,7 @@ const MAX_PREFILTER_NEEDLES = 16;
 
 // Throws a TypeError on malformed UTF-8 instead of silently substituting U+FFFD — the only
 // reliable signal that raw bytes cannot be trusted to match VSCode's own decoding.
-const FATAL_UTF8 = new TextDecoder('utf-8', { fatal: true });
+const FATAL_UTF8 = new TextDecoder("utf-8", { fatal: true });
 
 // The fast path decodes raw bytes as UTF-8; that is only sound when VSCode will decode the
 // file identically when applying the WorkspaceEdit.
@@ -46,10 +45,10 @@ function mustUseVSCodeDecoder(ref: vscode.Uri): boolean {
   // {uri, languageId} scope, not the bare Uri: files.encoding is language-overridable, and a
   // bare-Uri scope cannot see "[markdown]": {"files.encoding": ...} overrides. Every referrer
   // on this path is Markdown by construction (MARKDOWN_RE filter).
-  const files = vscode.workspace.getConfiguration('files', { uri: ref, languageId: 'markdown' });
+  const files = vscode.workspace.getConfiguration("files", { uri: ref, languageId: "markdown" });
   return (
-    files.get<string>('encoding', 'utf8') !== 'utf8' ||
-    files.get<boolean>('autoGuessEncoding', false)
+    files.get<string>("encoding", "utf8") !== "utf8" ||
+    files.get<boolean>("autoGuessEncoding", false)
   );
 }
 
@@ -131,7 +130,7 @@ export class RenameHandler {
       // rewrite verification approves forms only the old root can resolve — writing
       // links that are dead where the file actually ends up.
       const post = newPathByOld.get(ref.fsPath) ?? ref.fsPath;
-      const root = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(post))?.uri.fsPath ?? '';
+      const root = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(post))?.uri.fsPath ?? "";
       let entry = perRoot.get(root);
       if (!entry) {
         const snap = buildSnapshot(root, allFiles);
@@ -151,8 +150,8 @@ export class RenameHandler {
     const needles = [
       ...new Set(
         renames.flatMap((r) => [
-          path.basename(r.oldFsPath).replace(LINKABLE_RE, '').toLowerCase(),
-          path.basename(r.newFsPath).replace(LINKABLE_RE, '').toLowerCase(),
+          path.basename(r.oldFsPath).replace(LINKABLE_RE, "").toLowerCase(),
+          path.basename(r.newFsPath).replace(LINKABLE_RE, "").toLowerCase(),
         ]),
       ),
     ];
@@ -219,7 +218,7 @@ export class RenameHandler {
           // Deleted between the scan and the read is expected churn. Anything else
           // (permissions, transient FS failure) means this referrer's links silently
           // break with the rename — surface it, as the changelog promises.
-          if (!(e instanceof vscode.FileSystemError && e.code === 'FileNotFound')) {
+          if (!(e instanceof vscode.FileSystemError && e.code === "FileNotFound")) {
             console.error(
               `wiki-links: cannot read ${ref.fsPath}; its links were not rewritten:`,
               e,

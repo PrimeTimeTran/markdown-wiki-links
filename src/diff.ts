@@ -72,7 +72,7 @@
 //   }
 // }
 
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
 // export async function showOwnershipView() {
 //   const editor = vscode.window.activeTextEditor;
@@ -85,9 +85,9 @@ export async function showOwnershipView() {
   const editor = vscode.window.activeTextEditor;
   if (!editor) return;
   const sourceUri = editor.document.uri;
-  await vscode.commands.executeCommand('workbench.action.navigateLeft');
+  await vscode.commands.executeCommand("workbench.action.navigateLeft");
   const ownershipUri = vscode.Uri.parse(`estate://ownership${sourceUri.path}`);
-  await vscode.commands.executeCommand('vscode.diff', ownershipUri, sourceUri, 'Ownership');
+  await vscode.commands.executeCommand("vscode.diff", ownershipUri, sourceUri, "Ownership");
   // shrink left group
   //   for (let i = 0; i < 8; i++) {
   //     await vscode.commands.executeCommand('workbench.action.decreaseViewSize');
@@ -114,7 +114,7 @@ export class OwnershipContentProvider implements vscode.TextDocumentContentProvi
     );
 
     if (!sourceDoc) {
-      return '';
+      return "";
     }
 
     const analysis = this.engine.analyze(sourceUri);
@@ -131,37 +131,37 @@ export class OwnershipEngine {
   analyze(uri: vscode.Uri): OwnershipAnalysis {
     const text =
       vscode.workspace.textDocuments.find((d) => d.uri.toString() === uri.toString())?.getText() ??
-      '';
+      "";
 
-    const lines = text.split('\n');
+    const lines = text.split("\n");
 
     const events: OwnershipEvent[] = [];
 
     lines.forEach((line, index) => {
-      if (line.includes('String::new')) {
+      if (line.includes("String::new")) {
         events.push({
           line: index,
-          icon: '🏠',
-          label: 'owns String',
-          kind: 'owner',
+          icon: "🏠",
+          label: "owns String",
+          kind: "owner",
         });
       }
 
-      if (line.includes('(') && line.includes(')')) {
+      if (line.includes("(") && line.includes(")")) {
         events.push({
           line: index,
-          icon: '→',
-          label: 'move candidate',
-          kind: 'move',
+          icon: "→",
+          label: "move candidate",
+          kind: "move",
         });
       }
 
-      if (line.includes('&')) {
+      if (line.includes("&")) {
         events.push({
           line: index,
-          icon: '&',
-          label: 'borrow',
-          kind: 'borrow',
+          icon: "&",
+          label: "borrow",
+          kind: "borrow",
         });
       }
     });
@@ -176,20 +176,20 @@ export function renderOwnershipColumn(
   analysis: OwnershipAnalysis,
   sourceLineCount: number,
 ): string {
-  const rows = Array.from({ length: sourceLineCount }, () => '');
+  const rows = Array.from({ length: sourceLineCount }, () => "");
 
   for (const event of analysis.events) {
-    rows[event.line] = `${event.icon ?? ''} ${event.label}`;
+    rows[event.line] = `${event.icon ?? ""} ${event.label}`;
   }
 
-  return rows.join('\n');
+  return rows.join("\n");
 }
 
 export interface OwnershipEvent {
   line: number;
   icon?: string;
   label: string;
-  kind: 'owner' | 'move' | 'borrow' | 'error';
+  kind: "owner" | "move" | "borrow" | "error";
 }
 
 export interface OwnershipAnalysis {

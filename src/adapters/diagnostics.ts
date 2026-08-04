@@ -1,16 +1,15 @@
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
-import { parseLinks } from '../core/parser/linkParser';
-import { resolveTarget } from '../core/resolver/resolveTarget';
-
-import { IndexService } from './indexService';
+import { parseLinks } from "../core/parser/linkParser";
+import { resolveTarget } from "../core/resolver/resolveTarget";
+import { IndexService } from "./indexService";
 
 // Edits fire onDidChangeTextDocument on every keystroke; coalesce re-parsing to one run per
 // idle window so fast typing in a large document does not re-scan it on each character.
 const DEBOUNCE_MS = 300;
 
 export class WikiDiagnostics {
-  private coll = vscode.languages.createDiagnosticCollection('wikiLinks');
+  private coll = vscode.languages.createDiagnosticCollection("wikiLinks");
   private timers = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor(private idx: IndexService) {}
@@ -30,7 +29,7 @@ export class WikiDiagnostics {
   }
 
   private scheduleUpdate(doc: vscode.TextDocument): void {
-    if (doc.languageId !== 'markdown') return;
+    if (doc.languageId !== "markdown") return;
     const key = doc.uri.toString();
     this.cancel(key);
     this.timers.set(
@@ -43,7 +42,7 @@ export class WikiDiagnostics {
   }
 
   private update(doc: vscode.TextDocument): void {
-    if (doc.languageId !== 'markdown') return;
+    if (doc.languageId !== "markdown") return;
     const text = doc.getText();
     const snap = this.idx.snapshotFor(doc.uri.fsPath);
     const diags: vscode.Diagnostic[] = [];
@@ -53,7 +52,7 @@ export class WikiDiagnostics {
         diags.push(
           new vscode.Diagnostic(
             range,
-            'Unresolved or ambiguous wiki-link',
+            "Unresolved or ambiguous wiki-link",
             vscode.DiagnosticSeverity.Information,
           ),
         );

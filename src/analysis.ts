@@ -1,10 +1,13 @@
-import * as util from "util";
-import * as vscode from "vscode";
 import { execFile } from "child_process";
+import * as util from "util";
+
+import * as vscode from "vscode";
+
 import { AppActivity } from "./activity";
-import { icons } from "./ownership";
 import { AppStore } from "./app";
+import { icons } from "./ownership";
 const execFileAsync = util.promisify(execFile);
+
 export class AnalysisStore {
   private current?: OwnershipAnalysisResult;
   private currentActivity?: AppActivity;

@@ -1,5 +1,6 @@
-import * as vscode from 'vscode';
-import { AnchorSeries } from './adapters/anchorService';
+import * as vscode from "vscode";
+
+import { AnchorSeries } from "./adapters/anchorService";
 
 export interface Presenter<T> {
   present(value: T): Thenable<void>;
@@ -51,7 +52,7 @@ export interface Presenter<T> {
 export class Global {
   constructor() {}
   snippetMaker(ctx: vscode.ExtensionContext) {
-    vscode.commands.registerCommand('estate.snippet-maker', async () => {
+    vscode.commands.registerCommand("estate.snippet-maker", async () => {
       const language = await this.pickSnippetLanguage();
       if (!language) {
         return;
@@ -61,14 +62,14 @@ export class Global {
         content: language.template,
       });
       const editor = await vscode.window.showTextDocument(doc);
-      await vscode.commands.executeCommand('editor.action.formatDocument');
+      await vscode.commands.executeCommand("editor.action.formatDocument");
     });
   }
   private async pickSnippetLanguage() {
     const items = [
       {
-        label: 'HTML',
-        id: 'html',
+        label: "HTML",
+        id: "html",
         template: `<!doctype html>
 <html>
 <head>
@@ -81,8 +82,8 @@ export class Global {
       },
 
       {
-        label: 'JavaScript',
-        id: 'javascript',
+        label: "JavaScript",
+        id: "javascript",
         template: `function main() {
 
 }
@@ -91,16 +92,16 @@ main();`,
       },
 
       {
-        label: 'CSS',
-        id: 'css',
+        label: "CSS",
+        id: "css",
         template: `.container {
 
 }`,
       },
 
       {
-        label: 'JSON',
-        id: 'json',
+        label: "JSON",
+        id: "json",
         template: `{
   
 }`,
@@ -108,13 +109,13 @@ main();`,
     ];
 
     return vscode.window.showQuickPick(items, {
-      placeHolder: 'Choose snippet type',
+      placeHolder: "Choose snippet type",
     });
   }
   addStatusBar() {
     const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
-    item.text = '$(symbol-class) Ownership 3/7';
-    item.command = 'estate.showFlow';
+    item.text = "$(symbol-class) Ownership 3/7";
+    item.command = "estate.showFlow";
     item.show();
   }
 }

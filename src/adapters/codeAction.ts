@@ -1,4 +1,4 @@
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 // export class OwnershipCodeActionProvider implements vscode.CodeActionProvider {
 //   provideCodeActions(document: vscode.TextDocument, range: vscode.Range): vscode.CodeAction[] {
 //     const action = new vscode.CodeAction(
@@ -22,17 +22,17 @@ export class OwnershipCodeActionProvider implements vscode.CodeActionProvider {
     };
     // console.log('CODE ACTION REQUEST', document.fileName, range.start.line);
     return [
-      this.action('🔗 Trace ownership lineage', 'estate.ownership.lineage', ctx),
-      this.action('⬆ Show ancestors', 'estate.ast.ancestors', ctx),
-      this.action('⬇ Show descendants', 'estate.ast.children', ctx),
-      this.action('↔ Show siblings', 'estate.ast.siblings', ctx),
-      this.action('📍 Pin semantic node', 'estate.node.pin', ctx),
-      this.action('📚 Add to recent', 'estate.node.recent', ctx),
-      this.action('🔍 Find references', 'estate.symbol.references', ctx),
-      this.action('🧬 Show value lineage', 'estate.value.lineage', ctx),
-      this.action('🌳 Show enclosing scope', 'estate.scope.show', ctx),
-      this.action('📊 Show dependency graph', 'estate.graph.open', ctx),
-      this.action('📝 Rename semantic symbol', 'estate.symbol.rename', ctx),
+      this.action("🔗 Trace ownership lineage", "estate.ownership.lineage", ctx),
+      this.action("⬆ Show ancestors", "estate.ast.ancestors", ctx),
+      this.action("⬇ Show descendants", "estate.ast.children", ctx),
+      this.action("↔ Show siblings", "estate.ast.siblings", ctx),
+      this.action("📍 Pin semantic node", "estate.node.pin", ctx),
+      this.action("📚 Add to recent", "estate.node.recent", ctx),
+      this.action("🔍 Find references", "estate.symbol.references", ctx),
+      this.action("🧬 Show value lineage", "estate.value.lineage", ctx),
+      this.action("🌳 Show enclosing scope", "estate.scope.show", ctx),
+      this.action("📊 Show dependency graph", "estate.graph.open", ctx),
+      this.action("📝 Rename semantic symbol", "estate.symbol.rename", ctx),
     ];
   }
   private action(title: string, command: string, ctx: any): vscode.CodeAction {

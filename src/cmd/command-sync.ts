@@ -1,7 +1,8 @@
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import { COMMANDS } from './CMDS';
-import type { Keybinding } from './command-schema';
+import * as fs from "node:fs";
+import * as path from "node:path";
+
+import { COMMANDS } from "./CMDS";
+import type { Keybinding } from "./command-schema";
 
 interface CommandDefinition {
   id: string;
@@ -23,11 +24,11 @@ interface CommandDefinition {
 }
 interface MenuContribution {
   menu:
-    | 'view/title'
-    | 'view/item/context'
-    | 'editor/context'
-    | 'editor/title'
-    | 'editor/title/context';
+    | "view/title"
+    | "view/item/context"
+    | "editor/context"
+    | "editor/title"
+    | "editor/title/context";
 
   when?: string;
   group?: string;
@@ -156,7 +157,7 @@ function generateCommandConstants(commands: typeof COMMANDS) {
   const tree: Record<string, any> = {};
 
   for (const cmd of commands) {
-    const parts = cmd.id.split('.');
+    const parts = cmd.id.split(".");
 
     let cursor = tree;
 
@@ -173,24 +174,24 @@ function generateCommandConstants(commands: typeof COMMANDS) {
   }
 
   function emit(obj: Record<string, any>, indent = 2): string {
-    const spaces = ' '.repeat(indent);
+    const spaces = " ".repeat(indent);
 
-    const lines = ['{'];
+    const lines = ["{"];
 
     for (const [key, value] of Object.entries(obj)) {
-      if (typeof value === 'string') {
+      if (typeof value === "string") {
         lines.push(`${spaces}${key}: "${value}",`);
       } else {
         lines.push(`${spaces}${key}: ${emit(value, indent + 2)},`);
       }
     }
 
-    lines.push(' '.repeat(indent - 2) + '}');
+    lines.push(" ".repeat(indent - 2) + "}");
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
-  return ['// GENERATED FILE', '', 'export const CMD = ', emit(tree), ' as const;', ''].join('\n');
+  return ["// GENERATED FILE", "", "export const CMD = ", emit(tree), " as const;", ""].join("\n");
 }
 
 function generateDocs(commands: typeof COMMANDS) {
@@ -203,24 +204,24 @@ Command:
 
 \`${cmd.id}\`
 
-${cmd.shortTitle ?? ''}
+${cmd.shortTitle ?? ""}
 
 Category:
-${cmd.category ?? ''}
+${cmd.category ?? ""}
 
 Documentation:
-${cmd.docs?.path ?? 'none'}
+${cmd.docs?.path ?? "none"}
 
 Implementation:
-${cmd.implementation?.file ?? 'none'}
+${cmd.implementation?.file ?? "none"}
 
 Menus:
-${(cmd.menus ?? []).map((m) => `- ${m.menu}`).join('\n')}
+${(cmd.menus ?? []).map((m) => `- ${m.menu}`).join("\n")}
 
 ---
 `;
     })
-    .join('\n');
+    .join("\n");
 }
 
 function write(file: string, content: string) {
@@ -240,7 +241,7 @@ export function syncCommands() {
   // VS Code package.json contributes section
   //
   write(
-    path.join(root, 'generated/package.contributes.json'),
+    path.join(root, "generated/package.contributes.json"),
     JSON.stringify(
       {
         contributes,
@@ -253,12 +254,12 @@ export function syncCommands() {
   //
   // Typed command constants
   //
-  write(path.join(root, 'generated/cmd.ts'), generateCommandConstants(COMMANDS));
+  write(path.join(root, "generated/cmd.ts"), generateCommandConstants(COMMANDS));
 
   //
   // Command documentation index
   //
-  write(path.join(root, 'generated/commands.md'), generateDocs(COMMANDS));
+  write(path.join(root, "generated/commands.md"), generateDocs(COMMANDS));
 }
 
 syncCommands();

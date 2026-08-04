@@ -1,18 +1,19 @@
-import * as vscode from 'vscode';
-import * as path from 'path';
+import * as path from "path";
+
+import * as vscode from "vscode";
 
 export class DecorationService {
   private decorations = new Map<string, vscode.TextEditorDecorationType>();
   constructor(private context: vscode.ExtensionContext) {
-    const icons = ['binding', 'shadowing'];
+    const icons = ["binding", "shadowing"];
     for (const icon of icons) {
       const iconPath = vscode.Uri.file(
-        path.join(context.extensionPath, 'resources', `${icon}.svg`),
+        path.join(context.extensionPath, "resources", `${icon}.svg`),
       );
 
       const decoration = vscode.window.createTextEditorDecorationType({
         gutterIconPath: iconPath,
-        gutterIconSize: 'contain',
+        gutterIconSize: "contain",
       });
       this.decorations.set(icon, decoration);
     }

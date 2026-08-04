@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
-import { EstateFocus } from "./estate";
-import { AppStore } from "./app";
+
 import { Anchor } from "./adapters/anchorService";
+import { AppStore } from "./app";
+import { EstateFocus } from "./estate";
 // Right now store the cursor here.
 // - I have other ideas on how this could be used in compostion with event to do more interesting things.
 // Current user context.

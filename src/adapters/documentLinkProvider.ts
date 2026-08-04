@@ -1,15 +1,14 @@
-import * as fs from 'fs/promises';
+import * as fs from "fs/promises";
 
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
-import { parseLinks } from '../core/parser/linkParser';
-import { parseEmbeds } from '../core/parser/embedParser';
-import { resolveTarget } from '../core/resolver/resolveTarget';
-import { lineForFragment } from '../core/blocks/sectionSlice';
-import { buildFenceMask } from '../core/fenceMask';
-
-import { IndexService } from './indexService';
-import { isInsideWorkspaceReal } from './workspaceBoundary';
+import { lineForFragment } from "../core/blocks/sectionSlice";
+import { buildFenceMask } from "../core/fenceMask";
+import { parseEmbeds } from "../core/parser/embedParser";
+import { parseLinks } from "../core/parser/linkParser";
+import { resolveTarget } from "../core/resolver/resolveTarget";
+import { IndexService } from "./indexService";
+import { isInsideWorkspaceReal } from "./workspaceBoundary";
 
 export class WikiDocumentLinkProvider implements vscode.DocumentLinkProvider {
   constructor(private idx: IndexService) {}
@@ -42,8 +41,8 @@ export class WikiDocumentLinkProvider implements vscode.DocumentLinkProvider {
 
 async function safeRead(p: string): Promise<string> {
   try {
-    return await fs.readFile(p, 'utf8');
+    return await fs.readFile(p, "utf8");
   } catch {
-    return '';
+    return "";
   }
 }

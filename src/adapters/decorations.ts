@@ -1,16 +1,18 @@
-import * as vscode from "vscode";
 import * as path from "path";
-import { Anchor } from "./anchorService";
+
+import * as vscode from "vscode";
+
 import { AppActivity } from "../activity";
 import { AppStore } from "../app";
-import { buildFenceMask } from "../core/fenceMask";
 import { EXT_PATH, supportedLanguages } from "../consts";
-import { icons } from "../ownership";
-import { IndexService } from "./indexService";
-import { innerRange } from "../core/parser/refRange";
+import { buildFenceMask } from "../core/fenceMask";
 import { parseEmbeds } from "../core/parser/embedParser";
 import { parseLinks } from "../core/parser/linkParser";
+import { innerRange } from "../core/parser/refRange";
 import { resolveTarget } from "../core/resolver/resolveTarget";
+import { icons } from "../ownership";
+import { Anchor } from "./anchorService";
+import { IndexService } from "./indexService";
 
 const DEBOUNCE_MS = 250;
 // Colours `[[...]]` / `![[...]]` in the editor by whether the resolver can actually resolve

@@ -291,7 +291,6 @@ export class EstateNode extends vscode.TreeItem {
     }
 
     if (isStageNode) {
-      
     }
 
     this.command = {

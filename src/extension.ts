@@ -1,33 +1,32 @@
-import * as vscode from "vscode";
-
-import { IndexService } from "./adapters/indexService";
-import { RenameHandler } from "./adapters/renameHandler";
-import { createPreviewResolver } from "./adapters/previewResolver";
-import { WikiHoverProvider } from "./adapters/hoverProvider";
-// import { WikiDocumentLinkProvider } from "./adapters/documentLinkProvider";
-import { WikiDiagnostics } from "./adapters/diagnostics";
-import { WikiCompletionProvider } from "./adapters/completionProvider";
-// import { WikiCodeLensProvider } from "./adapters/codelens";
-
-import { longLangs, supportedLanguages } from "./consts";
-import {
-  extendMarkdownIt as wireMarkdownIt,
-  setResolver,
-  resetResolver,
-} from "./markdownItPlugin/index";
-import { EstateContext } from "./estate";
-import { AppStore, registerGiantQuickPickCommand } from "./app";
-// import { WikiDecorations } from "./adapters/decorations";
-// import { OwnershipInlayProvider } from "./ownership";
-import { OwnershipCodeActionProvider } from "./adapters/codeAction";
-import { OwnershipContentProvider, OwnershipEngine, showOwnershipView } from "./diff";
 import {
   setLoggerConfig,
   setLoggerOutput,
   createTrace,
   getLoggerConfig,
 } from "@primetimetran/logger";
+import * as vscode from "vscode";
+
+// import { WikiDecorations } from "./adapters/decorations";
+// import { OwnershipInlayProvider } from "./ownership";
+import { OwnershipCodeActionProvider } from "./adapters/codeAction";
+import { WikiCompletionProvider } from "./adapters/completionProvider";
+// import { WikiDocumentLinkProvider } from "./adapters/documentLinkProvider";
+import { WikiDiagnostics } from "./adapters/diagnostics";
+import { WikiHoverProvider } from "./adapters/hoverProvider";
 import { newEditorGroupTabContent } from "./adapters/htmlAnchor";
+// import { WikiCodeLensProvider } from "./adapters/codelens";
+import { IndexService } from "./adapters/indexService";
+import { createPreviewResolver } from "./adapters/previewResolver";
+import { RenameHandler } from "./adapters/renameHandler";
+import { AppStore, registerGiantQuickPickCommand } from "./app";
+import { longLangs, supportedLanguages } from "./consts";
+import { OwnershipContentProvider, OwnershipEngine, showOwnershipView } from "./diff";
+import { EstateContext } from "./estate";
+import {
+  extendMarkdownIt as wireMarkdownIt,
+  setResolver,
+  resetResolver,
+} from "./markdownItPlugin/index";
 
 export let indexService: IndexService | undefined;
 

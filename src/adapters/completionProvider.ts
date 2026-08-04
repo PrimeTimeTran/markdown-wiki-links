@@ -1,13 +1,12 @@
-import * as fs from 'fs/promises';
+import * as fs from "fs/promises";
 
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
-import { rankCompletions } from '../core/completion/rankCompletions';
-import { rankFragmentCompletions } from '../core/completion/rankFragmentCompletions';
-import { resolveTarget } from '../core/resolver/resolveTarget';
-
-import { IndexService } from './indexService';
-import { isInsideWorkspaceReal } from './workspaceBoundary';
+import { rankCompletions } from "../core/completion/rankCompletions";
+import { rankFragmentCompletions } from "../core/completion/rankFragmentCompletions";
+import { resolveTarget } from "../core/resolver/resolveTarget";
+import { IndexService } from "./indexService";
+import { isInsideWorkspaceReal } from "./workspaceBoundary";
 
 // Splits "[[target#partial" / "![[target#partial" / "[[#partial" — target and fragment are
 // captured separately. Matches up to the cursor; only used when at least one `#` is present.
@@ -56,11 +55,11 @@ export class WikiCompletionProvider implements vscode.CompletionItemProvider {
     const candidates = rankFragmentCompletions(targetText);
     return candidates.map((c, index) => {
       const kind =
-        c.kind === 'heading'
+        c.kind === "heading"
           ? vscode.CompletionItemKind.Field
           : vscode.CompletionItemKind.Reference;
       // Description shows "H2" for headings (dimmed beside the label); block-ids show no level.
-      const description = c.kind === 'heading' && c.level ? `H${c.level}` : undefined;
+      const description = c.kind === "heading" && c.level ? `H${c.level}` : undefined;
       const label: string | vscode.CompletionItemLabel = description
         ? { label: c.label, description }
         : c.label;
@@ -70,18 +69,18 @@ export class WikiCompletionProvider implements vscode.CompletionItemProvider {
       item.range = replaceRange;
       // Preserve document order — VSCode sorts by sortText (label is the fallback).
       // Zero-pad so lexicographic sort matches numeric order up to ~10k candidates.
-      item.sortText = index.toString().padStart(5, '0');
+      item.sortText = index.toString().padStart(5, "0");
       return item;
     });
   }
 
   // Empty target → same file (the doc buffer). Resolved target → read from disk.
   private async loadTargetText(doc: vscode.TextDocument, target: string): Promise<string | null> {
-    if (target.trim() === '') return doc.getText();
+    if (target.trim() === "") return doc.getText();
     const snap = this.idx.snapshotFor(doc.uri.fsPath);
     const resolved = resolveTarget(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { kind: 'link', target, range: { start: 0, end: 0 } } as any,
+      { kind: "link", target, range: { start: 0, end: 0 } } as any,
       doc.uri.fsPath,
       snap,
     );
@@ -91,7 +90,7 @@ export class WikiCompletionProvider implements vscode.CompletionItemProvider {
     // and reading it would leak that target's content as completion items. Refuse those.
     if (!(await isInsideWorkspaceReal(vscode.Uri.file(resolved.fsPath)))) return null;
     try {
-      return await fs.readFile(resolved.fsPath, 'utf8');
+      return await fs.readFile(resolved.fsPath, "utf8");
     } catch {
       return null;
     }

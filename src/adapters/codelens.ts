@@ -1,10 +1,12 @@
 import * as vscode from "vscode";
-import { Anchor, AnchorRef } from "./anchorService";
+
+import { CMD } from "../../generated/cmd";
 import { AppActivity, captureScope } from "../activity";
+import { AppStore } from "../app";
 import { EstateContext } from "../estate";
 import { icons } from "../ownership";
-import { AppStore } from "../app";
-import { CMD } from "../../generated/cmd";
+import { Anchor, AnchorRef } from "./anchorService";
+
 export class WikiCodeLensProvider implements vscode.CodeLensProvider {
   public folded = new Set<string>();
   public renderedFoldAll: boolean = false;

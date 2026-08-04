@@ -1,7 +1,7 @@
-import * as fs from 'fs/promises';
-import * as fsSync from 'fs';
+import * as fsSync from "fs";
+import * as fs from "fs/promises";
 
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
 /**
  * Fast prefilter. Does NOT resolve symlinks — use only for display logic, never as a security check.
