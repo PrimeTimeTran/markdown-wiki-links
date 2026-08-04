@@ -3,8 +3,13 @@ import * as vscode from "vscode";
 import { ActivityStore, AppActivity } from "./activity";
 import { AnalysisStore } from "./analysis";
 import { AnchorPresenter, AnchorStore } from "./adapters/anchorService";
-import { VFSDecorator, EstateTreeProvider, VFSProvider, EstateNode } from "./estate";
+import { VFSDecorator, EstateTreeProvider, VFSProvider } from "./estate";
 import { CMD } from "../generated/cmd";
+import { WikiDecorations } from "./adapters/decorations";
+import { IndexService } from "./adapters/indexService";
+import { WikiCodeLensProvider } from "./adapters/codelens";
+import { WikiDocumentLinkProvider } from "./adapters/documentLinkProvider";
+import { longLangs } from "./consts";
 
 export interface EstateState {
   mdPreviewMode: boolean;
@@ -17,27 +22,56 @@ export class AppStore {
   readonly tree: EstateTreeProvider;
   readonly vfs: VFSProvider;
   readonly vfsDecorator: VFSDecorator;
+  readonly decorator: WikiDecorations;
   readonly activity: ActivityStore<AppActivity>;
   readonly analysis: AnalysisStore;
   readonly anchors: AnchorStore;
   readonly presenter: AnchorPresenter;
+  readonly codeLens: WikiCodeLensProvider;
 
-  constructor(public ctx: vscode.ExtensionContext) {
+  constructor(
+    public ctx: vscode.ExtensionContext,
+    indexService: IndexService,
+  ) {
     this.activity = new ActivityStore<AppActivity>(this);
-    this.activity = new ActivityStore(this);
+
     this.anchors = new AnchorStore(this);
     this.analysis = new AnalysisStore(this);
-    this.presenter = new AnchorPresenter(this);
+
     this.tree = new EstateTreeProvider(this);
+    this.presenter = new AnchorPresenter(this);
+    // For sidebar tree
     this.vfs = new VFSProvider(ctx, this);
+    // For various icons(menu title)
     this.vfsDecorator = new VFSDecorator(ctx, this);
 
+    this.decorator = new WikiDecorations(this, indexService);
+    this.codeLens = new WikiCodeLensProvider(this);
+
     ctx.subscriptions.push(
+      vscode.languages.registerCodeLensProvider(longLangs, this.codeLens),
+      vscode.languages.registerDocumentLinkProvider(
+        longLangs,
+        new WikiDocumentLinkProvider(indexService),
+      ),
+    );
+    ctx.subscriptions.push(
+      this.tree.treeView.onDidChangeSelection((e) => {
+        console.log("[ctx.AppStore.constructor.subscriptions].onDidChangeSelection", e);
+        const node = e.selection[0];
+        if (!node?.anchor) return;
+
+        this.activity.emit({
+          type: "anchor",
+          anchor: node.anchor,
+          editor: vscode.window.activeTextEditor,
+        });
+      }),
       this.tree.treeView.onDidChangeVisibility(async (e) => {
         // If triggered whenever the estate activity bar panel is revealed
         console.log("[ctx.AppStore.constructor.subscriptions].onDidChangeVisibility", e);
         if (e.visible) {
-          //   await this.tree.ensureEditorOpen();
+          // await this.tree.ensureEditorOpen();
         }
       }),
       this.tree.treeView,

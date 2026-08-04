@@ -383,8 +383,8 @@ export class AnchorStore implements AnchorStoreType {
     await fsPromise.writeFile(this.registryPath, JSON.stringify(data, null, 2), "utf8");
   }
   get(id: string) {
-    console.log("lookup:", id);
-    console.log("keys:", [...this.items.keys()]);
+    // console.log("lookup:", id);
+    // console.log("keys:", [...this.items.keys()]);
     return this.items.get(id);
   }
   has(id: string) {

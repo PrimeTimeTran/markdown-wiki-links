@@ -66,13 +66,13 @@ export class AnalysisStore {
     }
   }
   printExtClick(item: any) {
-    console.log(item);
-    console.log('[Flowity]:');
-    console.log('[EXT].file', item.file);
-    console.log('[EXT].line', item.line);
-    console.log('[EXT].column', item.column);
-    console.log('[EXT].scope', item.scope);
-    console.log('[EXT].text', item.text);
+    // console.log(item);
+    // console.log('[Flowity]:');
+    // console.log('[EXT].file', item.file);
+    // console.log('[EXT].line', item.line);
+    // console.log('[EXT].column', item.column);
+    // console.log('[EXT].scope', item.scope);
+    // console.log('[EXT].text', item.text);
   }
   printformatted() {
     let output = this.getFormattedOutput();

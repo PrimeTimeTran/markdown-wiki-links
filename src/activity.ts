@@ -1,7 +1,7 @@
-import * as vscode from 'vscode';
-import { EstateFocus } from './estate';
-import { AppStore } from './app';
-import { Anchor } from './adapters/anchorService';
+import * as vscode from "vscode";
+import { EstateFocus } from "./estate";
+import { AppStore } from "./app";
+import { Anchor } from "./adapters/anchorService";
 // Right now store the cursor here.
 // - I have other ideas on how this could be used in compostion with event to do more interesting things.
 // Current user context.
@@ -22,18 +22,18 @@ export type AppActivity = AnchorActivity | AnalysisActivity | EditorActivity;
 // CRUD anchors
 // Render decorations on click of a new editor
 export interface AnchorActivity {
-  type: 'anchor';
+  type: "anchor";
   anchor: Anchor;
-  editor: EditorActivity;
+  editor?: vscode.TextEditor;
 }
 export interface AnalysisActivity {
-  type: 'analysis';
+  type: "analysis";
   editor: EditorActivity;
   lines: number[];
 }
 
 export interface EditorActivity {
-  type: 'editor';
+  type: "editor";
   snapshot: EditorSnapshot;
   editor: vscode.TextEditor;
   scope: ScopeInfo;
@@ -99,7 +99,7 @@ export interface EditorSnapshot {
 export interface ScopeInfo {
   variant: string;
   name?: string;
-  kind: 'heading' | 'codeblock' | 'list' | 'paragraph';
+  kind: "heading" | "codeblock" | "list" | "paragraph";
   startLine: number;
   endLine: number;
   range?: vscode.Range;
@@ -121,16 +121,16 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
       vscode.window.onDidChangeActiveTextEditor(async (editor) => {
         if (!editor) return;
         // 1. How do i properly let it know when i go between othr panels?
-        this.app.state.focushistory.push('editor');
-        console.log('[Activity].onDidChangeActiveTextEditor focus!');
+        this.app.state.focushistory.push("editor");
+        console.log("[Activity].onDidChangeActiveTextEditor for ownership feature");
         const hasAnchor = editor ? this.app.anchors.has(editor.document.uri.fsPath) : false;
-        console.log('[Activity].checkingAnchor', hasAnchor);
-        await vscode.commands.executeCommand('setContext', 'estate.hasAnchor', hasAnchor);
+        console.log("[Activity].checkingAnchor", hasAnchor);
+        await vscode.commands.executeCommand("setContext", "estate.hasAnchor", hasAnchor);
       }),
     );
     context.subscriptions.push(
       vscode.window.onDidChangeTextEditorSelection((event) => {
-        console.log('[Activity].onDidChangeTextEditorSelection click!');
+        console.log("[Activity].onDidChangeTextEditorSelection click!");
         this.update(event.textEditor);
       }),
     );
@@ -139,13 +139,13 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
       vscode.workspace.onDidChangeTextDocument((event) => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-          console.log('[Activity].onDidChangeTextDocument no active editor');
+          console.log("[Activity].onDidChangeTextDocument no active editor");
           return;
         }
         if (editor.document.uri.toString() !== event.document.uri.toString()) {
           return;
         }
-        console.log('[Activity].onDidChangeTextDocument edit! ');
+        console.log("[Activity].onDidChangeTextDocument edit! ");
         this.update(editor);
       }),
     );
@@ -168,7 +168,7 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
     const scope = captureScope(document, range);
 
     const activity: EditorActivity = {
-      type: 'editor',
+      type: "editor",
       editor: editor,
       snapshot: {
         uri: document.uri,
@@ -221,11 +221,8 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
     // }
     const document = editor.document;
     const selectedText = document.getText(selection);
-    // const id = `@${Date.now()}`;
-    //   anchor: id,
-    //   label: `Anchor ${id}`,
     const anchor = {
-      scope: 'source.selection',
+      scope: "source.selection",
       uri: document.uri,
       selection,
       body: selectedText,
@@ -269,8 +266,8 @@ export function captureScope(
   }
   return {
     range,
-    kind: 'heading',
-    variant: 'unknown',
+    kind: "heading",
+    variant: "unknown",
     startLine: line,
     endLine: line,
     text: document.lineAt(line).text,
@@ -326,7 +323,7 @@ export function captureHeading(document: vscode.TextDocument, startLine: number)
 
   return {
     variant: `heading-${level}`,
-    kind: 'heading',
+    kind: "heading",
     name: startText,
     startLine,
     endLine,
@@ -354,11 +351,11 @@ export function captureCodeFence(document: vscode.TextDocument, line: number): S
     }
   }
   const header = document.lineAt(start).text;
-  const variant = header.match(/^```([^\s@]+)/)?.[1] ?? 'text';
+  const variant = header.match(/^```([^\s@]+)/)?.[1] ?? "text";
   const text = document.getText(new vscode.Range(start, 0, end, document.lineAt(end).text.length));
   return {
     variant,
-    kind: 'codeblock',
+    kind: "codeblock",
     startLine: start,
     endLine: end,
     text,

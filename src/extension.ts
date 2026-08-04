@@ -1,118 +1,107 @@
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
-import { IndexService } from './adapters/indexService';
-import { RenameHandler } from './adapters/renameHandler';
-import { createPreviewResolver } from './adapters/previewResolver';
-import { WikiHoverProvider } from './adapters/hoverProvider';
-import { WikiDocumentLinkProvider } from './adapters/documentLinkProvider';
-import { WikiDiagnostics } from './adapters/diagnostics';
-import { WikiCompletionProvider } from './adapters/completionProvider';
-import { WikiCodeLensProvider } from './adapters/codelens';
+import { IndexService } from "./adapters/indexService";
+import { RenameHandler } from "./adapters/renameHandler";
+import { createPreviewResolver } from "./adapters/previewResolver";
+import { WikiHoverProvider } from "./adapters/hoverProvider";
+import { WikiDocumentLinkProvider } from "./adapters/documentLinkProvider";
+import { WikiDiagnostics } from "./adapters/diagnostics";
+import { WikiCompletionProvider } from "./adapters/completionProvider";
+import { WikiCodeLensProvider } from "./adapters/codelens";
 
-import { longLangs, supportedLanguages } from './consts';
+import { longLangs, supportedLanguages } from "./consts";
 import {
   extendMarkdownIt as wireMarkdownIt,
   setResolver,
   resetResolver,
-} from './markdownItPlugin/index';
-import { EstateContext } from './estate';
-import { AppStore, registerGiantQuickPickCommand } from './app';
-import { WikiDecorations } from './adapters/decorations';
-import { OwnershipInlayProvider } from './ownership';
-import { OwnershipCodeActionProvider } from './adapters/codeAction';
-import { OwnershipContentProvider, OwnershipEngine, showOwnershipView } from './diff';
+} from "./markdownItPlugin/index";
+import { EstateContext } from "./estate";
+import { AppStore, registerGiantQuickPickCommand } from "./app";
+import { WikiDecorations } from "./adapters/decorations";
+import { OwnershipInlayProvider } from "./ownership";
+import { OwnershipCodeActionProvider } from "./adapters/codeAction";
+import { OwnershipContentProvider, OwnershipEngine, showOwnershipView } from "./diff";
 
-let indexService: IndexService | undefined;
+export let indexService: IndexService | undefined;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type WikiLinksApi = { extendMarkdownIt(md: any): any };
 
 export async function activate(context: vscode.ExtensionContext): Promise<WikiLinksApi> {
-  console.log('activate');
   indexService = new IndexService();
   await indexService.initialize();
-  console.log('app');
-  const app = new AppStore(context);
+  const app = new AppStore(context, indexService);
   app.init(context);
   context.subscriptions.push(
-    vscode.commands.registerCommand('estate.enterLeader', async () => {
+    vscode.commands.registerCommand("estate.enterLeader", async () => {
       app.enterLeader();
-      console.log('[activate].estate.enterLeader', app.input);
-      await vscode.commands.executeCommand('setContext', 'estate.leader', app.input);
+      console.log("[activate].estate.enterLeader", app.input);
+      await vscode.commands.executeCommand("setContext", "estate.leader", app.input);
       app.tree.refresh();
     }),
   );
   registerGiantQuickPickCommand(context, app);
-  console.log('ownership');
+  console.log("ownership");
   const ownershipEngine = new OwnershipEngine();
   const ownershipProvider = new OwnershipContentProvider(ownershipEngine);
 
   context.subscriptions.push(
-    vscode.workspace.registerTextDocumentContentProvider('estate', ownershipProvider),
-    vscode.commands.registerCommand('estate.showOwnership', showOwnershipView),
+    vscode.workspace.registerTextDocumentContentProvider("estate", ownershipProvider),
+    vscode.commands.registerCommand("estate.showOwnership", showOwnershipView),
     vscode.workspace.onDidChangeTextDocument((e) => {
       const ownershipUri = vscode.Uri.parse(`estate://ownership${e.document.uri.path}`);
       ownershipProvider.refresh(ownershipUri);
     }),
-    vscode.languages.registerCodeActionsProvider('rust', new OwnershipCodeActionProvider()),
-    vscode.commands.registerCommand('estate.testOwnershipAction', (...args) => {
-      console.log('COMMAND FIRED', args);
-      vscode.window.showInformationMessage('Ownership command fired');
+    vscode.languages.registerCodeActionsProvider("rust", new OwnershipCodeActionProvider()),
+    vscode.commands.registerCommand("estate.testOwnershipAction", (...args) => {
+      console.log("COMMAND FIRED", args);
+      vscode.window.showInformationMessage("Ownership command fired");
     }),
   );
   // Commands
   const commands = [
-    'estate.ownership.lineage',
-    'estate.ast.ancestors',
-    'estate.ast.children',
-    'estate.ast.siblings',
-    'estate.node.pin',
-    'estate.node.recent',
-    'estate.symbol.references',
-    'estate.value.lineage',
-    'estate.scope.show',
-    'estate.graph.open',
-    'estate.symbol.rename',
+    "estate.ownership.lineage",
+    "estate.ast.ancestors",
+    "estate.ast.children",
+    "estate.ast.siblings",
+    "estate.node.pin",
+    "estate.node.recent",
+    "estate.symbol.references",
+    "estate.value.lineage",
+    "estate.scope.show",
+    "estate.graph.open",
+    "estate.symbol.rename",
   ];
 
   commands.forEach((command) => {
     context.subscriptions.push(
       vscode.commands.registerCommand(command, (ctx) => {
-        console.log('[ESTATE COMMAND]', command, ctx);
+        console.log("[ESTATE COMMAND]", command, ctx);
       }),
     );
   });
-
-  const codeLens = new WikiCodeLensProvider(app);
-  context.subscriptions.push(
-    vscode.languages.registerCodeLensProvider(longLangs, codeLens),
-    vscode.languages.registerDocumentLinkProvider(
-      longLangs,
-      new WikiDocumentLinkProvider(indexService),
-    ),
-  );
 
   let store = app.anchors;
   // We accept the inserted wrapping () to prevent having to use context.subscriptions.push everywhere
   // oxlint-disable-next-line no-unused-expressions
   (context.subscriptions.push(
-    vscode.commands.registerCommand('ui.addInlinePanel', (ctx: { id: string }) => {
+    vscode.commands.registerCommand("ui.addInlinePanel", (ctx: { id: string }) => {
       const anchor = app.anchors.get(ctx.id);
       if (!anchor) return;
       vscode.window.showInformationMessage(`Inline: ${anchor.label}`);
     }),
   ),
-    vscode.commands.registerCommand('estate.addPersistentNotification', (ctx: { id: string }) => {
+    vscode.commands.registerCommand("estate.addPersistentNotification", (ctx: { id: string }) => {
       const anchor = store.get(ctx.id);
       if (!anchor) return;
       vscode.window.showInformationMessage(`Pinned: ${anchor.label}`);
     }),
-    vscode.commands.registerCommand('estate.openTextAndIconPanel', (ctx: { id: string }) => {
+    vscode.commands.registerCommand("estate.openTextAndIconPanel", (ctx: { id: string }) => {
       const anchor = store.get(ctx.id);
       if (!anchor) return;
       vscode.window.showInformationMessage(`Panel: ${anchor.label}`);
     }),
-    vscode.commands.registerCommand('ui.openQuickpickDropdown', (ctx: { id: string }) => {
+    vscode.commands.registerCommand("ui.openQuickpickDropdown", (ctx: { id: string }) => {
       const anchor = store.get(ctx.id);
       if (!anchor) return;
       vscode.window.showQuickPick([
@@ -122,17 +111,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
         `💾 Save ${anchor.label}`,
       ]);
     }),
-    vscode.commands.registerCommand('estate.contentSave', (ctx: { id: string }) => {
+    vscode.commands.registerCommand("estate.contentSave", (ctx: { id: string }) => {
       const anchor = store.get(ctx.id);
       if (!anchor) return;
       vscode.window.showInformationMessage(`Save content for ${anchor.label}`);
     }),
-    vscode.commands.registerCommand('estate.contentCycle', (ctx: { id: string }) => {
+    vscode.commands.registerCommand("estate.contentCycle", (ctx: { id: string }) => {
       const anchor = store.get(ctx.id);
       if (!anchor) return;
       vscode.window.showInformationMessage(`Cycle variants for ${anchor.label}`);
     }),
-    vscode.commands.registerCommand('estate.contentReplace', (ctx: { id: string }) => {
+    vscode.commands.registerCommand("estate.contentReplace", (ctx: { id: string }) => {
       const anchor = store.get(ctx.id);
       if (!anchor) return;
 
@@ -169,36 +158,36 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
     //     codeLens.refresh();
     //   },
     // ),
-    vscode.commands.registerCommand('wikiLinks.rebuildIndex', () => indexService?.refresh()),
-    vscode.commands.registerCommand('wiki.showGraph', (ctx: EstateContext) => {
+    vscode.commands.registerCommand("wikiLinks.rebuildIndex", () => indexService?.refresh()),
+    vscode.commands.registerCommand("wiki.showGraph", (ctx: EstateContext) => {
       vscode.window.showInformationMessage(`Graph for ${ctx.anchor}`);
     }),
-    vscode.commands.registerCommand('ui.pinnable', (ctx: { id: string }) => {
+    vscode.commands.registerCommand("ui.pinnable", (ctx: { id: string }) => {
       const flag = store.getFlag(ctx.id);
       if (!flag) return;
       vscode.window.showInformationMessage(`Pinnable for ${flag?.label}`);
     }),
-    vscode.commands.registerCommand('ui.pick', (ctx) => {
+    vscode.commands.registerCommand("ui.pick", (ctx) => {
       const anchor = store.get(ctx.id);
       vscode.window.showQuickPick([
         `🏠 ${anchor?.label}`,
-        '🕸 Graph',
-        '📄 Open Body',
-        '🌿 Branches',
+        "🕸 Graph",
+        "📄 Open Body",
+        "🌿 Branches",
       ]);
     }),
-    vscode.commands.registerCommand('ui.toggleMDPreview', async () => {
+    vscode.commands.registerCommand("ui.toggleMDPreview", async () => {
       app.toggleMdPreview();
       const editor = vscode.window.activeTextEditor;
 
-      if (editor && editor.document.languageId === 'markdown' && app.isMdPreviewEnabled()) {
-        await vscode.commands.executeCommand('markdown.togglePreview', editor.document.uri);
+      if (editor && editor.document.languageId === "markdown" && app.isMdPreviewEnabled()) {
+        await vscode.commands.executeCommand("markdown.togglePreview", editor.document.uri);
       }
     }),
     vscode.languages.registerHoverProvider(longLangs, {
       provideHover(document, position) {
         const line = document.lineAt(position.line).text;
-        if (line.includes('@hover')) {
+        if (line.includes("@hover")) {
           const md = new vscode.MarkdownString();
           md.isTrusted = true;
           md.appendMarkdown(newEditorGroupTabContent);
@@ -210,23 +199,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
     vscode.languages.registerCompletionItemProvider(
       longLangs,
       new WikiCompletionProvider(indexService),
-      '[',
-      '/',
-      '#',
-      '^',
+      "[",
+      "/",
+      "#",
+      "^",
     ),
     vscode.window.onDidChangeActiveTextEditor(async (editor) => {
       if (!editor) return;
       if (!app.isMdPreviewEnabled()) return;
       if (!supportedLanguages.includes(editor.document.languageId)) return;
-      await vscode.commands.executeCommand('markdown.togglePreview', editor.document.uri);
+      await vscode.commands.executeCommand("markdown.togglePreview", editor.document.uri);
     }));
 
   context.subscriptions.push(indexService);
   new RenameHandler().register(context);
   new WikiDiagnostics(indexService).register(context);
-  const decorations = new WikiDecorations(app, indexService);
-  decorations.register(context);
+  app.decorator.register(context);
 
   // let inlineProvider = new OwnershipInlayProvider(app);
   //   context.subscriptions.push(
@@ -259,9 +247,9 @@ const DEFAULT_EMBED_MAX_DEPTH = 3;
 
 function embedMaxDepth(): number {
   const configured = vscode.workspace
-    .getConfiguration('wikiLinks')
-    .get<number>('embed.maxDepth', DEFAULT_EMBED_MAX_DEPTH);
-  return typeof configured === 'number' && configured >= 1 ? configured : DEFAULT_EMBED_MAX_DEPTH;
+    .getConfiguration("wikiLinks")
+    .get<number>("embed.maxDepth", DEFAULT_EMBED_MAX_DEPTH);
+  return typeof configured === "number" && configured >= 1 ? configured : DEFAULT_EMBED_MAX_DEPTH;
 }
 
 const newEditorGroupTabContent = `

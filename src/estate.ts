@@ -211,19 +211,6 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
   getTreeItem(node: EstateNode): any {
     return node;
   }
-  // getChildren2(node?: EstateNode): EstateNode[] {
-  //   if (!node) {
-  //     return SECTIONS_LIST.map(this.buildStage);
-  //   }
-  //   switch (node.label) {
-  //     case SECTIONS_LIST[0]:
-  //       return this.buildSection(SECTIONS_LIST[0], node);
-  //     case SECTIONS_LIST[1]:
-  //       return this.buildSection(SECTIONS_LIST[1], node);
-  //     default:
-  //       return this.buildSection("draft", node);
-  //   }
-  // }
   getChildren(node?: EstateNode): EstateNode[] {
     if (!node) {
       return SECTIONS_LIST.map(this.buildStage);
@@ -258,10 +245,8 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
   //   return children;
   // }
   buildChildren(node: EstateNode) {
-    
     console.log("parent", node.anchor?.id);
     console.log("anchor ids", node.anchor?.anchors);
-    
 
     const resolved = (node.anchor?.anchors ?? []).map((id) => {
       const a = this.app.anchors.get(id);
@@ -295,9 +280,7 @@ export class EstateNode extends vscode.TreeItem {
     const hasChildren = isStageNode || (anchor?.anchors?.length ?? 0) > 0;
     super(
       label,
-      hasChildren
-        ? vscode.TreeItemCollapsibleState.Collapsed
-        : vscode.TreeItemCollapsibleState.None,
+      hasChildren ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None,
     );
     this.id = anchor ? `${parent?.id ?? "root"}:${anchor.id}` : `section:${label}`;
 
