@@ -20,6 +20,7 @@ const INDEXABLE_RE = /\.(rs|js|ts|py|md|markdown|png|jpe?g|gif|webp|svg)$/i;
 const DEFAULT_EXCLUDED_FOLDERS = [
   ".git",
   "node_modules",
+  "target",
   ".hg",
   ".svn",
   ".bzr",

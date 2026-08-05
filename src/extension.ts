@@ -35,7 +35,7 @@ type WikiLinksApi = { extendMarkdownIt(md: any): any };
 
 export function setupExtensionLogger(pipeline: string, stream: string) {
   const channel = vscode.window.createOutputChannel(pipeline);
-  channel.show(true);
+  // channel.show(true);
 
   // Match the exact stream name to guarantee it passes shouldLog()
   setLoggerConfig({

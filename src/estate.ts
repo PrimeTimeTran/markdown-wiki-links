@@ -161,14 +161,14 @@ export class VFSDecorator implements vscode.FileDecorationProvider {
 
   // Decorates Tree & Editor
   provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
+    if (uri.scheme !== "estate") {
+      return;
+    }
     return {
       badge: "•",
       color: new vscode.ThemeColor("charts.green"),
       tooltip: "Active anchor",
     };
-    if (uri.scheme !== "estate") {
-      return;
-    }
   }
 }
 export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {

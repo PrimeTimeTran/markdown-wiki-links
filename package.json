@@ -2,10 +2,9 @@
   "name": "markdown-wiki-links",
   "displayName": "Markdown Wiki Links",
   "publisher": "ltvan",
-  "version": "0.2.23",
+  "version": "0.2.1",
   "description": "Obsidian-style [[wiki-links]] between Markdown files in the workspace.",
   "license": "MIT",
-  "icon": "media/icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/ltvan/m.rustarkdown-wiki-links.git"
@@ -199,10 +198,12 @@
         },
         {
           "command": "estate.bookmark.update",
+          "when": "view == estateExplorer",
           "group": "inline@2"
         },
         {
           "command": "estate.bookmark.delete",
+          "when": "view == estateExplorer",
           "group": "inline@3"
         }
       ]
