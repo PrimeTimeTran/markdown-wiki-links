@@ -2,7 +2,7 @@
   "name": "markdown-wiki-links",
   "displayName": "Markdown Wiki Links",
   "publisher": "ltvan",
-  "version": "0.2.22",
+  "version": "0.2.23",
   "description": "Obsidian-style [[wiki-links]] between Markdown files in the workspace.",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -71,36 +71,25 @@
         {
           "icon": "resources/activiyBar.svg",
           "id": "estateExplorer",
-          "name": "Planner"
+          "name": "Estate"
         }
       ]
     },
     "menus": {
-      "view/title": [
+      "extension/context": [
         {
-          "command": "estate.explore.options",
-          "when": "view == estateExplorer",
-          "group": "navigation"
-        },
-        {
-          "command": "estate.bookmark.create",
-          "when": "view == estateExplorer",
-          "group": "navigation"
+          "command": "estate.bookmark.delete",
+          "group": "inline"
         }
       ],
-      "view/item/context": [
+      "explorer/context": [
         {
           "command": "estate.bookmark.create",
-          "when": "viewItem == folder",
-          "group": "inline@1"
-        },
-        {
-          "command": "estate.bookmark.update",
-          "group": "inline@2"
+          "group": "inline"
         },
         {
           "command": "estate.bookmark.delete",
-          "group": "inline@3"
+          "group": "inline"
         }
       ],
       "editor/context": [
@@ -113,6 +102,11 @@
           "command": "estate.settings.delete",
           "group": "navigation",
           "when": "estate.hasAnchor"
+        },
+        {
+          "command": "estate.bookmark.delete",
+          "group": "navigation",
+          "when": "editorTextFocus"
         }
       ],
       "editor/title": [
@@ -134,7 +128,7 @@
         {
           "command": "estate.bookmark.delete",
           "when": "estate.hasAnchor",
-          "group": "navigation"
+          "group": "inline"
         },
         {
           "command": "estate.settings.create",
@@ -164,9 +158,77 @@
           "when": "estateExplorer.active",
           "group": "navigation"
         }
+      ],
+      "view/title": [
+        {
+          "command": "estate.explore.options",
+          "when": "view == estateExplorer",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.bookmark.create",
+          "when": "view == estateExplorer",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.start",
+          "when": "view == estateExplorer && !estate.leader || estate.leader == 0",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.stop",
+          "when": "view == estateExplorer && estate.leader == 1",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.clear",
+          "when": "view == estateExplorer && estate.leader == 2",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "estate.bookmark.create",
+          "when": "viewItem == folder",
+          "group": "inline@1"
+        },
+        {
+          "command": "estate.bookmark.read",
+          "when": "viewItem == folder",
+          "group": "inline@1"
+        },
+        {
+          "command": "estate.bookmark.update",
+          "group": "inline@2"
+        },
+        {
+          "command": "estate.bookmark.delete",
+          "group": "inline@3"
+        }
       ]
     },
     "commands": [
+      {
+        "group": "pipeline",
+        "category": "pipeline",
+        "command": "estate.start",
+        "title": "Estate: Development Start",
+        "icon": "$(debug-start)"
+      },
+      {
+        "group": "pipeline",
+        "category": "pipeline",
+        "command": "estate.stop",
+        "title": "Estate: Development Stop",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "group": "pipeline",
+        "category": "pipeline",
+        "command": "estate.clear",
+        "title": "Estate: Development Clear",
+        "icon": "$(debug-console-clear-all)"
+      },
       {
         "command": "estate.settings.create",
         "title": "Estate: Create settings",
@@ -227,7 +289,7 @@
       {
         "command": "estate.bookmark.update",
         "title": "Estate: Edit bookmark",
-        "icon": "$(edit)"
+        "icon": "$(preferences-open-settings)"
       },
       {
         "command": "estate.bookmark.delete",
@@ -561,6 +623,9 @@
       }
     ]
   },
+  "recommendations": [
+    "vscode-icons-team.vscode-icons"
+  ],
   "devDependencies": {
     "@eslint/js": "^10",
     "@types/markdown-it": "^14.1.2",

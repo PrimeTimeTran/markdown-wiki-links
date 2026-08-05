@@ -159,6 +159,7 @@ export class AnchorStore implements AnchorStoreType {
     editor.setDecorations(this.anchorDecoration, ranges);
   }
   constructor(public app: AppStore) {
+    console.log("[AnchorStore.constructor].start");
     this.anchorDecoration = vscode.window.createTextEditorDecorationType({
       before: {
         margin: "0 0 0 1rem",
@@ -172,6 +173,16 @@ export class AnchorStore implements AnchorStoreType {
     }
     this.initIntrinsic();
     this.initializeRegistry();
+
+    // app.logger.debug("Registering delete command");
+    vscode.commands.registerCommand(
+      CMD.estate.bookmark.delete,
+      (node: EstateNode, anchor: Anchor) => {
+        if (!node) return;
+        this.deleteAnchor(node, anchor);
+      },
+    );
+
     // ⚠️ Careful!
     // - Pass app, ctx, or a 3rd argument to have it later. Otherwise the properties of this will be lost
     app.ctx.subscriptions.push(
@@ -234,7 +245,7 @@ export class AnchorStore implements AnchorStoreType {
     const raw = fs.readFileSync(file, "utf8");
     const json = JSON.parse(raw);
     const items = json.items ?? {};
-    console.log("itemsitems", items);
+    // console.log("itemsitems", items);
     for (const [id, anchor] of Object.entries(items as Record<string, Partial<Anchor>>)) {
       const b = new Anchor(id, anchor);
       this.register(id, b);
@@ -374,6 +385,19 @@ export class AnchorStore implements AnchorStoreType {
     // });
     await this.save();
     vscode.window.showInformationMessage(`Created ${id}`);
+  }
+
+  private _onDidChange = new vscode.EventEmitter<void>();
+  readonly onDidChange = this._onDidChange.event;
+  // delete(id: string) {
+  //   this.items.delete(id);
+  //   this.save();
+
+  //   this._onDidChange.fire();
+  // }
+  async deleteAnchor(node: EstateNode, anchor: Anchor) {
+    this._onDidChange.fire();
+    vscode.window.showInformationMessage("anchor store delete");
   }
   findByUri(uri: vscode.Uri): Anchor[] {
     const target = uri.toString();
@@ -554,7 +578,6 @@ export class AnchorPresenter {
         CMD.estate.bookmark.read,
         async (node: EstateNode, anchor: Anchor, ...args) => {
           await vscode.commands.executeCommand("setContext", "estate.hasAnchor", true);
-          console.log("[AnchorPresenter].bookmark.read");
           await this.app.tree.treeView.reveal(node, {
             expand: true,
             focus: false,
@@ -696,7 +719,9 @@ export class AnchorPresenter {
   // - Preview
   // - Full
   // - Panel
-
+  async showRightlick(foo: any) {
+    vscode.window.showInformationMessage("hi", foo);
+  }
   async showAnchorPane(anchor: Anchor) {
     const id = anchor.id;
 

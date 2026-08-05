@@ -12,7 +12,7 @@ const newCmd: CommandDefinition = {
   ],
 };
 
-const items = ["anchor", "series", "settings", "snippet"];
+const items = ["bookmark", "series", "settings", "pipeline"];
 
 // TODO:
 // Menu icons aren't behaving consistently in sidebar click of file explorer
@@ -35,6 +35,11 @@ export const COMMANDS: CommandDefinition[] = [
     id: "estate.bookmark.create",
     icon: "$(add)",
     menus: [
+      {
+        // File Exploer right click
+        menu: "explorer/context",
+        group: "navigation",
+      },
       {
         // Sidebar top level menu
         menu: "view/title",
@@ -77,7 +82,7 @@ export const COMMANDS: CommandDefinition[] = [
   {
     title: "Estate: Edit bookmark",
     id: "estate.bookmark.update",
-    icon: "$(edit)",
+    icon: "$(preferences-open-settings)",
     menus: [
       {
         menu: "view/item/context",
@@ -299,7 +304,6 @@ export const COMMANDS: CommandDefinition[] = [
       },
     ],
   },
-
   {
     id: "estate.show.ownership",
 

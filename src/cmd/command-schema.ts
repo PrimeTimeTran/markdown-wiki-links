@@ -4,6 +4,7 @@ export type MenuId =
   | "view/item/context"
   | "editor/context"
   | "editor/title"
+  | "explorer/context"
   | "editor/title/context"
   | "commandPalette";
 export interface Keybinding {

@@ -15,10 +15,16 @@ import { VFSDecorator, EstateTreeProvider, VFSProvider } from "./estate";
 export interface EstateState {
   mdPreviewMode: boolean;
   focushistory: FocusTarget[];
+  leader: number;
 }
 type FocusTarget = "editor" | "sidebar" | "panel" | "outline" | "terminal";
 
 export class AppStore {
+  public state: EstateState = {
+    leader: 0,
+    focushistory: [],
+    mdPreviewMode: false,
+  };
   public outputChannel = vscode.window.createOutputChannel("Flowify");
   readonly tree: EstateTreeProvider;
   readonly vfs: VFSProvider;
@@ -56,7 +62,6 @@ export class AppStore {
     // trace.mark("app.constructor.start");
 
     this.activity = new ActivityStore<AppActivity>(this);
-
     this.anchors = new AnchorStore(this);
     this.analysis = new AnalysisStore(this);
 
@@ -72,7 +77,6 @@ export class AppStore {
 
     ctx.subscriptions.push(
       vscode.languages.registerCodeLensProvider(longLangs, this.codeLens),
-      // Anchor flags.
       vscode.languages.registerDocumentLinkProvider(
         longLangs,
         new WikiDocumentLinkProvider(indexService),
@@ -115,11 +119,6 @@ export class AppStore {
     });
   }
 
-  public state: EstateState = {
-    mdPreviewMode: false,
-    focushistory: [],
-  };
-
   get previewMode() {
     return this.state.mdPreviewMode;
   }
@@ -141,14 +140,12 @@ export class AppStore {
     return this.state.mdPreviewMode;
   }
 
-  //   private input = new Map<string, boolean>();
-  //   private input = new Map<string, boolean>();
-  public input = false;
-  async enterLeader() {
-    console.log("enter leader");
-    this.input = !this.input;
-    // await vscode.commands.executeCommand('setContext', 'estate.leader', this.input);
-    this.tree.refresh();
+  async bumpLeader() {
+    const num = (this.state.leader + 1) % 3;
+    this.state.leader = num;
+    await vscode.commands.executeCommand("setContext", "estate.leader", num);
+    this.tree.refresh(num);
+    return num;
   }
 }
 

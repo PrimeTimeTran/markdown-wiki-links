@@ -2,7 +2,7 @@
 
 This extension brings Obsidian-style wiki-links to VSCode. Create links between Markdown files with a simple `[[file name]]` syntax, follow them with a click, preview them on hover, embed content inline with `![[...]]`, and keep links correct automatically when files are renamed.
 
-https://obsidian.md/help/links
+<https://obsidian.md/help/links>
 
 ## Wiki-link Syntax
 
@@ -80,3 +80,8 @@ pnpm test:e2e       # end-to-end tests in a real VSCode Extension Development Ho
 ```
 
 Press `F5` in VSCode to launch the extension in an Extension Development Host for manual testing.
+
+## References
+
+<https://github.com/microsoft/vscode?utm_source=chatgpt.com>
+<https://code.visualstudio.com/api>

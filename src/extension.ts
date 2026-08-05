@@ -69,6 +69,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   trace.info("activate using logger info");
   trace.warn("activate using logger warn");
   trace.error("activate using logger error");
+  // vscode.window.onDidChangeTextEditorSelection((event) => {
+  //   // Captures the active cursor position, which updates upon a right-click
+  //   const position = event.selections[0].active;
+  //   console.log(`Cursor moved to Line: ${position.line}, Character: ${position.character}`);
+  // });
 
   indexService = new IndexService();
   await indexService.initialize();
@@ -77,15 +82,27 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   app.logger.debug("[activate.app.logger]");
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("estate.enterLeader", async () => {
-      app.enterLeader();
-      console.log("[activate].estate.enterLeader", app.input);
-      await vscode.commands.executeCommand("setContext", "estate.leader", app.input);
-      app.tree.refresh();
+    vscode.commands.registerCommand("estate.start", async () => {
+      let num = await app.bumpLeader();
+      vscode.window.showInformationMessage(`estate.start ${num}`);
+      await vscode.commands.executeCommand("setContext", "estate.leader", app.state.leader);
+    }),
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("estate.stop", async () => {
+      let num = await app.bumpLeader();
+      vscode.window.showInformationMessage(`estate.stop ${num}`);
+      await vscode.commands.executeCommand("setContext", "estate.leader", app.state.leader);
+    }),
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("estate.clear", async () => {
+      let num = await app.bumpLeader();
+      vscode.window.showInformationMessage(`estate.clear ${num}`);
+      await vscode.commands.executeCommand("setContext", "estate.leader", app.state.leader);
     }),
   );
   registerGiantQuickPickCommand(context, app);
-  console.log("ownership");
   const ownershipEngine = new OwnershipEngine();
   const ownershipProvider = new OwnershipContentProvider(ownershipEngine);
 

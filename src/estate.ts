@@ -8,6 +8,10 @@ import { Anchor } from "./adapters/anchorService";
 import { AppStore } from "./app";
 import { SECTIONS_LIST, SNIPPET_ITEMS } from "./consts";
 
+// https://code.visualstudio.com/api/references/icons-in-labels#animation
+// https://microsoft.github.io/vscode-codicons/dist/codicon.html?utm_source=chatgpt.com
+// https://github.com/alefragnani/vscode-bookmarks/blob/master/src/sidebar/bookmarkNode.ts
+
 export interface EstateContext {
   anchor: string;
   uri: vscode.Uri;
@@ -147,6 +151,7 @@ export class VFSProvider implements vscode.TextDocumentContentProvider {
   // class then we can attach capabilities.
   // Also useful if it's been idenfieid to have a matching property
 }
+
 export class VFSDecorator implements vscode.FileDecorationProvider {
   constructor(ctx: vscode.ExtensionContext, app: AppStore) {
     app.activity.subscribe((a) => {
@@ -154,31 +159,18 @@ export class VFSDecorator implements vscode.FileDecorationProvider {
     });
   }
 
+  // Decorates Tree & Editor
   provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
+    return {
+      badge: "•",
+      color: new vscode.ThemeColor("charts.green"),
+      tooltip: "Active anchor",
+    };
     if (uri.scheme !== "estate") {
       return;
     }
-
-    return {
-      badge: "•",
-      //   color: new vscode.ThemeColor('charts.green'),
-      tooltip: "Active anchor",
-    };
   }
-
-  // 'charts.red'
-  // 'charts.orange'
-  // 'charts.yellow'
-  // 'charts.green'
-  // 'charts.blue'
-  // 'charts.purple'
-
-  // 'list.warningForeground'
-  // 'list.errorForeground'
-  // 'editorInfo.foreground'
-  // 'terminal.ansiGreen'
 }
-type NodeKind = "section" | "anchor";
 export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
   icons: any;
   treeView: vscode.TreeView<EstateNode>;
@@ -200,13 +192,9 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
     EstateNode | null | undefined
   >();
   readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
-  refresh(): void {
+  refresh(data: any): void {
     console.log("[EstateTreeProvider].refresh");
-    this.onDidChangeTreeDataEmitter.fire();
-  }
-  refreshNode(node: EstateNode): void {
-    console.log("[EstateTreeProvider].refreshNode");
-    this.onDidChangeTreeDataEmitter.fire(node);
+    this.onDidChangeTreeDataEmitter.fire(data);
   }
   getTreeItem(node: EstateNode): any {
     return node;
@@ -229,7 +217,7 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
   buildStage(section: string) {
     return new EstateNode(true, section, undefined, undefined);
   }
-  buildSection(section: string, node: EstateNode) {
+  buildSection(section: string | vscode.TreeItemLabel, node: EstateNode) {
     let anchors = this.app.anchors.list();
     return anchors
       .filter((b) => section == "draft" || b.tags.includes(section))
@@ -271,9 +259,10 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
 export class EstateNode extends vscode.TreeItem {
   constructor(
     public isStageNode: boolean,
-    public readonly label: string,
+    public readonly label: string | vscode.TreeItemLabel,
     public readonly anchor?: Anchor,
     public readonly parent?: EstateNode,
+    public tooltip?: string,
   ) {
     const hasChildren = isStageNode || (anchor?.anchors?.length ?? 0) > 0;
     super(
@@ -284,15 +273,28 @@ export class EstateNode extends vscode.TreeItem {
 
     if (anchor) {
       this.contextValue = "anchor";
-      this.resourceUri = vscode.Uri.parse(`estate://${anchor.id}`);
+      const uri = anchor?.src?.uri;
+      if (uri) {
+        this.resourceUri = vscode.Uri.file(uri);
+      } else {
+        this.iconPath = new vscode.ThemeIcon("pinned", new vscode.ThemeColor("charts.red"));
+      }
       this.applyAnchorStyle(anchor);
     } else {
       this.contextValue = "folder";
     }
-
     if (isStageNode) {
+      this.iconPath = new vscode.ThemeIcon("pinned", new vscode.ThemeColor("charts.red"));
+      // this.label = {
+      //   label: this.id,
+      //   highlights: [
+      //     [0, 2],
+      //     [3, 8],
+      //   ],
+      // };
     }
-
+    // We're going to have lots of options her eon how to sort based on the node clicked
+    // How to display the tree, sort, filter, etc.
     this.command = {
       command: CMD.estate.bookmark.read,
       title: "Open Anchor",
@@ -319,45 +321,22 @@ export class EstateNode extends vscode.TreeItem {
     //   //   .map((b) => new EstateNode('anchor', b.label ?? '', b));
     // }
   }
+  //
   private applyAnchorStyle(anchor: Anchor) {
-    const uri = anchor?.uri?.() || "";
-    const isSettingsFile = /settings\.json$/i.test(uri);
     const tags = anchor.tags ?? [];
-    this.iconPath = new vscode.ThemeIcon("pinned", new vscode.ThemeColor("charts.red"));
-    if (isSettingsFile) {
-      this.iconPath = new vscode.ThemeIcon("settings-gear");
-    } else if (tags.includes("index")) {
-      // https://microsoft.github.io/vscode-codicons/dist/codicon.html?utm_source=chatgpt.com
-      this.iconPath = new vscode.ThemeIcon("list-unordered");
-    } else if (tags.includes("tools")) {
-      this.iconPath = new vscode.ThemeIcon("tools");
-    }
+
     if (tags.includes("todo")) {
       this.iconPath = new vscode.ThemeIcon("checklist");
+    } else if (tags.includes("important")) {
+      this.iconPath = new vscode.ThemeIcon("star-full", new vscode.ThemeColor("charts.red"));
+    } else {
+      this.iconPath = undefined;
     }
-    if (tags.includes("important")) {
-      this.iconPath = new vscode.ThemeIcon("star-full");
-    }
-    this.description = this.getDescription(tags);
+
+    this.description = tags.join(" · ");
     this.contextValue = tags.join(".");
-    // 'anchor'          // anchors
-    // 'star-full'         // favorites
-    // 'flag'              // flags
-    // 'lightbulb'         // ideas
-    // 'warning'           // issues
-    // 'bug'               // bugs
-    // 'checklist'         // tasks
-    // 'symbol-structure'  // architecture
-    // 'symbol-class'      // types
-    // 'symbol-method'     // functions
-    // 'file-code'         // code
-    // 'library'           // knowledge
-    // 'archive'           // saved artifacts
-    // 'graph'             // relationships
-    // 'link'              // references
-    // Inside your TreeItem constructor or method:
   }
-  private getDescription(tags: string[]) {
+  public getDescription(tags: string[]) {
     return tags.join(" · ");
   }
 }
