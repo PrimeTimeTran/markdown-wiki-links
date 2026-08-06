@@ -1,4 +1,10 @@
-import { TraceApi } from "@primetimetran/logger";
+import {
+  createTrace,
+  getLoggerConfig,
+  setLoggerConfig,
+  setLoggerOutput,
+  TraceApi,
+} from "@primetimetran/logger";
 import * as vscode from "vscode";
 
 import { CMD } from "../generated/cmd";
@@ -37,11 +43,13 @@ export class AppStore {
   readonly presenter: AnchorPresenter;
   readonly codeLens: WikiCodeLensProvider;
   readonly wiki: IndexService;
-  constructor(
-    public ctx: vscode.ExtensionContext,
-    public logger: TraceApi,
-  ) {
+  readonly logger: TraceApi;
+  constructor(public ctx: vscode.ExtensionContext) {
+    const { logger, channel } = setupExtensionLogger("Flowify", "ext:activate");
+    ctx.subscriptions.push(channel);
     logger.debug("[AppStore.constructor.start]");
+    this.logger = logger;
+
     this.wiki = new IndexService();
     this.activity = new ActivityStore<AppActivity>(this, ctx);
     this.anchors = new AnchorStore(this);
@@ -64,6 +72,7 @@ export class AppStore {
     this.activity.attachTree(this.tree.treeView);
     this.activity.attachWorkspace();
     this.activity.init();
+
     context.subscriptions.push(
       vscode.workspace.registerTextDocumentContentProvider("estate", this.vfs),
       vscode.window.registerFileDecorationProvider(this.vfsDecorator),
@@ -187,4 +196,30 @@ export function registerCustomCommandPalette(context: vscode.ExtensionContext, a
   } else {
     vscode.window.showErrorMessage("No context provided for registering the command.");
   }
+}
+
+export function setupExtensionLogger(pipeline: string, stream: string) {
+  const channel = vscode.window.createOutputChannel(pipeline);
+  // channel.show(true);
+  // Match the exact stream name to guarantee it passes shouldLog()
+  setLoggerConfig({
+    LOG_LEVEL: "debug",
+    TRACE_ENABLED: true,
+    LOG_NAMESPACE: stream,
+  });
+
+  setLoggerOutput((...args: any[]) => {
+    const message = args
+      .map((arg) => (typeof arg === "string" ? arg : JSON.stringify(arg, null, 2)))
+      .join(" ");
+    channel.appendLine(message);
+  });
+
+  channel.appendLine(`[INIT] Pipeline: ${pipeline}, Stream: ${stream}`);
+  channel.appendLine(`[Preflight] Config Active: ${JSON.stringify(getLoggerConfig(), null, 2)}`);
+
+  return {
+    logger: createTrace(stream),
+    channel,
+  };
 }

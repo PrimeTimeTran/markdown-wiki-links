@@ -8,7 +8,7 @@ import { stripFrontmatter } from "../core/frontmatter";
 import { imageSize } from "../core/imageSize";
 import { parseEmbeds } from "../core/parser/embedParser";
 import { parseLinks } from "../core/parser/linkParser";
-import { IndexService, WikiResolver } from "./indexService";
+import { IndexService, EstateResolver } from "./indexService";
 
 export const IMAGE_RE = /\.(png|jpe?g|gif|webp|svg)$/i;
 
@@ -43,7 +43,7 @@ export class WikiHoverProvider implements vscode.HoverProvider {
       range: { start: number; end: number };
     },
     doc: vscode.TextDocument,
-    resolver: WikiResolver,
+    resolver: EstateResolver,
   ): Promise<vscode.Hover | undefined> {
     const entry = resolver.resolveLink(
       {
@@ -54,6 +54,7 @@ export class WikiHoverProvider implements vscode.HoverProvider {
     );
 
     if (!entry) {
+      vscode.window.showInformationMessage("Unresolved entry");
       return undefined;
     }
 
@@ -87,9 +88,8 @@ export class WikiHoverProvider implements vscode.HoverProvider {
       range: { start: number; end: number };
     },
     doc: vscode.TextDocument,
-    resolver: WikiResolver,
+    resolver: EstateResolver,
   ): Promise<vscode.Hover | undefined> {
-    vscode.window.showInformationMessage("hoverForEmbed");
     const entry = resolver.resolveLink(
       {
         target: ref.target,
@@ -98,6 +98,7 @@ export class WikiHoverProvider implements vscode.HoverProvider {
       doc.uri.fsPath,
     );
     if (!entry) {
+      vscode.window.showInformationMessage("Unresolved entry");
       return undefined;
     }
 

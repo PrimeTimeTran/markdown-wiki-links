@@ -3,18 +3,18 @@ import path from "node:path";
 import type MarkdownIt from "markdown-it";
 import * as vscode from "vscode";
 
-import { WikiResolver } from "../adapters/indexService";
+import { EstateResolver } from "../adapters/indexService";
 import { slugify } from "../core/blocks/headingExtractor";
 import { wikiPlugin } from "./wikiRule";
 
-const NULL_RESOLVER: WikiResolver = {
+const NULL_RESOLVER: EstateResolver = {
   resolveEmbed: () => null,
   resolveLink: () => null,
 };
 
-let activeResolver: WikiResolver = NULL_RESOLVER;
+let activeResolver: EstateResolver = NULL_RESOLVER;
 
-export function setResolver(r: WikiResolver): void {
+export function setResolver(r: EstateResolver): void {
   activeResolver = r;
 }
 

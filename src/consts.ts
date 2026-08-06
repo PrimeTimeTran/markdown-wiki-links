@@ -1,5 +1,12 @@
 export const EXT_PATH = "/Users/future/KB/project/app/markdown-wiki-links";
 
+export const AnchorTags = {
+  SoftDeleted: "softDeleted",
+  Pipeline: "pipeline",
+  Index: "index",
+  Wiki: "wiki",
+} as const;
+
 export type LangsShort = string[];
 export const supportedLanguages: LangsShort = [
   "markdown",
@@ -8,11 +15,9 @@ export const supportedLanguages: LangsShort = [
   "rust",
   "json",
 ];
-
 export type LangsLong = {
   language: string;
 }[];
-
 export const longLangs = [
   { language: "rust" },
   { language: "markdown" },
@@ -20,14 +25,12 @@ export const longLangs = [
   { language: "javascript" },
   { language: "json" },
 ];
-
 export const SECTIONS_LIST = ["draft", "pipeline", "plan"];
 export const SECTIONS = {
   [SECTIONS_LIST[0]]: {},
   [SECTIONS_LIST[1]]: {},
   [SECTIONS_LIST[2]]: {},
 };
-
 export const SNIPPET_ITEMS = [
   {
     label: "HTML",

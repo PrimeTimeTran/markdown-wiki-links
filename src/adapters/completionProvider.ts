@@ -8,11 +8,11 @@
 // import { rankFragmentCompletions } from "../core/completion/rankFragmentCompletions";
 // import { resolveTarget } from "../core/resolver/resolveTarget";
 // import { indexService } from "./../extension";
-// import { EstateAnchorEntry, WikiResolver } from "./indexService";
+// import { EstateAnchorEntry, EstateResolver } from "./indexService";
 
 import * as vscode from "vscode";
 
-import { EstateEntry, WikiResolver } from "./indexService";
+import { EstateEntry, EstateResolver } from "./indexService";
 
 // Splits "[[target#partial" / "![[target#partial" / "[[#partial" — target and fragment are
 // captured separately. Matches up to the cursor; only used when at least one `#` is present.
@@ -22,7 +22,7 @@ const FRAGMENT_RE = /!?\[\[([^[\]\r\n|#]*)#([^[\]\r\n|]*)$/;
 const FILE_RE = /!?\[\[([^[\]\r\n]*)$/;
 
 export class WikiCompletionProvider implements vscode.CompletionItemProvider {
-  constructor(private readonly resolver: WikiResolver) {}
+  constructor(private readonly resolver: EstateResolver) {}
   provideCompletionItems(document: vscode.TextDocument, position: vscode.Position) {
     const line = document.lineAt(position).text;
     const before = line.slice(0, position.character);
@@ -33,7 +33,22 @@ export class WikiCompletionProvider implements vscode.CompletionItemProvider {
 
     let all = [...this.resolver.all()];
     return all.map((entry) => {
-      return new vscode.CompletionItem(entry.label || entry.id, getCompletionType(entry));
+      const item = new vscode.CompletionItem(entry.label || entry.id, getCompletionType(entry));
+      item.detail = entry.uri.toString();
+      const md = new vscode.MarkdownString(
+        `
+$(file) **${entry.label}**
+
+$(folder) ${entry.linkUri()}
+
+$(link) ${entry.id}
+`,
+      );
+      md.supportHtml = true;
+      md.isTrusted = true;
+      md.supportThemeIcons = true;
+      item.documentation = md;
+      return item;
     });
   }
   // constructor(private idx: IndexService) {

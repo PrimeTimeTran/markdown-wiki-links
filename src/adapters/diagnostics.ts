@@ -10,6 +10,7 @@ const DEBOUNCE_MS = 300;
 
 export class WikiDiagnostics {
   private coll = vscode.languages.createDiagnosticCollection("wikiLinks");
+  private estateDiag = vscode.languages.createDiagnosticCollection("estate");
   private timers = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor(private idx: IndexService) {}
@@ -61,14 +62,21 @@ export class WikiDiagnostics {
 
       if (!entry) {
         const range = new vscode.Range(doc.positionAt(r.range.start), doc.positionAt(r.range.end));
-
-        diags.push(
-          new vscode.Diagnostic(
-            range,
-            `Unresolved wiki-link: "${r.target}"`,
-            vscode.DiagnosticSeverity.Information,
-          ),
+        const diagnostic = new vscode.Diagnostic(
+          range,
+          `Unresolved link for "${r.target}". Create an estate bookmark for use in all future workspaces or just this one.`,
+          vscode.DiagnosticSeverity.Warning,
         );
+        diagnostic.code = "estate.unresolved-estate-link";
+        // this.estateDiag.set(diagnostic);
+        this.estateDiag.set(doc.uri, [diagnostic]);
+        let wikiMsg = new vscode.Diagnostic(
+          range,
+          `Unresolved wiki-link: "${r.target}"`,
+          vscode.DiagnosticSeverity.Information,
+        );
+        wikiMsg.code = "estate.unresolved-wikilink";
+        diags.push(wikiMsg);
       }
     }
 

@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 
 import { Anchor } from "./anchor";
 import { AppStore } from "./app";
+import { cfg } from "./cfg";
 import { EstateFocus, EstateNode } from "./estate";
 // Right now store the cursor here.
 // - I have other ideas on how this could be used in compostion with event to do more interesting things.
@@ -53,9 +54,7 @@ export interface ScopeInfo {
   range?: vscode.Range;
   text: string;
 }
-const cfg = {
-  debugActivity: true,
-};
+
 // oxlint-disable-next-line typescript/no-unsafe-declaration-merging
 export interface ActivityStore<T = unknown> {
   current(): AppActivity | undefined;

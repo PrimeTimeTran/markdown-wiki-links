@@ -1,9 +1,3 @@
-import {
-  setLoggerConfig,
-  setLoggerOutput,
-  createTrace,
-  getLoggerConfig,
-} from "@primetimetran/logger";
 import * as vscode from "vscode";
 
 import { CMD } from "../generated/cmd";
@@ -14,7 +8,7 @@ import { newEditorGroupTabContent } from "./adapters/htmlAnchor";
 import { IndexService } from "./adapters/indexService";
 import { RenameHandler } from "./adapters/renameHandler";
 import { AppStore, registerCustomCommandPalette } from "./app";
-import { OwnershipCodeActionProvider } from "./codeActionOwnership";
+import { EstateActionProvider, OwnershipCodeActionProvider } from "./codeActionOwnership";
 import { longLangs, supportedLanguages } from "./consts";
 import { OwnershipContentProvider, OwnershipEngine, showOwnershipView } from "./diff";
 import { EstateContext } from "./estate";
@@ -29,9 +23,7 @@ export let indexService: IndexService | undefined;
 type WikiLinksApi = { extendMarkdownIt(md: any): any };
 
 export async function activate(context: vscode.ExtensionContext): Promise<WikiLinksApi> {
-  const { trace, channel } = setupExtensionLogger("Flowify", "ext:activate");
-  context.subscriptions.push(channel);
-  const app = new AppStore(context, trace);
+  const app = new AppStore(context);
   app.init(context);
   app.logger.debug("[activate.app.logger]");
 
@@ -62,6 +54,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
       ownershipProvider.refresh(ownershipUri);
     }),
     vscode.languages.registerCodeActionsProvider("rust", new OwnershipCodeActionProvider()),
+    vscode.languages.registerCodeActionsProvider("markdown", new EstateActionProvider(), {
+      providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
+    }),
   );
   // Commands
   const commands = [
@@ -174,30 +169,4 @@ function embedMaxDepth(): number {
     .getConfiguration("wikiLinks")
     .get<number>("embed.maxDepth", DEFAULT_EMBED_MAX_DEPTH);
   return typeof configured === "number" && configured >= 1 ? configured : DEFAULT_EMBED_MAX_DEPTH;
-}
-
-export function setupExtensionLogger(pipeline: string, stream: string) {
-  const channel = vscode.window.createOutputChannel(pipeline);
-  // channel.show(true);
-  // Match the exact stream name to guarantee it passes shouldLog()
-  setLoggerConfig({
-    LOG_LEVEL: "debug",
-    TRACE_ENABLED: true,
-    LOG_NAMESPACE: stream,
-  });
-
-  setLoggerOutput((...args: any[]) => {
-    const message = args
-      .map((arg) => (typeof arg === "string" ? arg : JSON.stringify(arg, null, 2)))
-      .join(" ");
-    channel.appendLine(message);
-  });
-
-  channel.appendLine(`[INIT] Pipeline: ${pipeline}, Stream: ${stream}`);
-  channel.appendLine(`[Preflight] Config Active: ${JSON.stringify(getLoggerConfig(), null, 2)}`);
-
-  return {
-    trace: createTrace(stream),
-    channel,
-  };
 }

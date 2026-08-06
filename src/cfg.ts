@@ -7,5 +7,9 @@ export const PATHS = {
   root: () => ESTATE_DIR,
   assets: () => path.join(ESTATE_DIR, "assets"),
   asset: (filename: string) => path.join(ESTATE_DIR, "assets", filename),
-  anchors: () => path.join(ESTATE_DIR, "anchors.json"),
+  anchors: () => path.join(ESTATE_DIR, "anchorsp.json"),
+};
+
+export const cfg = {
+  debugActivity: true,
 };

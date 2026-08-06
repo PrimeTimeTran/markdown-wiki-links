@@ -9,12 +9,12 @@ import * as vscode from "vscode";
 
 import { IndexSnapshot } from "../core/resolver/resolveTarget";
 import { EmbedResolved } from "../markdownItPlugin/wikiRule";
-import { EstateEntry, WikiResolver } from "./indexService";
+import { EstateEntry, EstateResolver } from "./indexService";
 import { IndexService } from "./indexService";
 
 const IMAGE_RE = /\.(png|jpe?g|gif|webp|svg)$/i;
 
-export function createPreviewResolver(resolver: WikiResolver) {
+export function createPreviewResolver(resolver: EstateResolver) {
   return {
     resolveLink: (fromFsPath: string, target: string, fragment?: string) => {
       return resolver.resolveLink(fromFsPath, target, fragment);

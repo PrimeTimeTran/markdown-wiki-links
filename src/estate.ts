@@ -237,7 +237,7 @@ export class EstateProvider implements vscode.TreeDataProvider<EstateNode> {
     };
   }
   buildSection(section: vscode.TreeItemLabel, node: EstateNode) {
-    let anchors = this.app.anchors.list().filter((a) => !a.tags.includes("softDeleted"));
+    let anchors = this.app.anchors.list().filter((a) => !a.tags.includes("AnchorTags.SoftDeleted"));
     return anchors
       .filter((b) => section.label == "draft" || b.tags.includes(section.label))
       .map((a) => this.buildNode(node, a));

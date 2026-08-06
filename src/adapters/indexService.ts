@@ -33,7 +33,7 @@ export class IndexService {
   public root: string;
   private readonly estateRegistry: EstateRegistry;
   private readonly workspaceRegistry: WorkspaceRegistry;
-  public readonly resolver: WikiResolver;
+  public readonly resolver: EstateResolver;
   // private entries = new Map<string, IndexEntry>();
   private watcher?: vscode.FileSystemWatcher;
   private listeners: vscode.Disposable[] = [];
@@ -49,7 +49,7 @@ export class IndexService {
     }
     this.workspaceRegistry = new WorkspaceRegistry(this.root);
     this.estateRegistry = new EstateRegistry("/Users/future/.estate");
-    this.resolver = new WikiResolver(this.root, [this.workspaceRegistry, this.estateRegistry]);
+    this.resolver = new EstateResolver(this.root, [this.workspaceRegistry, this.estateRegistry]);
   }
   getResolver() {
     return this.resolver;
@@ -121,7 +121,7 @@ export class IndexService {
     const result = this.resolver.resolve(label);
     if (!result) {
       vscode.window.showInformationMessage(
-        `Estate: "${label}" not found. Checked workspace registry.`,
+        `Estate: "${label}" not found. Checked personal esate & workspace registry. Create one?`,
       );
     }
     return result;
@@ -246,7 +246,6 @@ class WorkspaceEntry implements EstateEntry {
 export class EstateAnchorEntry implements EstateEntry {
   readonly kind: EstateKind = "bookmark";
   readonly aliases: string[];
-
   constructor(
     readonly anchor: {
       id: string;
@@ -267,11 +266,9 @@ export class EstateAnchorEntry implements EstateEntry {
   ) {
     this.aliases = [anchor.label, anchor.id];
   }
-
   get id() {
     return this.anchor.id;
   }
-
   get label() {
     return this.anchor.label;
   }
@@ -359,7 +356,7 @@ class WorkspaceRegistry implements WikiRegistry {
   }
 }
 
-export class WikiResolver {
+export class EstateResolver {
   constructor(
     public readonly root: string,
     private readonly sources: WikiRegistry[],
@@ -384,7 +381,6 @@ export class WikiResolver {
     }
     return undefined;
   }
-
   resolveRelative(target: string, fromFsPath: string): EstateEntry | undefined {
     const normalized = stripMdExt(target.replace(/\\/g, "/")).toLowerCase();
     const fromDir = path.dirname(fromFsPath);
@@ -424,16 +420,12 @@ export class WikiResolver {
     fromFsPath: string,
   ): EstateEntry | undefined {
     const target = ref.target.split("#")[0].trim();
-
     const direct = this.resolve(target);
-
     if (direct) {
       return direct;
     }
-
     return this.resolveRelative(target, fromFsPath);
   }
-
   resolveEmbed(target: string, fragment?: string): EmbedResolved | null {
     const entry = this.resolve(target);
 
@@ -454,7 +446,6 @@ export class WikiResolver {
       sourcePath: entry.uri.fsPath,
     };
   }
-
   fileHref(entry: EstateEntry, fragment: string | undefined): string {
     throw new Error("Method not implemented fileHref.");
   }

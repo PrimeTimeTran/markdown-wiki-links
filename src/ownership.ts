@@ -3,7 +3,6 @@ import * as vscode from "vscode";
 import { AppStore } from "./app";
 
 export const flowitryMode = "";
-
 export const icons = [
   "alias",
   "binding",
@@ -13,15 +12,13 @@ export const icons = [
   "shadowing",
   "symbol",
 ];
-
-type SymbolAnnotation = {
+export type SymbolAnnotation = {
   line: number;
   symbol: string;
   roles: ["binding", "owner", "child", "borrow"];
   actions: ["showChildren", "showLineage"];
 };
-
-type SymbolDecoration = {
+export type SymbolDecoration = {
   kind: "binding" | "shadowing" | "alias";
   state: {
     selected: boolean;
@@ -29,7 +26,6 @@ type SymbolDecoration = {
     muted: boolean;
   };
 };
-
 export class OwnershipInlayProvider implements vscode.InlayHintsProvider {
   private readonly _onDidChangeInlayHints = new vscode.EventEmitter<void>();
   readonly onDidChangeInlayHints = this._onDidChangeInlayHints.event;

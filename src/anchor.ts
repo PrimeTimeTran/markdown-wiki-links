@@ -98,13 +98,6 @@ export class Anchor implements Anchor {
     return this.src?.startLine ?? 0;
   }
 }
-export const AnchorTags = {
-  SoftDeleted: "softDeleted",
-  Pipeline: "pipeline",
-  Index: "index",
-  Wiki: "wiki",
-} as const;
-
 export class AnchorStore implements AnchorStoreType {
   private items = new Map<string, Anchor>();
   private fileIndex = new Map<string, Anchor[]>();
@@ -441,8 +434,8 @@ export class AnchorStore implements AnchorStoreType {
     const id = node?.id || anchor.id;
     const item = this.items.get(id);
     if (!item) return;
-    if (!item.tags.includes("softDeleted")) {
-      item.tags.push("softDeleted");
+    if (!item.tags.includes("AnchorTags.SoftDeleted")) {
+      item.tags.push("AnchorTags.SoftDeleted");
     }
     this.items.set(id, item);
     await this.save();
@@ -450,7 +443,7 @@ export class AnchorStore implements AnchorStoreType {
     this._onDidChange.fire();
   }
   register(id: string, anchor: Anchor) {
-    if (anchor.tags?.includes("softDeleted")) {
+    if (anchor.tags?.includes("AnchorTags.SoftDeleted")) {
       return;
     }
     try {
@@ -502,9 +495,9 @@ export class AnchorStore implements AnchorStoreType {
     return [...this.items.keys()];
   }
   list(): Anchor[] {
-    return [...this.items.values()].filter((a) => !a.tags.includes("softDeleted"));
+    return [...this.items.values()].filter((a) => !a.tags.includes("AnchorTags.SoftDeleted"));
   }
-  inFile(a: Anchor, file: vscode.Uri) {
+  inFile(a: Anchor, _file: vscode.Uri) {
     let result = this.getUri(a);
     // let result = this.getUri(a).fsPath == file.fsPath;
     // console.log("[AnchorStore].inFile", file.fsPath);
@@ -937,7 +930,7 @@ export class AnchorPresenter {
     // panel.webview.html = anchorShowPage(anchor);
     panel.webview.html = anchorShowPage(anchor);
   }
-  async present(ctx: vscode.ExtensionContext, anchor: Anchor) {
+  async present(_ctx: vscode.ExtensionContext, anchor: Anchor) {
     const panel = vscode.window.createWebviewPanel(
       "estateAnchor",
       "Edit Anchor",
@@ -956,7 +949,7 @@ export class AnchorPresenter {
       }
     });
   }
-  showRef(ctx: vscode.ExtensionContext, app: AppStore) {
+  showRef(_ctx: vscode.ExtensionContext, _app: AppStore) {
     // vscode.languages.registerHoverProvider('your-language', {
     //   provideHfover(document, position, token) {
     //     // Return markdown or text that floats dynamically

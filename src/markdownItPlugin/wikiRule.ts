@@ -1,6 +1,6 @@
 import type MarkdownIt from "markdown-it";
 
-import { WikiResolver } from "../adapters/indexService";
+import { EstateResolver } from "../adapters/indexService";
 import { buildFenceMask, isMasked, FenceMask } from "../core/fenceMask";
 import { splitFrontmatter } from "../core/frontmatter";
 
@@ -30,7 +30,7 @@ const LINK_RE = /(?<!!)\[\[([^[\]|#\r\n]*)(?:#([^[\]|\r\n]+))?(?:\|([^[\]\r\n]+)
 export function wikiPlugin(
   md: MarkdownIt,
   opts: {
-    resolver: WikiResolver;
+    resolver: EstateResolver;
     maxDepth?: number;
     // The fsPath of the file the preview is rendering. VSCode tokenizes the preview by string,
     // so a core rule cannot discover this itself (env.currentDocument is undefined at tokenize
@@ -89,7 +89,7 @@ function applyImageSizes(state: { tokens: AttrToken[] }): void {
 
 function expand(
   src: string,
-  resolver: WikiResolver,
+  resolver: EstateResolver,
   fromFsPath: string,
   depth: number,
   ancestors: Set<string>,
@@ -116,7 +116,7 @@ function expand(
 
 function expandEmbeds(
   src: string,
-  resolver: WikiResolver,
+  resolver: EstateResolver,
   fromFsPath: string,
   depth: number,
   ancestors: Set<string>,
@@ -151,7 +151,7 @@ function expandEmbeds(
 
 function rewriteLinks(
   src: string,
-  resolver: WikiResolver,
+  resolver: EstateResolver,
   fromFsPath: string,
   mask: FenceMask,
 ): string {

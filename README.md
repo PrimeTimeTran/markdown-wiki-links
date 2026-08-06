@@ -83,5 +83,4 @@ Press `F5` in VSCode to launch the extension in an Extension Development Host fo
 
 ## References
 
-<https://github.com/microsoft/vscode?utm_source=chatgpt.com>
-<https://code.visualstudio.com/api>
+https://github.com/microsoft/vscode
