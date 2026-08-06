@@ -1,26 +1,28 @@
-import type MarkdownIt from 'markdown-it';
+import type MarkdownIt from "markdown-it";
 
-import { splitFrontmatter } from '../core/frontmatter';
-import { buildFenceMask, isMasked, FenceMask } from '../core/fenceMask';
+import { WikiResolver } from "../adapters/indexService";
+import { buildFenceMask, isMasked, FenceMask } from "../core/fenceMask";
+import { splitFrontmatter } from "../core/frontmatter";
 
 export type EmbedResolved =
-  | { kind: 'markdown'; text: string; sourcePath: string }
-  | { kind: 'image'; src: string };
+  | { kind: "markdown"; text: string; sourcePath: string }
+  | { kind: "image"; src: string };
 
 export type LinkResolved =
-  | { kind: 'file'; href: string }
-  | { kind: 'url'; href: string }
-  | { kind: 'command'; command: string; args?: unknown[] }
-  | { kind: 'preview'; path: string }
-  | { kind: 'bookmark'; id: string }
-  | { kind: 'panel'; panel: string };
+  | { kind: "file"; href: string }
+  | { kind: "anchor"; href: string }
+  | { kind: "command"; command: string; args?: unknown[] }
+  | { kind: "url"; href: string }
+  | { kind: "preview"; path: string }
+  | { kind: "bookmark"; id: string }
+  | { kind: "panel"; panel: string };
 
-export type WikiResolver = {
-  // Resolve an embed (![[...]]). `key` is `target` or `target#fragment`.
-  resolveEmbed: (fromFsPath: string, key: string, sizeHint?: string) => EmbedResolved | null;
-  // Resolve a link ([[...]]) to an href the Markdown preview can navigate; null = unresolved.
-  resolveLink: (fromFsPath: string, target: string, fragment?: string) => LinkResolved | null;
-};
+// export type WikiResolver = {
+//   // Resolve an embed (![[...]]). `key` is `target` or `target#fragment`.
+//   resolveEmbed: (fromFsPath: string, key: string, sizeHint?: string) => EmbedResolved | null;
+//   // Resolve a link ([[...]]) to an href the Markdown preview can navigate; null = unresolved.
+//   resolveLink: (fromFsPath: string, target: string, fragment?: string) => LinkResolved | null;
+// };
 
 const EMBED_RE = /!\[\[([^[\]|#\r\n]+)(?:#([^[\]|\r\n]+))?(?:\|([^[\]\r\n]+))?\]\]/g;
 const LINK_RE = /(?<!!)\[\[([^[\]|#\r\n]*)(?:#([^[\]|\r\n]+))?(?:\|([^[\]\r\n]+))?\]\]/g;
@@ -37,7 +39,7 @@ export function wikiPlugin(
   },
 ): void {
   const maxDepth = opts.maxDepth ?? 3;
-  md.core.ruler.before('normalize', 'wiki-links', (state) => {
+  md.core.ruler.before("normalize", "wiki-links", (state) => {
     // Only rewrite for preview rendering. VSCode's built-in markdown extension reuses the
     // contributed markdown-it instance for source-editor analyses too (document highlights,
     // smart-select, symbol mapping, link tracking). Those calls do not set the preview env
@@ -53,11 +55,11 @@ export function wikiPlugin(
     const ancestors = new Set<string>();
     const self = opts.getDocumentPath?.();
     if (self) ancestors.add(self);
-    state.src = frontmatter + expand(body, opts.resolver, '', maxDepth, ancestors);
+    state.src = frontmatter + expand(body, opts.resolver, "", maxDepth, ancestors);
   });
   // Embed size hints are carried as a `wl-size:` image title (no markdown syntax expresses image
   // dimensions); this rule turns that title into real width/height attributes after tokenization.
-  md.core.ruler.push('wiki-image-size', applyImageSizes);
+  md.core.ruler.push("wiki-image-size", applyImageSizes);
 }
 
 type AttrToken = {
@@ -74,12 +76,12 @@ const SIZE_TITLE_RE = /^wl-size:(\d+)(?:x(\d+))?$/;
 function applyImageSizes(state: { tokens: AttrToken[] }): void {
   for (const block of state.tokens) {
     for (const tok of block.children ?? []) {
-      if (tok.type !== 'image') continue;
-      const m = (tok.attrGet('title') ?? '').match(SIZE_TITLE_RE);
+      if (tok.type !== "image") continue;
+      const m = (tok.attrGet("title") ?? "").match(SIZE_TITLE_RE);
       if (!m) continue;
-      tok.attrSet('width', m[1]);
-      if (m[2]) tok.attrSet('height', m[2]);
-      const titleIndex = tok.attrIndex('title');
+      tok.attrSet("width", m[1]);
+      if (m[2]) tok.attrSet("height", m[2]);
+      const titleIndex = tok.attrIndex("title");
       if (titleIndex >= 0 && tok.attrs) tok.attrs.splice(titleIndex, 1);
     }
   }
@@ -124,7 +126,7 @@ function expandEmbeds(
   // the offset lets us check whether the match starts inside a fenced/inline code span.
   if (depth <= 0) {
     return src.replace(EMBED_RE, (_full, _t, _f, _s, offset: number) =>
-      isMasked(mask, offset) ? _full : '> ⚠️ Embed depth exceeded',
+      isMasked(mask, offset) ? _full : "> ⚠️ Embed depth exceeded",
     );
   }
   return src.replace(EMBED_RE, (_full, target, fragment, sizeHint, offset: number) => {
@@ -132,11 +134,11 @@ function expandEmbeds(
     const key = fragment ? `${target}#${fragment}` : target;
     const r = resolver.resolveEmbed(fromFsPath, key, sizeHint);
     if (!r) return `*Unresolved embed: ${mdEscape(target)}*`;
-    if (r.kind === 'image') {
+    if (r.kind === "image") {
       // Emit a markdown image token (not raw <img>) so VSCode's preview rewrites the src to a
       // webview-loadable resource URI. The <> destination form tolerates spaces in the path; the
       // size hint rides along as a title that the wiki-image-size rule converts to width/height.
-      const size = sizeHint && /^\d+(?:x\d+)?$/.test(sizeHint) ? ` "wl-size:${sizeHint}"` : '';
+      const size = sizeHint && /^\d+(?:x\d+)?$/.test(sizeHint) ? ` "wl-size:${sizeHint}"` : "";
       return `![${mdEscape(target)}](<${r.src}>${size})`;
     }
     if (ancestors.has(r.sourcePath)) return `> ⚠️ Cyclic embed: ${mdEscape(target)}`;
@@ -165,13 +167,13 @@ function rewriteLinks(
 }
 
 function labelFor(target: string, fragment?: string): string {
-  if (target === '') return fragment ?? '';
+  if (target === "") return fragment ?? "";
   return fragment ? `${target} › ${fragment}` : target;
 }
 
 // Escape characters that have special meaning in markdown inline-text positions.
 function mdEscape(s: string): string {
-  return s.replace(/([\\`*_{}[\]()#+\-.!|>])/g, '\\$1');
+  return s.replace(/([\\`*_{}[\]()#+\-.!|>])/g, "\\$1");
 }
 
 // VSCode's preview path passes an env object carrying preview-specific fields; non-preview
@@ -179,7 +181,7 @@ function mdEscape(s: string): string {
 // Treat the presence of any of these fields as a positive signal of preview rendering.
 // `unknown` here because markdown-it's State type is loose and these are extension-set.
 function isPreviewRender(env: unknown): boolean {
-  if (!env || typeof env !== 'object') return false;
+  if (!env || typeof env !== "object") return false;
   const e = env as Record<string, unknown>;
   return e.containingImages != null || e.currentDocument != null || e.resourceProvider != null;
 }

@@ -1,6 +1,11 @@
-import type MarkdownIt from 'markdown-it';
+import path from "node:path";
 
-import { wikiPlugin, WikiResolver } from './wikiRule';
+import type MarkdownIt from "markdown-it";
+import * as vscode from "vscode";
+
+import { WikiResolver } from "../adapters/indexService";
+import { slugify } from "../core/blocks/headingExtractor";
+import { wikiPlugin } from "./wikiRule";
 
 const NULL_RESOLVER: WikiResolver = {
   resolveEmbed: () => null,
@@ -23,10 +28,44 @@ export function extendMarkdownIt(
   maxDepth?: number,
   getDocumentPath?: () => string | undefined,
 ): MarkdownIt {
-  // Delegate through a stable indirection so setResolver can swap the active resolver later.
-  const resolver: WikiResolver = {
-    resolveEmbed: (from, key, hint) => activeResolver.resolveEmbed(from, key, hint),
-    resolveLink: (from, target, frag) => activeResolver.resolveLink(from, target, frag),
+  const resolver = {
+    resolveEmbed(from: string, key: string, hint?: string) {
+      const [target, fragment] = key.split("#");
+
+      return activeResolver.resolveEmbed(target, fragment);
+    },
+
+    resolveLink(from: string, target: string, fragment?: string) {
+      const entry = activeResolver.resolveLink(
+        {
+          target,
+          fragment,
+        },
+        from,
+      );
+
+      if (!entry) {
+        return null;
+      }
+
+      let href =
+        "/" +
+        path
+          .relative(vscode.workspace.workspaceFolders![0].uri.fsPath, entry.uri.fsPath)
+          .split(path.sep)
+          .join("/");
+
+      if (fragment && !fragment.startsWith("^")) {
+        href += "#" + slugify(fragment);
+      }
+
+      return href;
+    },
   };
-  return md.use(wikiPlugin, { resolver, maxDepth, getDocumentPath });
+
+  return md.use(wikiPlugin, {
+    resolver,
+    maxDepth,
+    getDocumentPath,
+  });
 }

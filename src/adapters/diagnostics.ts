@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 
+import { buildFenceMask } from "../core/fenceMask";
 import { parseLinks } from "../core/parser/linkParser";
-import { resolveTarget } from "../core/resolver/resolveTarget";
 import { IndexService } from "./indexService";
 
 // Edits fire onDidChangeTextDocument on every keystroke; coalesce re-parsing to one run per
@@ -43,21 +43,35 @@ export class WikiDiagnostics {
 
   private update(doc: vscode.TextDocument): void {
     if (doc.languageId !== "markdown") return;
+
     const text = doc.getText();
-    const snap = this.idx.snapshotFor(doc.uri.fsPath);
+    const resolver = this.idx.getResolver();
+    const mask = buildFenceMask(text);
+
     const diags: vscode.Diagnostic[] = [];
-    for (const r of parseLinks(text)) {
-      if (!resolveTarget(r, doc.uri.fsPath, snap)) {
+
+    for (const r of parseLinks(text, mask)) {
+      const entry = resolver.resolveLink(
+        {
+          target: r.target,
+          fragment: r.fragment,
+        },
+        doc.uri.fsPath,
+      );
+
+      if (!entry) {
         const range = new vscode.Range(doc.positionAt(r.range.start), doc.positionAt(r.range.end));
+
         diags.push(
           new vscode.Diagnostic(
             range,
-            "Unresolved or ambiguous wiki-link",
+            `Unresolved wiki-link: "${r.target}"`,
             vscode.DiagnosticSeverity.Information,
           ),
         );
       }
     }
+
     this.coll.set(doc.uri, diags);
   }
 

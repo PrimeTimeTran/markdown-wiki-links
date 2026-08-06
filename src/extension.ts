@@ -6,17 +6,13 @@ import {
 } from "@primetimetran/logger";
 import * as vscode from "vscode";
 
-// import { WikiDecorations } from "./adapters/decorations";
-// import { OwnershipInlayProvider } from "./ownership";
+import { CMD } from "../generated/cmd";
 import { OwnershipCodeActionProvider } from "./adapters/codeAction";
 import { WikiCompletionProvider } from "./adapters/completionProvider";
-// import { WikiDocumentLinkProvider } from "./adapters/documentLinkProvider";
 import { WikiDiagnostics } from "./adapters/diagnostics";
 import { WikiHoverProvider } from "./adapters/hoverProvider";
 import { newEditorGroupTabContent } from "./adapters/htmlAnchor";
-// import { WikiCodeLensProvider } from "./adapters/codelens";
 import { IndexService } from "./adapters/indexService";
-import { createPreviewResolver } from "./adapters/previewResolver";
 import { RenameHandler } from "./adapters/renameHandler";
 import { AppStore, registerGiantQuickPickCommand } from "./app";
 import { longLangs, supportedLanguages } from "./consts";
@@ -30,54 +26,12 @@ import {
 
 export let indexService: IndexService | undefined;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type WikiLinksApi = { extendMarkdownIt(md: any): any };
-
-export function setupExtensionLogger(pipeline: string, stream: string) {
-  const channel = vscode.window.createOutputChannel(pipeline);
-  // channel.show(true);
-
-  // Match the exact stream name to guarantee it passes shouldLog()
-  setLoggerConfig({
-    LOG_LEVEL: "debug",
-    TRACE_ENABLED: true,
-    LOG_NAMESPACE: stream,
-  });
-
-  setLoggerOutput((...args: any[]) => {
-    const message = args
-      .map((arg) => (typeof arg === "string" ? arg : JSON.stringify(arg, null, 2)))
-      .join(" ");
-    channel.appendLine(message);
-  });
-
-  channel.appendLine(`[INIT] Pipeline: ${pipeline}, Stream: ${stream}`);
-  channel.appendLine(`[Preflight] Config Active: ${JSON.stringify(getLoggerConfig(), null, 2)}`);
-
-  return {
-    trace: createTrace(stream),
-    channel,
-  };
-}
 
 export async function activate(context: vscode.ExtensionContext): Promise<WikiLinksApi> {
   const { trace, channel } = setupExtensionLogger("Flowify", "ext:activate");
   context.subscriptions.push(channel);
-
-  trace.mark("[ext.activate]");
-  trace.debug("activate using logger debug");
-  trace.info("activate using logger info");
-  trace.warn("activate using logger warn");
-  trace.error("activate using logger error");
-  // vscode.window.onDidChangeTextEditorSelection((event) => {
-  //   // Captures the active cursor position, which updates upon a right-click
-  //   const position = event.selections[0].active;
-  //   console.log(`Cursor moved to Line: ${position.line}, Character: ${position.character}`);
-  // });
-
-  indexService = new IndexService();
-  await indexService.initialize();
-  const app = new AppStore(context, trace, indexService);
+  const app = new AppStore(context, trace);
   app.init(context);
   app.logger.debug("[activate.app.logger]");
 
@@ -108,16 +62,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
 
   context.subscriptions.push(
     vscode.workspace.registerTextDocumentContentProvider("estate", ownershipProvider),
-    vscode.commands.registerCommand("estate.showOwnership", showOwnershipView),
+    vscode.commands.registerCommand(CMD.estate.ownership.show, showOwnershipView),
     vscode.workspace.onDidChangeTextDocument((e) => {
       const ownershipUri = vscode.Uri.parse(`estate://ownership${e.document.uri.path}`);
       ownershipProvider.refresh(ownershipUri);
     }),
     vscode.languages.registerCodeActionsProvider("rust", new OwnershipCodeActionProvider()),
-    vscode.commands.registerCommand("estate.testOwnershipAction", (...args) => {
-      console.log("COMMAND FIRED", args);
-      vscode.window.showInformationMessage("Ownership command fired");
-    }),
   );
   // Commands
   const commands = [
@@ -133,7 +83,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
     "estate.graph.open",
     "estate.symbol.rename",
   ];
-
   commands.forEach((command) => {
     context.subscriptions.push(
       vscode.commands.registerCommand(command, (ctx) => {
@@ -172,22 +121,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
         `💾 Save ${anchor.label}`,
       ]);
     }),
-    vscode.commands.registerCommand("estate.contentSave", (ctx: { id: string }) => {
-      const anchor = store.get(ctx.id);
-      if (!anchor) return;
-      vscode.window.showInformationMessage(`Save content for ${anchor.label}`);
-    }),
-    vscode.commands.registerCommand("estate.contentCycle", (ctx: { id: string }) => {
-      const anchor = store.get(ctx.id);
-      if (!anchor) return;
-      vscode.window.showInformationMessage(`Cycle variants for ${anchor.label}`);
-    }),
-    vscode.commands.registerCommand("estate.contentReplace", (ctx: { id: string }) => {
-      const anchor = store.get(ctx.id);
-      if (!anchor) return;
-
-      vscode.window.showInformationMessage(`Replace using ${anchor.label}`);
-    }),
     // vscode.commands.registerCommand(
     //   'anchor.create',
     //   async (uri: vscode.Uri, range: vscode.Range) => {
@@ -219,7 +152,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
     //     codeLens.refresh();
     //   },
     // ),
-    vscode.commands.registerCommand("wikiLinks.rebuildIndex", () => indexService?.refresh()),
+    vscode.commands.registerCommand("wikiLinks.rebuildIndex", () => app.wiki?.refresh()),
     vscode.commands.registerCommand("wiki.showGraph", (ctx: EstateContext) => {
       vscode.window.showInformationMessage(`Graph for ${ctx.anchor}`);
     }),
@@ -256,10 +189,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
         }
       },
     }),
-    vscode.languages.registerHoverProvider(longLangs, new WikiHoverProvider(indexService)),
+    vscode.languages.registerHoverProvider(longLangs, new WikiHoverProvider(app.wiki)),
     vscode.languages.registerCompletionItemProvider(
       longLangs,
-      new WikiCompletionProvider(indexService),
+      new WikiCompletionProvider(app.wiki.resolver),
       "[",
       "/",
       "#",
@@ -272,9 +205,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
       await vscode.commands.executeCommand("markdown.togglePreview", editor.document.uri);
     }));
 
-  context.subscriptions.push(indexService);
+  context.subscriptions.push(app.wiki);
   new RenameHandler().register(context);
-  new WikiDiagnostics(indexService).register(context);
+  new WikiDiagnostics(app.wiki).register(context);
   app.decorator.register(context);
 
   // let inlineProvider = new OwnershipInlayProvider(app);
@@ -288,7 +221,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     extendMarkdownIt(md: any): any {
-      if (indexService) setResolver(createPreviewResolver(indexService));
+      // if (app.wiki) setResolver(createPreviewResolver(app.wiki.getResolver()));
+      if (app.wiki) setResolver(app.wiki.getResolver());
       // VSCode never tells a contributed markdown-it plugin which file a preview is rendering,
       // so supply it here: the previewed file is the active text editor (the preview opens
       // beside its source). Lets the embed-cycle guard catch a file that embeds itself.
@@ -313,4 +247,31 @@ function embedMaxDepth(): number {
     .getConfiguration("wikiLinks")
     .get<number>("embed.maxDepth", DEFAULT_EMBED_MAX_DEPTH);
   return typeof configured === "number" && configured >= 1 ? configured : DEFAULT_EMBED_MAX_DEPTH;
+}
+
+export function setupExtensionLogger(pipeline: string, stream: string) {
+  const channel = vscode.window.createOutputChannel(pipeline);
+  // channel.show(true);
+
+  // Match the exact stream name to guarantee it passes shouldLog()
+  setLoggerConfig({
+    LOG_LEVEL: "debug",
+    TRACE_ENABLED: true,
+    LOG_NAMESPACE: stream,
+  });
+
+  setLoggerOutput((...args: any[]) => {
+    const message = args
+      .map((arg) => (typeof arg === "string" ? arg : JSON.stringify(arg, null, 2)))
+      .join(" ");
+    channel.appendLine(message);
+  });
+
+  channel.appendLine(`[INIT] Pipeline: ${pipeline}, Stream: ${stream}`);
+  channel.appendLine(`[Preflight] Config Active: ${JSON.stringify(getLoggerConfig(), null, 2)}`);
+
+  return {
+    trace: createTrace(stream),
+    channel,
+  };
 }

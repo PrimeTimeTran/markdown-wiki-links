@@ -1,15 +1,13 @@
+import * as fs from "node:fs";
 import * as path from "path";
 
 import * as vscode from "vscode";
 
-import { isExcludedPath, buildExcludeGlob } from "../core/pathFilter";
-import {
-  IndexSnapshot,
-  createSnapshot,
-  isContained,
-  makeIndexEntry,
-} from "../core/resolver/resolveTarget";
-import { IndexEntry } from "../core/types";
+import { buildExcludeGlob } from "../core/pathFilter";
+import { IndexSnapshot, createSnapshot } from "../core/resolver/resolveTarget";
+import { ParsedRef } from "../core/types";
+import { EmbedResolved, LinkResolved } from "../markdownItPlugin/wikiRule";
+import { IMAGE_RE } from "./hoverProvider";
 
 const GLOB = "**/*.{md,markdown,png,jpg,jpeg,gif,webp,svg,rs,ts,js,py}";
 // The same extension set as GLOB. add() must enforce it directly: rename events are not
@@ -32,7 +30,11 @@ const DEFAULT_EXCLUDED_FOLDERS = [
 const DEFAULT_INDEX_MAX_FILES = 50000;
 
 export class IndexService {
-  private entries = new Map<string, IndexEntry>();
+  public root: string;
+  private readonly estateRegistry: EstateRegistry;
+  private readonly workspaceRegistry: WorkspaceRegistry;
+  public readonly resolver: WikiResolver;
+  // private entries = new Map<string, IndexEntry>();
   private watcher?: vscode.FileSystemWatcher;
   private listeners: vscode.Disposable[] = [];
   // Snapshots (entries copy + resolver lookup) are O(index) to build, and providers ask for
@@ -40,143 +42,130 @@ export class IndexService {
   // cost is paid once per index mutation, not once per call. Bounded: one entry per root.
   private generation = 0;
   private snapCache = new Map<string, { generation: number; snap: IndexSnapshot }>();
-
+  constructor() {
+    this.root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "";
+    if (!this.root) {
+      throw new Error("No workspace folder");
+    }
+    this.workspaceRegistry = new WorkspaceRegistry(this.root);
+    this.estateRegistry = new EstateRegistry("/Users/future/.estate");
+    this.resolver = new WikiResolver([this.workspaceRegistry, this.estateRegistry]);
+  }
+  getResolver() {
+    return this.resolver;
+  }
   async initialize(): Promise<void> {
-    await this.scan();
+    await this.refresh();
     this.watcher = vscode.workspace.createFileSystemWatcher(GLOB);
     this.listeners.push(
       this.watcher.onDidCreate((u) => this.add(u)),
       this.watcher.onDidDelete((u) => this.remove(u)),
-      //   vscode.workspace.onDidRenameFiles((e) => {
-      //     for (const f of e.files) {
-      //       this.remove(f.oldUri);
-      //       this.add(f.newUri);
-      //       // A folder rename arrives as one pair for the directory itself, and the watcher
-      //       // does not emit per-file events for the children — remap every indexed entry
-      //       // beneath the old path or they go stale (and keep offering dead targets).
-      //       // Skip the sweep for plain-file pairs (an indexable extension): they have no
-      //       // children, and a large multi-select rename would otherwise do one full
-      //       // O(entries) pass per file.
-      //       if (INDEXABLE_RE.test(f.oldUri.fsPath)) continue;
-      //       const oldDir = f.oldUri.fsPath;
-      //       for (const entry of [...this.entries.values()]) {
-      //         if (isContained(entry.fsPath, oldDir) && entry.fsPath !== oldDir) {
-      //           this.remove(vscode.Uri.file(entry.fsPath));
-      //           this.add(
-      //             vscode.Uri.file(path.join(f.newUri.fsPath, path.relative(oldDir, entry.fsPath))),
-      //           );
-      //         }
-      //       }
-      //     }
-      //   }),
+      vscode.workspace.onDidChangeTextDocument((e) => {
+        this.onDocumentChanged(e);
+      }),
       vscode.workspace.onDidChangeWorkspaceFolders(() => this.refresh()),
       vscode.workspace.onDidChangeConfiguration((e) => {
-        if (e.affectsConfiguration("wikiLinks.index.excludeFolders")) this.refresh();
+        if (e.affectsConfiguration("wikiLinks.index.excludeFolders")) {
+          this.refresh();
+        }
       }),
     );
   }
-
-  snapshotFor(fromFsPath: string): IndexSnapshot {
-    const folder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(fromFsPath));
-    const root = folder?.uri.fsPath ?? "";
-    const cached = this.snapCache.get(root);
-    if (cached && cached.generation === this.generation) return cached.snap;
-    // isContained (separator-safe), not startsWith: a sibling root like /ws/docs must not
-    // leak into /ws/doc's entries, or completion offers targets resolution rejects.
-    const entries = [...this.entries.values()].filter((e) => isContained(e.fsPath, root));
-    const snap = createSnapshot(entries, root);
-    this.snapCache.set(root, { generation: this.generation, snap });
-    return snap;
-  }
-
-  async refresh(): Promise<void> {
-    this.entries.clear();
-    // Evict cached snapshots outright — refresh also runs on workspace-folder changes,
-    // after which a removed root's cache entry would otherwise linger forever.
-    this.snapCache.clear();
-    this.generation++;
-    await this.scan();
-  }
-
-  dispose(): void {
-    this.watcher?.dispose();
-    for (const l of this.listeners) l.dispose();
-  }
-
   private async scan(): Promise<void> {
     const exclude = buildExcludeGlob(excludedFolders());
     const cap = indexMaxFiles();
     const found = await vscode.workspace.findFiles(GLOB, exclude);
-    for (const u of found.slice(0, cap)) this.add(u);
-    if (found.length > cap) {
-      vscode.window.showInformationMessage(
-        `Wiki Links: this workspace has ${found.length} indexable files, above the ` +
-          `${cap}-file limit. Only the first ${cap} are indexed, so some wiki-links may not ` +
-          `resolve. Raise "wikiLinks.indexMaxFiles" to index more.`,
-      );
+    let added = false;
+    for (const uri of found.slice(0, cap)) {
+      if (this.workspaceRegistry.add(uri)) {
+        added = true;
+      }
+    }
+    if (added) {
+      this.generation++;
+      this.snapCache.clear();
     }
   }
+  snapshotFor(fromFsPath: string): IndexSnapshot {
+    const cached = this.snapCache.get(this.root);
+    if (cached && cached.generation === this.generation) {
+      return cached.snap;
+    }
+    const entries = [...this.workspaceRegistry.all(), ...this.estateRegistry.all()]
+      .filter((e) => e.kind === "file")
+      .map((e) => ({
+        fsPath: e.uri.fsPath,
+        relPath: path.relative(this.root, e.uri.fsPath),
+        baseNoExt: e.label,
+      }));
+    const snap = createSnapshot(entries, this.root);
+    this.snapCache.set(this.root, {
+      generation: this.generation,
+      snap,
+    });
 
-  private add(u: vscode.Uri): void {
-    if (!INDEXABLE_RE.test(u.fsPath)) return;
-    const folder = vscode.workspace.getWorkspaceFolder(u);
-    if (!folder) return;
-    const rel = path.relative(folder.uri.fsPath, u.fsPath);
-    // The FileSystemWatcher glob cannot carry an exclude, so filter vendor folders here too.
-    if (isExcludedPath(rel, excludedFolders())) return;
-    // Hard-stop at the cap so watcher-driven creates cannot grow the index past it.
-    // Known paths are still allowed through so an in-place update (e.g. rename) is not blocked.
-    if (!this.entries.has(u.fsPath) && this.entries.size >= indexMaxFiles()) return;
-    this.entries.set(u.fsPath, makeIndexEntry(u.fsPath, folder.uri.fsPath));
+    return snap;
+  }
+  async refresh(): Promise<void> {
     this.generation++;
+    this.snapCache.clear();
+    for (const registry of this.resolver.registries()) {
+      await registry.refresh?.();
+    }
   }
-
-  private readonly demoExternalLinks = [
-    "https://www.google.com",
-    "https://en.wikipedia.org/wiki/Quantopian",
-    "https://github.com/PrimeTimeTran",
-  ];
-
-  externalLinks(): readonly string[] {
-    return this.demoExternalLinks;
+  dispose(): void {
+    this.watcher?.dispose();
+    for (const l of this.listeners) l.dispose();
   }
-
-  provideDocumentLinks(document: vscode.TextDocument): vscode.DocumentLink[] {
-    return [
-      // Local file
-      new vscode.DocumentLink(
-        new vscode.Range(0, 0, 70, 0),
-        vscode.Uri.file("/Users/future/KB/project/app/loi/crates/learn/public/wikilinks.md"),
-      ),
-
-      // Workspace file
-      new vscode.DocumentLink(
-        new vscode.Range(72, 0, 72, 12),
-        vscode.Uri.file("/Users/future/KB/project/app/loi/README.md"),
-      ),
-
-      // GitHub
-      new vscode.DocumentLink(
-        new vscode.Range(74, 0, 74, 12),
-        vscode.Uri.parse("https://github.com/PrimeTimeTran"),
-      ),
-
-      // Wikipedia
-      new vscode.DocumentLink(
-        new vscode.Range(76, 0, 76, 12),
-        vscode.Uri.parse("https://en.wikipedia.org/wiki/Quantopian"),
-      ),
-
-      // Google
-      new vscode.DocumentLink(
-        new vscode.Range(78, 0, 78, 12),
-        vscode.Uri.parse("https://www.google.com"),
-      ),
-    ];
+  resolve(label: string): EstateEntry | undefined {
+    const result = this.resolver.resolve(label);
+    if (!result) {
+      vscode.window.showInformationMessage(
+        `Estate: "${label}" not found. Checked workspace registry.`,
+      );
+    }
+    return result;
   }
-
+  private add(u: vscode.Uri): void {
+    const added = this.workspaceRegistry.add(u);
+    if (added) {
+      this.generation++;
+      this.snapCache.clear();
+    }
+  }
+  private onDocumentChanged(event: vscode.TextDocumentChangeEvent) {
+    const doc = event.document;
+    if (doc.languageId !== "markdown") {
+      return;
+    }
+    // optional: only inspect the changed lines
+    for (const change of event.contentChanges) {
+      const text = change.text;
+      const matches = text.matchAll(/\[\[([^\]]+)\]\]/g);
+      for (const match of matches) {
+        const label = match[1];
+        const entry = this.resolver.resolve(label);
+        if (!entry) {
+          this.reportMissing(`Estate: "${label}" not found. Checked workspace registry.`);
+          // vscode.window.showInformationMessage(
+          //   `Estate: "${label}" not found. Checked workspace registry.`,
+          // );
+        }
+      }
+    }
+  }
+  private missingTimer?: NodeJS.Timeout;
+  private reportMissing(label: string) {
+    clearTimeout(this.missingTimer);
+    this.missingTimer = setTimeout(() => {
+      vscode.window.showInformationMessage(`Estate: "${label}" not found.`);
+    }, 500);
+  }
   private remove(u: vscode.Uri): void {
-    if (this.entries.delete(u.fsPath)) this.generation++;
+    if (this.workspaceRegistry.remove(u)) {
+      this.generation++;
+      this.snapCache.clear();
+    }
   }
 }
 
@@ -192,4 +181,289 @@ export function excludedFolders(): string[] {
     .getConfiguration("wikiLinks")
     .get<string[]>("index.excludeFolders");
   return Array.isArray(configured) ? configured : DEFAULT_EXCLUDED_FOLDERS;
+}
+
+// class WorkspaceScanner {
+//   async scan(registry: WorkspaceRegistry) {
+//     const files = await vscode.workspace.findFiles(GLOB);
+
+//     for (const file of files) {
+//       registry.add(createWorkspaceEntry(file));
+//     }
+//   }
+// }
+
+type EstateKind = "file" | "heading" | "block" | "symbol" | "bookmark" | "setting" | "anchor";
+
+export interface EstateEntry {
+  id: string;
+
+  /**
+   * Primary display name
+   */
+  label: string;
+
+  /**
+   * Alternate names that resolve to this entry
+   */
+  aliases: string[];
+
+  /**
+   * Where it lives
+   */
+  uri: vscode.Uri;
+
+  matches(query: string): boolean;
+  kind: EstateKind;
+  linkUri(): vscode.Uri | undefined;
+}
+class WorkspaceEntry implements EstateEntry {
+  readonly id: string;
+  readonly aliases: string[];
+  constructor(
+    id: string,
+    readonly fsPath: string,
+    readonly relPath: string,
+    readonly baseNoExt: string,
+    readonly kind: EstateKind,
+  ) {
+    this.id = id;
+    this.aliases = [baseNoExt, relPath, stripMdExt(relPath)];
+  }
+  get label() {
+    return this.baseNoExt;
+  }
+  get uri() {
+    return vscode.Uri.file(this.fsPath);
+  }
+  matches(query: string) {
+    return this.aliases.includes(query);
+  }
+  linkUri() {
+    return this.uri;
+  }
+}
+export class EstateAnchorEntry implements EstateEntry {
+  readonly kind: EstateKind = "bookmark";
+  readonly aliases: string[];
+
+  constructor(
+    readonly anchor: {
+      id: string;
+      label: string;
+      description?: string;
+      uri?: string;
+      tags?: string[];
+      code?: string;
+      src?: {
+        uri: string;
+        startLine: number;
+        endLine: number;
+        startCharacter: number;
+        endCharacter: number;
+        languageId: string;
+      };
+    },
+  ) {
+    this.aliases = [anchor.label, anchor.id];
+  }
+
+  get id() {
+    return this.anchor.id;
+  }
+
+  get label() {
+    return this.anchor.label;
+  }
+
+  get uri(): vscode.Uri {
+    return vscode.Uri.file(this.anchor.src?.uri ?? "");
+  }
+  matches(query: string): boolean {
+    return this.aliases.includes(query);
+  }
+  linkUri(): vscode.Uri | undefined {
+    if (!this.anchor.src) {
+      return undefined;
+    }
+    return vscode.Uri.file(this.anchor.src.uri).with({
+      fragment: `L${this.anchor.src.startLine + 1}`,
+    });
+  }
+}
+interface WikiRegistry {
+  readonly name: string;
+  readonly priority: number;
+  all(): Iterable<EstateEntry>;
+  refresh?(): Promise<void>;
+}
+class EstateRegistry implements WikiRegistry {
+  readonly name = "estate";
+  readonly priority = 100;
+  readonly anchorsPath = "/Users/future/.estate/anchors.json";
+  private readonly items = new Map<string, EstateEntry>();
+  constructor(readonly root: string) {}
+  all(): Iterable<EstateEntry> {
+    return this.items.values();
+  }
+  async refresh(): Promise<void> {
+    this.items.clear();
+    const data = JSON.parse(await fs.promises.readFile(this.anchorsPath, "utf8"));
+    for (const anchor of Object.values(data.items)) {
+      if (!anchor.tags?.includes("wiki")) continue;
+      const entry = new EstateAnchorEntry(anchor);
+      this.items.set(entry.id, entry);
+    }
+  }
+}
+class WorkspaceRegistry implements WikiRegistry {
+  readonly name = "workspace";
+  readonly priority = 100;
+  private readonly items = new Map<string, WorkspaceEntry>();
+  constructor(readonly root: string) {}
+  async refresh(): Promise<void> {
+    this.items.clear();
+    const exclude = buildExcludeGlob(excludedFolders());
+    const cap = indexMaxFiles();
+    const found = await vscode.workspace.findFiles(GLOB, exclude);
+    for (const uri of found.slice(0, cap)) {
+      this.add(uri);
+    }
+  }
+  values(): Iterable<WorkspaceEntry> {
+    return this.items.values();
+  }
+  entries(): Iterable<EstateEntry> {
+    return this.items.values();
+  }
+  all(): Iterable<EstateEntry> {
+    return this.items.values();
+  }
+  add(uri: vscode.Uri): WorkspaceEntry | undefined {
+    if (!INDEXABLE_RE.test(uri.fsPath)) return;
+    const existing = this.items.get(uri.fsPath);
+    if (existing) {
+      return existing;
+    }
+    const relPath = path.relative(this.root, uri.fsPath);
+    const baseNoExt = stripMdExt(path.basename(uri.fsPath));
+    const entry = new WorkspaceEntry(crypto.randomUUID(), uri.fsPath, relPath, baseNoExt, "file");
+    this.items.set(uri.fsPath, entry);
+    return entry;
+  }
+  remove(uri: vscode.Uri): boolean {
+    return this.items.delete(uri.fsPath);
+  }
+  clear(): void {
+    this.items.clear();
+  }
+}
+
+export class WikiResolver {
+  constructor(private readonly sources: WikiRegistry[]) {
+    this.sources.sort((a, b) => b.priority - a.priority);
+  }
+  registries(): readonly WikiRegistry[] {
+    return this.sources;
+  }
+  *all(): Generator<EstateEntry> {
+    for (const registry of this.sources) {
+      yield* registry.all();
+    }
+  }
+  resolve(label: string): EstateEntry | undefined {
+    for (const registry of this.sources) {
+      for (const entry of registry.all()) {
+        if (entry.matches(label)) {
+          return entry;
+        }
+      }
+    }
+    return undefined;
+  }
+
+  resolveRelative(target: string, fromFsPath: string): EstateEntry | undefined {
+    const normalized = stripMdExt(target.replace(/\\/g, "/")).toLowerCase();
+    const fromDir = path.dirname(fromFsPath);
+
+    for (const registry of this.sources) {
+      for (const entry of registry.all()) {
+        const entryPath = entry.uri.fsPath;
+
+        // Absolute filesystem match
+        if (path.normalize(entryPath) === path.normalize(target)) {
+          return entry;
+        }
+
+        // Relative to current document
+        const relative = path.relative(fromDir, entryPath).replace(/\\/g, "/");
+
+        if (stripMdExt(relative).toLowerCase() === normalized) {
+          return entry;
+        }
+
+        // Workspace-relative fallback
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+
+        if (workspaceRoot) {
+          const workspaceRelative = path.relative(workspaceRoot, entryPath).replace(/\\/g, "/");
+
+          if (stripMdExt(workspaceRelative).toLowerCase() === normalized) {
+            return entry;
+          }
+        }
+      }
+    }
+    return undefined;
+  }
+  resolveLink(
+    ref: Pick<ParsedRef, "target" | "fragment">,
+    fromFsPath: string,
+  ): EstateEntry | undefined {
+    const target = ref.target.split("#")[0].trim();
+
+    const direct = this.resolve(target);
+
+    if (direct) {
+      return direct;
+    }
+
+    return this.resolveRelative(target, fromFsPath);
+  }
+
+  resolveEmbed(target: string, fragment?: string): EmbedResolved | null {
+    const entry = this.resolve(target);
+
+    if (!entry) {
+      return null;
+    }
+
+    if (this.isImage(entry)) {
+      return {
+        kind: "image",
+        src: entry.uri.toString(),
+      };
+    }
+
+    return {
+      kind: "markdown",
+      text: fs.readFileSync(entry.uri.fsPath, "utf8"),
+      sourcePath: entry.uri.fsPath,
+    };
+  }
+
+  fileHref(entry: EstateEntry, fragment: string | undefined): string {
+    throw new Error("Method not implemented fileHref.");
+  }
+  private isImage(entry: EstateEntry): boolean {
+    return IMAGE_RE.test(entry.uri.fsPath);
+  }
+}
+
+function stripExtension(name: string): string {
+  return name.replace(/\.[^.]+$/, "");
+}
+
+function stripMdExt(name: string): string {
+  return name.replace(/\.md$/i, "");
 }

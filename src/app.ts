@@ -35,32 +35,13 @@ export class AppStore {
   readonly anchors: AnchorStore;
   readonly presenter: AnchorPresenter;
   readonly codeLens: WikiCodeLensProvider;
+  readonly wiki: IndexService;
   constructor(
     public ctx: vscode.ExtensionContext,
     public logger: TraceApi,
-    indexService: IndexService,
   ) {
     logger.debug("[AppStore.constructor.start]");
-    // const originalLog = console.log;
-    // console.log = (...args: unknown[]) => {
-    //   originalLog(...args);
-    //   this.outputChannel.appendLine(
-    //     args.map((arg) => (typeof arg === "string" ? arg : JSON.stringify(arg))).join(" "),
-    //   );
-    // };
-    // ctx.subscriptions.push(this.outputChannel);
-    // setLoggerConfig({
-    //   LOG_LEVEL: "debug",
-    //   TRACE_ENABLED: true,
-    //   // // If your logger supports a custom transport/sink function:
-    //   // transport: (formattedLogString: string) => {
-    //   //   this.outputChannel.appendLine(formattedLogString);
-    //   // },
-    // });
-
-    // const trace = createTrace("ext:app.constructor");
-    // trace.mark("app.constructor.start");
-
+    this.wiki = new IndexService();
     this.activity = new ActivityStore<AppActivity>(this);
     this.anchors = new AnchorStore(this);
     this.analysis = new AnalysisStore(this);
@@ -72,14 +53,14 @@ export class AppStore {
     // For various icons(menu title)
     this.vfsDecorator = new VFSDecorator(ctx, this);
 
-    this.decorator = new WikiDecorations(this, indexService);
+    this.decorator = new WikiDecorations(this, this.wiki);
     this.codeLens = new WikiCodeLensProvider(this);
 
     ctx.subscriptions.push(
       vscode.languages.registerCodeLensProvider(longLangs, this.codeLens),
       vscode.languages.registerDocumentLinkProvider(
         longLangs,
-        new WikiDocumentLinkProvider(indexService),
+        new WikiDocumentLinkProvider(this.wiki),
       ),
     );
     ctx.subscriptions.push(
@@ -108,6 +89,7 @@ export class AppStore {
   }
 
   init(context: vscode.ExtensionContext) {
+    this.wiki.initialize();
     context.subscriptions.push(
       vscode.workspace.registerTextDocumentContentProvider("estate", this.vfs),
       vscode.window.registerFileDecorationProvider(this.vfsDecorator),
@@ -144,7 +126,7 @@ export class AppStore {
     const num = (this.state.leader + 1) % 3;
     this.state.leader = num;
     await vscode.commands.executeCommand("setContext", "estate.leader", num);
-    this.tree.refresh(num);
+    this.tree.refresh();
     return num;
   }
 }
@@ -155,7 +137,7 @@ interface ReferenceItem extends vscode.QuickPickItem {
 }
 
 export function registerGiantQuickPickCommand(context: vscode.ExtensionContext, app: AppStore) {
-  let disposable = vscode.commands.registerCommand(CMD.estate.show.ownership, async () => {
+  let disposable = vscode.commands.registerCommand(CMD.estate.ui.cmdPalette, async () => {
     const quickPick = vscode.window.createQuickPick<ReferenceItem>();
     quickPick.title = "🚀 Reference & Command Hub";
     quickPick.placeholder = "Type to search references, snippets, or actions...";

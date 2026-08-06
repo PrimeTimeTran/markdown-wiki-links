@@ -192,9 +192,9 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
     EstateNode | null | undefined
   >();
   readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
-  refresh(data: any): void {
+  refresh(): void {
     console.log("[EstateTreeProvider].refresh");
-    this.onDidChangeTreeDataEmitter.fire(data);
+    this.onDidChangeTreeDataEmitter.fire();
   }
   getTreeItem(node: EstateNode): any {
     return node;
@@ -223,14 +223,6 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
       .filter((b) => section == "draft" || b.tags.includes(section))
       .map((a) => this.buildNode(node, a));
   }
-  // buildChildren(node: EstateNode) {
-  //   let children = (node.anchor?.anchors ?? [])
-  //     .map((id) => this.app.anchors.get(id))
-  //     .filter((a): a is Anchor => !!a)
-  //     .map((a) => this.buildNode(node, a));
-  //   console.log("childrenchildren", children);
-  //   return children;
-  // }
   buildChildren(node: EstateNode) {
     console.log("parent", node.anchor?.id);
     console.log("anchor ids", node.anchor?.anchors);

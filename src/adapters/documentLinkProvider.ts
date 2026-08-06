@@ -6,9 +6,7 @@ import { lineForFragment } from "../core/blocks/sectionSlice";
 import { buildFenceMask } from "../core/fenceMask";
 import { parseEmbeds } from "../core/parser/embedParser";
 import { parseLinks } from "../core/parser/linkParser";
-import { resolveTarget } from "../core/resolver/resolveTarget";
 import { IndexService } from "./indexService";
-import { isInsideWorkspaceReal } from "./workspaceBoundary";
 
 export class WikiDocumentLinkProvider implements vscode.DocumentLinkProvider {
   constructor(private idx: IndexService) {}
@@ -17,24 +15,47 @@ export class WikiDocumentLinkProvider implements vscode.DocumentLinkProvider {
     const text = doc.getText();
     const mask = buildFenceMask(text);
     const refs = [...parseLinks(text, mask), ...parseEmbeds(text, mask)];
-    const snap = this.idx.snapshotFor(doc.uri.fsPath);
+
+    const resolver = this.idx.getResolver();
     const out: vscode.DocumentLink[] = [];
+
     for (const r of refs) {
-      const resolved = resolveTarget(r, doc.uri.fsPath, snap);
-      if (!resolved) continue;
-      const targetUri = vscode.Uri.file(resolved.fsPath);
-      if (!(await isInsideWorkspaceReal(targetUri))) continue;
-      let final = targetUri;
-      if (r.fragment) {
-        const targetText =
-          resolved.fsPath === doc.uri.fsPath ? text : await safeRead(resolved.fsPath);
-        const line = lineForFragment(r.fragment, targetText);
-        if (line !== undefined) final = targetUri.with({ fragment: `L${line + 1}` });
+      const entry = resolver.resolveLink(r, doc.uri.fsPath);
+
+      if (!entry) {
+        continue;
       }
+
+      const targetUri = entry.linkUri();
+
+      if (!targetUri) {
+        continue;
+      }
+
+      let final = targetUri;
+
+      if (r.fragment) {
+        const fsPath = targetUri.fsPath;
+        const targetText = fsPath === doc.uri.fsPath ? text : await safeRead(fsPath);
+
+        const line = lineForFragment(r.fragment, targetText);
+
+        if (line !== undefined) {
+          final = targetUri.with({
+            fragment: `L${line + 1}`,
+          });
+        }
+      }
+
       const start = doc.positionAt(r.range.start);
       const end = doc.positionAt(r.range.end);
+
+      let item = new vscode.DocumentLink(new vscode.Range(start, end), final);
+      console.log("item.target", item.target);
       out.push(new vscode.DocumentLink(new vscode.Range(start, end), final));
     }
+    // console.log("out", out);
+
     return out;
   }
 }

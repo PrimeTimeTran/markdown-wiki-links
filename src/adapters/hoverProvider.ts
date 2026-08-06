@@ -8,56 +8,74 @@ import { stripFrontmatter } from "../core/frontmatter";
 import { imageSize } from "../core/imageSize";
 import { parseEmbeds } from "../core/parser/embedParser";
 import { parseLinks } from "../core/parser/linkParser";
-import { resolveTarget } from "../core/resolver/resolveTarget";
-import { IndexService } from "./indexService";
-import { isInsideWorkspaceReal } from "./workspaceBoundary";
+import { IndexService, WikiResolver } from "./indexService";
 
-const IMAGE_RE = /\.(png|jpe?g|gif|webp|svg)$/i;
+export const IMAGE_RE = /\.(png|jpe?g|gif|webp|svg)$/i;
 
 export class WikiHoverProvider implements vscode.HoverProvider {
   constructor(private idx: IndexService) {}
-
   async provideHover(
     doc: vscode.TextDocument,
     pos: vscode.Position,
   ): Promise<vscode.Hover | undefined> {
     const text = doc.getText();
     const offset = doc.offsetAt(pos);
-    const snap = this.idx.snapshotFor(doc.uri.fsPath);
     const mask = buildFenceMask(text);
-
+    const resolver = this.idx.getResolver();
     const embed = parseEmbeds(text, mask).find(
       (r) => offset >= r.range.start && offset <= r.range.end,
     );
-    if (embed) return this.hoverForEmbed(embed, doc, snap);
-
+    if (embed) {
+      return this.hoverForEmbed(embed, doc, resolver);
+    }
     const link = parseLinks(text, mask).find(
       (r) => offset >= r.range.start && offset <= r.range.end,
     );
-    if (link) return this.hoverForLink(link, doc, snap);
-
+    if (link) {
+      return this.hoverForLink(link, doc, resolver);
+    }
     return undefined;
   }
-
   private async hoverForLink(
-    ref: { target: string; fragment?: string; range: { start: number; end: number } },
+    ref: {
+      target: string;
+      fragment?: string;
+      range: { start: number; end: number };
+    },
     doc: vscode.TextDocument,
-    snap: ReturnType<IndexService["snapshotFor"]>,
+    resolver: WikiResolver,
   ): Promise<vscode.Hover | undefined> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const resolved = resolveTarget(ref as any, doc.uri.fsPath, snap);
-    if (!resolved) return;
-    // A plain [[image.png]] link still points at a binary file — preview it, don't dump bytes.
-    if (IMAGE_RE.test(resolved.fsPath)) {
-      return imageHover(vscode.Uri.file(resolved.fsPath), ref.target);
+    const entry = resolver.resolveLink(
+      {
+        target: ref.target,
+        fragment: ref.fragment,
+      },
+      doc.uri.fsPath,
+    );
+
+    if (!entry) {
+      return undefined;
     }
+
+    const uri = entry.linkUri();
+
+    if (!uri) {
+      return undefined;
+    }
+
+    const fsPath = uri.fsPath;
+
+    if (IMAGE_RE.test(fsPath)) {
+      return imageHover(uri, ref.target);
+    }
+
     const targetText =
-      resolved.fsPath === doc.uri.fsPath
-        ? doc.getText()
-        : await fs.readFile(resolved.fsPath, "utf8").catch(() => "");
+      fsPath === doc.uri.fsPath ? doc.getText() : await fs.readFile(fsPath, "utf8").catch(() => "");
+
     const snippet = ref.fragment
       ? sliceSection(ref.fragment, targetText)
       : firstLines(stripFrontmatter(targetText), 40);
+
     return new vscode.Hover(new vscode.MarkdownString(snippet));
   }
 
@@ -69,15 +87,28 @@ export class WikiHoverProvider implements vscode.HoverProvider {
       range: { start: number; end: number };
     },
     doc: vscode.TextDocument,
-    snap: ReturnType<IndexService["snapshotFor"]>,
+    resolver: WikiResolver,
   ): Promise<vscode.Hover | undefined> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const resolved = resolveTarget({ ...ref, kind: "embed" } as any, doc.uri.fsPath, snap);
-    if (!resolved) return;
-    if (IMAGE_RE.test(resolved.fsPath)) {
-      return imageHover(vscode.Uri.file(resolved.fsPath), ref.target);
+    vscode.window.showInformationMessage("hoverForEmbed");
+    const entry = resolver.resolveLink(
+      {
+        target: ref.target,
+        fragment: ref.fragment,
+      },
+      doc.uri.fsPath,
+    );
+    if (!entry) {
+      return undefined;
     }
-    const targetText = await fs.readFile(resolved.fsPath, "utf8").catch(() => "");
+
+    // A plain [[image.png]] link still points at a binary file — preview it, don't dump bytes.
+    // const resolved = resolveTarget({ ...ref, kind: "embed" } as any, doc.uri.fsPath, resolver);
+    if (!entry) return;
+    const fsPath = entry.uri.fsPath;
+    if (IMAGE_RE.test(fsPath)) {
+      return imageHover(vscode.Uri.file(fsPath), ref.target);
+    }
+    const targetText = await fs.readFile(fsPath, "utf8").catch(() => "");
     const body = ref.fragment
       ? sliceSection(ref.fragment, targetText)
       : stripFrontmatter(targetText);
@@ -101,7 +132,7 @@ function hoverImageMaxHeight(): number {
 }
 
 async function imageHover(uri: vscode.Uri, displayName: string): Promise<vscode.Hover | undefined> {
-  if (!(await isInsideWorkspaceReal(uri))) return;
+  if (!uri.fsPath) return;
   const md = new vscode.MarkdownString();
   md.isTrusted = false;
   // VSCode hovers have no markdown syntax for image dimensions; an <img> tag is the only way to

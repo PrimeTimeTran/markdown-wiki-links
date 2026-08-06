@@ -19,6 +19,31 @@ const items = ["bookmark", "series", "settings", "pipeline"];
 // Tab switchhotkey)
 export const COMMANDS: CommandDefinition[] = [
   {
+    title: "Estate: Open Command Palette",
+    id: "estate.ui.cmdPalette",
+    shortTitle: "Quick Pick from the command palette",
+    icon: "$(zap)",
+    menus: [
+      // {
+      //   menu: "view/title",
+      //   group: "navigation",
+      //   when: "view == estateExplorer",
+      // },
+    ],
+  },
+  {
+    title: "Estate: Show Rust Ownership Analysis",
+    id: "estate.ownership.show",
+    icon: "$(filter)",
+    menus: [
+      // {
+      //   menu: "view/title",
+      //   group: "navigation",
+      //   when: "view == estateExplorer",
+      // },
+    ],
+  },
+  {
     title: "Estate: View Options",
     id: "estate.explore.options",
     icon: "$(filter)",
@@ -305,18 +330,12 @@ export const COMMANDS: CommandDefinition[] = [
     ],
   },
   {
-    id: "estate.show.ownership",
-
-    title: "Estate: Show Ownership Analysis",
-
+    id: "estate.ownership.show",
+    title: "Estate: Show Rust Ownership Analysis",
     shortTitle: "Visualize ownership relationships and affected code regions",
-
     icon: "$(references)",
-
     category: "Analysis",
-
     enablement: "estate.rustAnalyzerReady",
-
     docs: {
       path: "docs/commands/show-ownership.md",
     },
@@ -333,7 +352,6 @@ export const COMMANDS: CommandDefinition[] = [
         group: "estate",
       },
     ],
-
     keybindings: [
       {
         key: "ctrl+alt+o",

@@ -1,4 +1,50 @@
 
+# Estate: Open Command Palette
+
+Command:
+
+`estate.ui.cmdPalette`
+
+Quick Pick from the command palette
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+
+
+---
+
+
+# Estate: Show Rust Ownership Analysis
+
+Command:
+
+`estate.ownership.show`
+
+
+
+Category:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+
+
+---
+
+
 # Estate: View Options
 
 Command:
@@ -40,6 +86,7 @@ Implementation:
 none
 
 Menus:
+- explorer/context
 - view/title
 - editor/title
 - view/item/context
@@ -512,11 +559,11 @@ Menus:
 ---
 
 
-# Estate: Show Ownership Analysis
+# Estate: Show Rust Ownership Analysis
 
 Command:
 
-`estate.show.ownership`
+`estate.ownership.show`
 
 Visualize ownership relationships and affected code regions
 

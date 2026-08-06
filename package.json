@@ -2,7 +2,7 @@
   "name": "markdown-wiki-links",
   "displayName": "Markdown Wiki Links",
   "publisher": "ltvan",
-  "version": "0.2.1",
+  "version": "0.2.3",
   "description": "Obsidian-style [[wiki-links]] between Markdown files in the workspace.",
   "license": "MIT",
   "repository": {
@@ -74,6 +74,18 @@
         }
       ]
     },
+    "keybindings": [
+      {
+        "command": "estate.anchor.pipeline",
+        "key": "ctrl+alt+a",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "estate.ownership.show",
+        "key": "ctrl+alt+o",
+        "when": "editorLangId == rust"
+      }
+    ],
     "menus": {
       "extension/context": [
         {
@@ -387,11 +399,7 @@
         "title": "Estate: Test Reference Panel"
       },
       {
-        "command": "estate.testOwnershipAction",
-        "title": "Estate: Test Ownership"
-      },
-      {
-        "command": "estate.showOwnership",
+        "command": "estate.ownership.show",
         "title": "Estate: Show Ownership"
       },
       {
@@ -404,6 +412,17 @@
         "shortTitle": "Configure behavior",
         "icon": "$(gear)",
         "category": "Settings"
+      },
+      {
+        "command": "estate.ui.cmdPalette",
+        "title": "Estate: Open Command Palette",
+        "shortTitle": "Quick Pick from the command palette",
+        "icon": "$(zap)"
+      },
+      {
+        "command": "estate.ownership.show",
+        "title": "Estate: Show Rust Ownership Analysis",
+        "icon": "$(filter)"
       }
     ],
     "configuration": {
@@ -552,6 +571,7 @@
           "default": [
             ".git",
             "node_modules",
+            "target",
             ".hg",
             ".svn",
             ".bzr",

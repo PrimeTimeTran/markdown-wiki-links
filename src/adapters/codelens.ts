@@ -18,7 +18,7 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
       // console.log("[WikiCodeLensProvider].subscription", activity);
       this.refresh();
       // this.analyzeLine(activity);
-    });
+    }); 
   }
   public refresh(): void {
     this._onDidChangeCodeLenses.fire();

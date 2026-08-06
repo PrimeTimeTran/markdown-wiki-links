@@ -10,7 +10,7 @@ import { CMD } from "../../generated/cmd";
 import { AnchorActivity, AppActivity } from "../activity";
 import { AppStore } from "../app";
 import { PATHS } from "../cfg";
-import { capability, flags } from "../cmd/cmd";
+import { capability, flags } from "../cmd/flags";
 import { EstateContext, EstateFlag, EstateNode } from "../estate";
 import { anchorShowPage, getHtml } from "./htmlAnchor";
 // # Flag
@@ -87,6 +87,17 @@ export class Anchor {
     return this.src.uri.toString();
   }
 }
+
+// class AnchorResolver {
+//   constructor(private readonly sources: AnchorSource[]) {}
+
+//   resolve(label: string) {
+//     for (const source of this.sources) {
+//       const result = source.resolve(label);
+//       if (result) return result;
+//     }
+//   }
+// }
 export type AnchorOrigin = "system" | "personal" | "workspace";
 export interface AnchorSource {
   uri: string;
@@ -96,6 +107,9 @@ export interface AnchorSource {
   endCharacter?: number;
   languageId?: string;
 }
+// export class AnchorSource {
+//   resolve(label: string) {}
+// }
 // CRUD
 // - [ ] Create
 // - [ ] Read
@@ -948,7 +962,7 @@ export class AnchorPresenter {
     panel.webview.onDidReceiveMessage((msg) => {
       if (msg.type === "save") {
         // this.app.anchors.update(anchor?.id || "", msg.anchor);
-        this.app.tree.refresh();
+        // this.app.tree.refresh();
         vscode.window.showInformationMessage("Anchor saved.");
       }
     });

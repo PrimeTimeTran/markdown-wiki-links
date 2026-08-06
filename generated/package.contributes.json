@@ -2,6 +2,17 @@
   "contributes": {
     "commands": [
       {
+        "command": "estate.ui.cmdPalette",
+        "title": "Estate: Open Command Palette",
+        "shortTitle": "Quick Pick from the command palette",
+        "icon": "$(zap)"
+      },
+      {
+        "command": "estate.ownership.show",
+        "title": "Estate: Show Rust Ownership Analysis",
+        "icon": "$(filter)"
+      },
+      {
         "command": "estate.explore.options",
         "title": "Estate: View Options",
         "icon": "$(filter)"
@@ -19,7 +30,7 @@
       {
         "command": "estate.bookmark.update",
         "title": "Estate: Edit bookmark",
-        "icon": "$(edit)"
+        "icon": "$(preferences-open-settings)"
       },
       {
         "command": "estate.bookmark.delete",
@@ -117,8 +128,8 @@
         "enablement": "estate.input"
       },
       {
-        "command": "estate.show.ownership",
-        "title": "Estate: Show Ownership Analysis",
+        "command": "estate.ownership.show",
+        "title": "Estate: Show Rust Ownership Analysis",
         "shortTitle": "Visualize ownership relationships and affected code regions",
         "category": "Analysis",
         "icon": "$(references)",
@@ -135,6 +146,12 @@
         {
           "command": "estate.bookmark.create",
           "when": "view == estateExplorer",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "estate.bookmark.create",
           "group": "navigation"
         }
       ],
@@ -179,7 +196,7 @@
           "group": "navigation"
         },
         {
-          "command": "estate.show.ownership",
+          "command": "estate.ownership.show",
           "when": "editorLangId == rust",
           "group": "estate"
         }
@@ -257,7 +274,7 @@
         "when": "editorTextFocus"
       },
       {
-        "command": "estate.show.ownership",
+        "command": "estate.ownership.show",
         "key": "ctrl+alt+o",
         "when": "editorLangId == rust"
       }

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { COMMANDS } from "./CMDS";
+import { COMMANDS } from "./cmds";
 
 function generatePackageJson(commands: typeof COMMANDS) {
   return {

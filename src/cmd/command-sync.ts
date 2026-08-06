@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { COMMANDS } from "./CMDS";
+import { COMMANDS } from "./cmds";
 import type { Keybinding } from "./command-schema";
 
 interface CommandDefinition {

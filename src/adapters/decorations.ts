@@ -244,30 +244,36 @@ export class WikiDecorations {
   }
   private decorate(editor: vscode.TextEditor): void {
     if (!supportedLanguages.includes(editor.document.languageId)) return;
+
     const doc = editor.document;
     const text = doc.getText();
     const mask = buildFenceMask(text);
+
     const refs = [...parseLinks(text, mask), ...parseEmbeds(text, mask)];
-    const snap = this.idx.snapshotFor(doc.uri.fsPath);
+
+    const resolver = this.idx.getResolver();
     const resolvedRanges: vscode.Range[] = [];
     const unresolvedRanges: vscode.Range[] = [];
     for (const ref of refs) {
       const inner = innerRange(ref);
       const range = new vscode.Range(doc.positionAt(inner.start), doc.positionAt(inner.end));
-      const bucket = resolveTarget(ref, doc.uri.fsPath, snap) ? resolvedRanges : unresolvedRanges;
-      bucket.push(range);
+      const entry = resolver.resolveLink(ref, doc.uri.fsPath);
+      if (entry) {
+        resolvedRanges.push(range);
+      } else {
+        unresolvedRanges.push(range);
+      }
     }
     const estates = this.findEstateFlags(doc);
     const estate = this.findEstateAnchors(doc);
-    // editor.setDecorations(this.resolved, [...estate.map((e) => e.range)]);
-    // editor.setDecorations(this.resolved, [...estates.map((e) => e.range)]);
-    // editor.setDecorations(this.resolved, resolvedRanges);
-    // editor.setDecorations(this.unresolved, unresolvedRanges);
+
     editor.setDecorations(this.resolved, [
       ...estate.map((e) => e.range),
       ...estates.map((e) => e.range),
       ...resolvedRanges,
     ]);
+
+    editor.setDecorations(this.unresolved, unresolvedRanges);
   }
   public highlightSurroundingLines(editor: vscode.TextEditor) {
     const selection = editor.selection;
