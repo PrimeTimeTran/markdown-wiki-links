@@ -355,14 +355,6 @@
         "enablement": "estate.input"
       },
       {
-        "command": "estate.show.ownership",
-        "title": "Estate: Show Ownership Analysis",
-        "shortTitle": "Visualize ownership relationships and affected code regions",
-        "category": "Analysis",
-        "icon": "$(references)",
-        "enablement": "estate.rustAnalyzerReady"
-      },
-      {
         "key": "f24",
         "title": "Estate: Flow Next",
         "icon": "$(symbol-interface)",
@@ -399,10 +391,6 @@
         "title": "Estate: Test Reference Panel"
       },
       {
-        "command": "estate.ownership.show",
-        "title": "Estate: Show Ownership"
-      },
-      {
         "command": "bookmark.edit",
         "title": "Estate: Edit Bookmark"
       },
@@ -428,7 +416,8 @@
       {
         "command": "estate.ownership.show",
         "title": "Estate: Show Rust Ownership Analysis",
-        "icon": "$(filter)"
+        "icon": "$(filter)",
+        "category": "ownership"
       }
     ],
     "configuration": {

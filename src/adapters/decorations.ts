@@ -48,19 +48,46 @@ export class WikiDecorations {
   private unresolved = vscode.window.createTextEditorDecorationType({
     color: new vscode.ThemeColor("descriptionForeground"),
   });
+  decorationTypes(ctx: vscode.ExtensionContext) {
+    const subjectUnderlineDecoration = vscode.window.createTextEditorDecorationType({
+      textDecoration: "underline wavy #19b60b",
+    });
+
+    const relatedLineHighlightDecoration = vscode.window.createTextEditorDecorationType({
+      backgroundColor: new vscode.ThemeColor("editor.findMatchHighlightBackground"),
+    });
+
+    const iconPath = vscode.Uri.file(path.join(ctx.extensionPath, "resources", `eye.svg`));
+
+    const kindLabelDecoration = vscode.window.createTextEditorDecorationType({
+      after: {
+        margin: "0 0 0 1.5em",
+        color: new vscode.ThemeColor("editorCodeLens.foreground"),
+        fontStyle: "italic",
+      },
+      gutterIconPath: iconPath,
+      gutterIconSize: "contain",
+    });
+    return [subjectUnderlineDecoration, relatedLineHighlightDecoration, kindLabelDecoration];
+  }
   constructor(
     app: AppStore,
     private idx: IndexService,
   ) {
-    console.log("[WikiDecorations.constructor]");
     this.initIcons();
     this.initStateIcons();
+    let [subjectUnderlineDecoration, relatedLineHighlightDecoration, kindLabelDecoration] =
+      this.decorationTypes(app.ctx);
     this.providers = [
       new AnchorDecorationProvider(this.anchorDecorationType, app),
       new GutterProvider(this.anchorDecorationType, app),
-      // new GutterProvider(app.analysis, this.analysisDecorationType),
-      // new AnalysisDecorationProvider(app.analysis, this.analysisDecorationType),
-      // new WikiLinkDecorationProvider(this.idx, this.resolved, this.unresolved),
+      new OwnershipDecorationProvider(
+        this.anchorDecorationType,
+        app,
+        subjectUnderlineDecoration,
+        relatedLineHighlightDecoration,
+        kindLabelDecoration,
+      ),
     ];
     app.ctx.subscriptions.push(
       this.resolved,
@@ -88,8 +115,8 @@ export class WikiDecorations {
       console.log("[-- 5 -- WikiDecorations.windowClick()]");
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
-      this.decorate(editor);
       this.refresh(editor, activity);
+      this.decorate(editor);
     });
   }
 
@@ -496,11 +523,11 @@ function isProbablyVisible(editor: vscode.TextEditor, line: number) {
 interface DecorationProvider {
   provide(editor: vscode.TextEditor, activity: AppActivity): DecorationResult[];
 }
-
 interface DecorationResult {
   type: vscode.TextEditorDecorationType;
   ranges: vscode.Range[];
 }
+
 export class AnchorDecorationProvider implements DecorationProvider {
   constructor(
     private type: vscode.TextEditorDecorationType,
@@ -630,9 +657,80 @@ export class GutterProvider implements DecorationProvider {
     });
   }
 }
-// class AnalysisDecorationProvider implements DecorationProvider {
-//   provide(editor: vscode.TextEditor, activity: AppActivity): DecorationResult[] {}
-// }
-// class WikiLinkDecorationProvider implements DecorationProvider {
-//   provide(editor: vscode.TextEditor, activity: AppActivity): DecorationResult[] {}
-// }
+
+export class OwnershipDecorationProvider implements DecorationProvider {
+  constructor(
+    private type: vscode.TextEditorDecorationType,
+    private app: AppStore,
+    private subjectDecorationType: vscode.TextEditorDecorationType,
+    private relatedDecorationType: vscode.TextEditorDecorationType,
+    private labelDecorationType: vscode.TextEditorDecorationType,
+  ) {}
+
+  public provide(editor: vscode.TextEditor, activity: AppActivity): DecorationResult[] {
+    const currentAnalysis = this.app.analysis.get();
+    if (!currentAnalysis?.analysis?.node_context?.subject) {
+      return [];
+    }
+
+    const {
+      node_context: { subject },
+      classification,
+    } = currentAnalysis.analysis;
+    const span = subject.span;
+
+    // 1. Range for the main subject (Underline)
+    const subjectRange = new vscode.Range(
+      new vscode.Position(span.start_line - 1, span.start_col),
+      new vscode.Position(span.end_line - 1, span.end_col),
+    );
+
+    // 2. Ranges for related lines (Highlighted)
+    const relatedRanges: vscode.Range[] = (currentAnalysis.analysis.related_lines || []).map(
+      (rel) => {
+        const lineIdx = rel.line - 1;
+        return new vscode.Range(
+          lineIdx,
+          0,
+          lineIdx,
+          editor.document.lineAt(lineIdx).range.end.character,
+        );
+      },
+    );
+
+    // 3. Fix label placement: Anchor it to the END of the subject's line
+    // so the text renders cleanly on the far right instead of breaking up the code.
+    const targetLineIdx = span.start_line - 1;
+    const lineEndCharacter = editor.document.lineAt(targetLineIdx).range.end.character;
+    const endOfLineRange = new vscode.Range(
+      targetLineIdx,
+      lineEndCharacter,
+      targetLineIdx,
+      lineEndCharacter,
+    );
+
+    const labelOptions: vscode.DecorationOptions = {
+      range: endOfLineRange,
+      renderOptions: {
+        after: {
+          contentText: `  [${subject.kind}]${classification ? ` (${classification})` : ""}`,
+        },
+      },
+    };
+
+    return [
+      {
+        type: this.subjectDecorationType,
+        ranges: [subjectRange],
+      },
+      {
+        type: this.relatedDecorationType,
+        ranges: relatedRanges,
+      },
+      {
+        type: this.labelDecorationType,
+        ranges: [labelOptions] as any,
+      },
+    ];
+  }
+}

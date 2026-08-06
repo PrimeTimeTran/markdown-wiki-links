@@ -12,7 +12,7 @@ const newCmd: CommandDefinition = {
   ],
 };
 
-const items = ["bookmark", "series", "settings", "pipeline"];
+// const items = ["bookmark", "series", "settings", "pipeline"];
 
 // TODO:
 // Menu icons aren't behaving consistently in sidebar click of file explorer
@@ -36,18 +36,6 @@ export const COMMANDS: CommandDefinition[] = [
     id: "estate.ui.quickPick",
     shortTitle: "Open quick picker",
     icon: "$(zap)",
-    menus: [
-      // {
-      //   menu: "view/title",
-      //   group: "navigation",
-      //   when: "view == estateExplorer",
-      // },
-    ],
-  },
-  {
-    title: "Estate: Show Rust Ownership Analysis",
-    id: "estate.ownership.show",
-    icon: "$(filter)",
     menus: [
       // {
       //   menu: "view/title",
@@ -347,7 +335,7 @@ export const COMMANDS: CommandDefinition[] = [
     title: "Estate: Show Rust Ownership Analysis",
     shortTitle: "Visualize ownership relationships and affected code regions",
     icon: "$(references)",
-    category: "Analysis",
+    category: "ownership",
     enablement: "estate.rustAnalyzerReady",
     docs: {
       path: "docs/commands/show-ownership.md",

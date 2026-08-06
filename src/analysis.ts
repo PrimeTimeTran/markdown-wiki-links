@@ -9,13 +9,54 @@ import { cfg } from "./cfg";
 
 const execFileAsync = util.promisify(execFile);
 
+// export interface OwnershipAnalysisContext {
+//   analysis: OwnershipAnalysisResult;
+//   relatedLines: any[];
+//   formattedOutput?: string;
+// }
+
+export interface Span {
+  start_line: number;
+  start_col: number;
+  end_line: number;
+  end_col: number;
+}
+export interface NodeSubject {
+  kind: string;
+  span: Span;
+}
+export interface RelatedLine {
+  line: number;
+  relations: string[];
+}
+
+export interface NodeContext {
+  subject: NodeSubject;
+  ancestors?: NodeSubject[];
+}
+export interface OwnershipAnalysisType {
+  classification: string;
+  related_lines: RelatedLine[];
+  node_context: {
+    subject: NodeSubject;
+  };
+}
+class OwnershipAnalysis {
+  constructor(public readonly analysis: OwnershipAnalysisType) {}
+}
+
 export class AnalysisStore {
-  private current?: OwnershipAnalysisResult;
+  public current?: OwnershipAnalysis;
   private currentActivity?: AppActivity;
   private currentRelatedLines: any[] = [];
   private currentFormattedOutput?: string;
   private listeners = new Set<() => void>();
-  constructor(private app: AppStore) {}
+  constructor(private app: AppStore) {
+    app.activity.subscribe((activity: AppActivity) => {
+      console.log("[-- 2 -- AnalysisStore.windowClick()]");
+      this.analyzeLine(activity);
+    });
+  }
   async analyzeLine(activity: AppActivity, analysisMode = "default"): Promise<void> {
     try {
       this.currentActivity = activity;
@@ -24,6 +65,7 @@ export class AnalysisStore {
       if (!(activity.type == "editor")) return;
       if (!activity.snapshot) return;
       if (!activity.snapshot?.uri) return;
+      if (!activity.snapshot.fileName) return;
       const item = {
         file: activity.snapshot.fileName,
         column: activity.snapshot.column,
@@ -49,18 +91,15 @@ export class AnalysisStore {
       );
       if (stderr) console.error("Daemon error:", stderr);
       const raw = JSON.parse(stdout.trim());
-      if (cfg.debugAnalysis) console.log("Keys received from Rust:", Object.keys(raw));
-      const analysis = new OwnershipAnalysisResult(
-        raw.click,
-        raw.analysis?.node_context,
-        raw.analysis?.classification,
-        raw.analysis?.symbols,
-      );
-      if (!analysis) {
-        return;
+      if (cfg.debugAnalysis) console.log("Keys received from Rust:");
+      // if (cfg.debugAnalysis) console.log(JSON.stringify(raw, null, 2));
+      if (raw.status === "error") {
+        throw new Error(raw.message);
       }
-      if (cfg.debugAnalysis)
-        logAnalysis(this.app.outputChannel, raw.click.file, raw.click.line.toString(), raw);
+      const analysis = new OwnershipAnalysis(raw.analysis);
+      if (!analysis) return;
+      // if (cfg.debugAnalysis)
+      //   logAnalysis(this.app.outputChannel, raw.click.file, raw.click.line.toString(), raw);
       if (raw.formatted_output) {
         this.app.outputChannel.appendLine(`  🖼️ FORMATTED OUTPUT:`);
         this.app.outputChannel.appendLine(raw.formatted_output);
@@ -68,23 +107,27 @@ export class AnalysisStore {
         this.app.outputChannel.appendLine(`  [WARNING: formatted_output was empty or missing]`);
       }
 
-      this.setAnalysis(analysis, raw.analysis.related_lines, raw.formatted_output);
+      this.setAnalysis(analysis);
       if (cfg.debugAnalysis) this.printformatted();
-    } catch (error: any) {
-      vscode.window.showWarningMessage(`Analysis failed: LSP Installed? ${error}`);
-      if (error.stdout) {
-        console.error(error.stdout);
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === "parse error: No subject node found at position") {
+          // vscode.window.showWarningMessage(`Subject unresolved: ${error.message}`);
+        } else {
+          vscode.window.showWarningMessage(`Analysis failed: LSP on? ${error.message}`);
+        }
+      } else {
+        vscode.window.showWarningMessage(`Analysis failed. LSP on? `);
+        console.error(error);
       }
     }
   }
   printExtClick(item: any) {
-    console.log(item);
-    console.log("[Flowity]:");
-    console.log("[EXT].file", item.file);
-    console.log("[EXT].line", item.line);
-    console.log("[EXT].column", item.column);
-    console.log("[EXT].scope", item.scope);
-    console.log("[EXT].text", item.text);
+    console.log("[-- 2 -- AnalysisStore].file", item.file);
+    console.log("[-- 2 -- AnalysisStore].line", item.line);
+    console.log("[-- 2 -- AnalysisStore].column", item.column);
+    console.log("[-- 2 -- AnalysisStore].scope", item.scope);
+    console.log("[-- 2 -- AnalysisStore].text", item.text);
   }
   printformatted() {
     let output = this.getFormattedOutput();
@@ -94,17 +137,11 @@ export class AnalysisStore {
       this.app.outputChannel.appendLine("No formatted output available.");
     }
   }
-  public setAnalysis(
-    analysis: OwnershipAnalysisResult,
-    relatedLines: any[],
-    formattedOutput?: string,
-  ) {
-    this.current = analysis;
-    this.currentRelatedLines = relatedLines;
-    this.currentFormattedOutput = formattedOutput;
+  public setAnalysis(context: OwnershipAnalysis) {
+    this.current = context;
     // this.notifyListeners();
   }
-  get(): OwnershipAnalysisResult | undefined {
+  get(): OwnershipAnalysis | undefined {
     return this.current;
   }
   getActivity(): AppActivity | undefined {

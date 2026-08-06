@@ -112,17 +112,7 @@ export class VFSProvider implements vscode.TextDocumentContentProvider {
   }
   constructor(ctx: vscode.ExtensionContext, app: AppStore) {
     ctx.subscriptions.push(
-      vscode.commands.registerCommand("estate.snippet.save", () => {
-        vscode.window.showInformationMessage("Saving snippet");
-      }),
-      vscode.commands.registerCommand("estate.snippet.preview", () => {
-        vscode.window.showInformationMessage("Preview");
-      }),
-
-      vscode.commands.registerCommand("estate.snippet.export", () => {
-        vscode.window.showInformationMessage("Export");
-      }),
-      vscode.commands.registerCommand("estate.snippet-maker", async () => {
+      vscode.commands.registerCommand(CMD.estate.snippet.create, async () => {
         const language = await this.pickSnippetLanguage();
         if (!language) {
           return;
@@ -134,8 +124,20 @@ export class VFSProvider implements vscode.TextDocumentContentProvider {
         const _editor = await vscode.window.showTextDocument(doc);
         await vscode.commands.executeCommand("editor.action.formatDocument");
       }),
+      vscode.commands.registerCommand(CMD.estate.snippet.read, () => {
+        vscode.window.showInformationMessage("Reading snippet");
+      }),
+      vscode.commands.registerCommand(CMD.estate.snippet.update, () => {
+        vscode.window.showInformationMessage("Saving snippet");
+      }),
+      vscode.commands.registerCommand(CMD.estate.snippet.delete, () => {
+        vscode.window.showInformationMessage("Deleting snippet");
+      }),
+      vscode.commands.registerCommand("estate.snippet.export", () => {
+        vscode.window.showInformationMessage("Export");
+      }),
     );
-    app.activity.subscribe((a) => {
+    app.activity.subscribe((_a) => {
       console.log("[-- 3 -- VFSProvider.windowClick()]");
     });
   }
@@ -158,7 +160,7 @@ export class VFSDecorator implements vscode.FileDecorationProvider {
   readonly onDidChangeFileDecorations = this._onDidChangeFileDecorations.event;
 
   constructor(ctx: vscode.ExtensionContext, app: AppStore) {
-    app.activity.subscribe((a) => {
+    app.activity.subscribe((_a) => {
       console.log("[-- 4 -- VFSDecorator.windowClick()]");
       this._onDidChangeFileDecorations.fire();
     });
@@ -345,7 +347,7 @@ export class EstateNode extends vscode.TreeItem {
   }
 }
 
-function capitalizeFirstLetter(str: string) {
+function _capitalizeFirstLetter(str: string) {
   if (!str) return "";
   return str.charAt(0).toUpperCase() + str.slice(1);
 }

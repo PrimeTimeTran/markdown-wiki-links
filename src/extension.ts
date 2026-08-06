@@ -26,7 +26,7 @@ type WikiLinksApi = { extendMarkdownIt(md: any): any };
 export async function activate(context: vscode.ExtensionContext): Promise<WikiLinksApi> {
   const app = new AppStore(context);
   app.init(context);
-  app.logger.debug("[activate.app.logger]");
+  // app.logger.debug("[activate.app.logger]");
 
   // VSCode UI
   context.subscriptions.push(
@@ -48,14 +48,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   // Ownership
   const ownershipEngine = new OwnershipEngine();
   const ownershipProvider = new OwnershipContentProvider(ownershipEngine);
-  let inlineProvider = new OwnershipInlayProvider(app);
+  // let inlineProvider = new OwnershipInlayProvider(app);
   context.subscriptions.push(
     vscode.workspace.registerTextDocumentContentProvider("estate", ownershipProvider),
     vscode.workspace.onDidChangeTextDocument((e) => {
       const ownershipUri = vscode.Uri.parse(`estate://ownership${e.document.uri.path}`);
       ownershipProvider.refresh(ownershipUri);
     }),
-    vscode.languages.registerInlayHintsProvider({ language: "rust" }, inlineProvider),
+    // vscode.languages.registerInlayHintsProvider({ language: "rust" }, inlineProvider),
     vscode.languages.registerCodeActionsProvider("rust", new OwnershipCodeActionProvider(context)),
     vscode.commands.registerCommand(CMD.estate.ownership.show, showOwnershipView),
   );

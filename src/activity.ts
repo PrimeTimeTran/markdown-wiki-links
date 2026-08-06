@@ -3,13 +3,18 @@ import * as vscode from "vscode";
 import { Anchor } from "./anchor";
 import { AppStore } from "./app";
 import { cfg } from "./cfg";
-import { EstateFocus, EstateNode } from "./estate";
+import { EstateNode } from "./estate";
 // Right now store the cursor here.
 // - I have other ideas on how this could be used in compostion with event to do more interesting things.
 // Current user context.
 // Always changing as the user navigates.
 
 export type AppActivity = AnchorActivity | AnalysisActivity | EditorActivity;
+export interface Activity {
+  editor: EditorActivity;
+  leader?: boolean;
+  updatedAt: number;
+}
 export interface AnchorActivity {
   type: "anchor";
   anchor: Anchor;
@@ -106,7 +111,8 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
   attachTree(tree: vscode.TreeView<EstateNode>) {
     this.ctx.subscriptions.push(
       tree.onDidChangeSelection((e) => {
-        console.log("[-- 1 -- ActivityStore.windowClick().attachTree().onDidChangeSelection()]", e);
+        if (cfg.debugActivity)
+          console.log("[-- 1 -- ActivityStore.windowClick().attachTree().onDidChangeSelection()]");
         const node = e.selection[0];
         if (!node?.anchor) return;
         this.emit({
@@ -116,8 +122,9 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
         });
       }),
       tree.onDidChangeVisibility(async (e) => {
-        // If triggered whenever the estate activity bar panel is revealed
-        console.log("[ActivityStore.windowClick().attachTree().onDidChangeVisibility()]", e);
+        if (cfg.debugActivity)
+          console.log("[ActivityStore.windowClick().attachTree().onDidChangeVisibility()]");
+        // Triggered when Estate Activity Bar panel is revealed
         if (e.visible) {
           // await this.tree.ensureEditorOpen();
         }
@@ -349,9 +356,4 @@ export function getHeadingLevel(text: string): number | undefined {
     return undefined;
   }
   return match[1].length;
-}
-export interface Activity {
-  editor: EditorActivity;
-  leader?: boolean;
-  updatedAt: number;
 }
