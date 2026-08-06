@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import * as path from "path";
 
 import * as vscode from "vscode";
@@ -128,11 +129,11 @@ export class VFSProvider implements vscode.TextDocumentContentProvider {
         if (!language) {
           return;
         }
-        // const doc = await vscode.workspace.openTextDocument({
-        //   language: language.id,
-        //   content: language.template,
-        // });
-        // const editor = await vscode.window.showTextDocument(doc);
+        const doc = await vscode.workspace.openTextDocument({
+          language: language.id,
+          content: language.template,
+        });
+        const editor = await vscode.window.showTextDocument(doc);
         await vscode.commands.executeCommand("editor.action.formatDocument");
       }),
     );
@@ -171,7 +172,7 @@ export class VFSDecorator implements vscode.FileDecorationProvider {
     };
   }
 }
-export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
+export class EstateProvider implements vscode.TreeDataProvider<EstateNode> {
   icons: any;
   treeView: vscode.TreeView<EstateNode>;
   constructor(public app: AppStore) {
@@ -180,7 +181,7 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
     });
     app.ctx.subscriptions.push(
       this.onDidChangeTreeData(async (e) => {
-        console.log("[EstateTreeProvider].onDidChangeTreeData");
+        console.log("[EstateProvider].onDidChangeTreeData");
         // if (e.visible) {
         //   //   await this.tree.ensureEditorOpen();
         // }
@@ -193,7 +194,7 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
   >();
   readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
   refresh(): void {
-    console.log("[EstateTreeProvider].refresh");
+    console.log("[EstateProvider].refresh");
     this.onDidChangeTreeDataEmitter.fire();
   }
   getTreeItem(node: EstateNode): any {
@@ -201,7 +202,10 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
   }
   getChildren(node?: EstateNode): EstateNode[] {
     if (!node) {
-      return SECTIONS_LIST.map(this.buildStage);
+      // Warning:
+      // SECTIONS_LIST.map(this.buildStage)
+      // Looks simpler but doesn't bind "this" so creates errors.
+      return SECTIONS_LIST.map((section) => this.buildStage(section));
     }
 
     if (node.isStageNode) {
@@ -215,18 +219,32 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
     return node.parent;
   }
   buildStage(section: string) {
-    return new EstateNode(true, section, undefined, undefined);
+    let label = this.buildLabel(section);
+    return new EstateNode(true, label, undefined, undefined);
   }
-  buildSection(section: string, node: EstateNode) {
+  buildNode(node: EstateNode, a: Anchor) {
+    let name = path.basename(a.uri() ?? "");
+    let label = this.buildLabel(name);
+    return new EstateNode(false, label, a, node);
+  }
+  buildLabel(name: string): vscode.TreeItemLabel {
+    return {
+      label: name,
+      // highlights: [
+      //   [0, 2],
+      //   [3, 8],
+      // ],
+    };
+  }
+  buildSection(section: vscode.TreeItemLabel, node: EstateNode) {
     let anchors = this.app.anchors.list().filter((a) => !a.tags.includes("softDeleted"));
     return anchors
-      .filter((b) => section == "draft" || b.tags.includes(section))
+      .filter((b) => section.label == "draft" || b.tags.includes(section.label))
       .map((a) => this.buildNode(node, a));
   }
   buildChildren(node: EstateNode) {
     console.log("parent", node.anchor?.id);
     console.log("anchor ids", node.anchor?.anchors);
-
     const resolved = (node.anchor?.anchors ?? []).map((id) => {
       const a = this.app.anchors.get(id);
       console.log(id, "->", a);
@@ -235,9 +253,7 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
 
     return resolved.filter((a): a is Anchor => !!a).map((a) => this.buildNode(node, a));
   }
-  buildNode(node: EstateNode, a: Anchor) {
-    return new EstateNode(false, path.basename(a.uri() ?? ""), a, node);
-  }
+
   async ensureEditorOpen() {
     // const editors = vscode.window.visibleTextEditors;
     // if (editors.length > 0) {
@@ -251,7 +267,7 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
 export class EstateNode extends vscode.TreeItem {
   constructor(
     public isStageNode: boolean,
-    public readonly label: string,
+    public readonly label: vscode.TreeItemLabel,
     public readonly anchor?: Anchor,
     public readonly parent?: EstateNode,
     public tooltip?: string,
@@ -261,8 +277,7 @@ export class EstateNode extends vscode.TreeItem {
       label,
       hasChildren ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None,
     );
-    this.id = anchor ? anchor.id : `section:${label}`;
-
+    this.id = isStageNode ? label.label : randomUUID();
     if (anchor) {
       this.contextValue = "anchor";
       const uri = anchor?.src?.uri;
@@ -277,20 +292,13 @@ export class EstateNode extends vscode.TreeItem {
     }
     if (isStageNode) {
       this.iconPath = new vscode.ThemeIcon("pinned", new vscode.ThemeColor("charts.red"));
-      // this.label = {
-      //   label: this.id,
-      //   highlights: [
-      //     [0, 2],
-      //     [3, 8],
-      //   ],
-      // };
     }
     // We're going to have lots of options her eon how to sort based on the node clicked
     // How to display the tree, sort, filter, etc.
     this.command = {
       command: CMD.estate.bookmark.read,
       title: "Open Anchor",
-      arguments: [this, anchor],
+      arguments: [this.id, this, anchor],
     };
   }
   get hasChildren() {

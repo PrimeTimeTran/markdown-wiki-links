@@ -49,7 +49,7 @@ export class IndexService {
     }
     this.workspaceRegistry = new WorkspaceRegistry(this.root);
     this.estateRegistry = new EstateRegistry("/Users/future/.estate");
-    this.resolver = new WikiResolver([this.workspaceRegistry, this.estateRegistry]);
+    this.resolver = new WikiResolver(this.root, [this.workspaceRegistry, this.estateRegistry]);
   }
   getResolver() {
     return this.resolver;
@@ -360,7 +360,10 @@ class WorkspaceRegistry implements WikiRegistry {
 }
 
 export class WikiResolver {
-  constructor(private readonly sources: WikiRegistry[]) {
+  constructor(
+    public readonly root: string,
+    private readonly sources: WikiRegistry[],
+  ) {
     this.sources.sort((a, b) => b.priority - a.priority);
   }
   registries(): readonly WikiRegistry[] {

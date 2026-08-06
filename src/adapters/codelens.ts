@@ -2,9 +2,10 @@ import * as vscode from "vscode";
 
 import { CMD } from "../../generated/cmd";
 import { AppActivity, captureScope } from "../activity";
-import { Anchor, AnchorRef } from "../anchor";
+import { Anchor } from "../anchor";
 import { AppStore } from "../app";
 import { EstateContext } from "../estate";
+import { AnchorRef } from "../types";
 
 export class WikiCodeLensProvider implements vscode.CodeLensProvider {
   public folded = new Set<string>();
@@ -23,10 +24,10 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
     this._onDidChangeCodeLenses.fire();
   }
   provideCodeLenses(doc: vscode.TextDocument): vscode.CodeLens[] {
-    console.log("[WikiCodeLensProvider].refresh");
     // this.app.logger.debug("[WikiCodeLensProvider].subscribe/refresh");
     let inlineFlags = this.addIntrinsicAnchors(doc);
     let documentAnchors = this.addDocumentAnchors(doc);
+    console.log("[WikiCodeLensProvider].refresh documentAnchors", documentAnchors.length);
     const lenses: vscode.CodeLens[] = [...inlineFlags, ...documentAnchors];
     // WIP: Add multiple inline lenses
     // lenses.push(...addIntrinsicAnchors(lenses));

@@ -13,7 +13,7 @@ import { WikiHoverProvider } from "./adapters/hoverProvider";
 import { newEditorGroupTabContent } from "./adapters/htmlAnchor";
 import { IndexService } from "./adapters/indexService";
 import { RenameHandler } from "./adapters/renameHandler";
-import { AppStore, registerGiantQuickPickCommand } from "./app";
+import { AppStore, registerCustomCommandPalette } from "./app";
 import { OwnershipCodeActionProvider } from "./codeActionOwnership";
 import { longLangs, supportedLanguages } from "./consts";
 import { OwnershipContentProvider, OwnershipEngine, showOwnershipView } from "./diff";
@@ -49,7 +49,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
       await vscode.commands.executeCommand("setContext", "estate.leader", app.state.leader);
     }),
   );
-  registerGiantQuickPickCommand(context, app);
+  registerCustomCommandPalette(context, app);
 
   const ownershipEngine = new OwnershipEngine();
   const ownershipProvider = new OwnershipContentProvider(ownershipEngine);

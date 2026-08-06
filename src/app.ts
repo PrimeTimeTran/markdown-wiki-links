@@ -10,7 +10,7 @@ import { IndexService } from "./adapters/indexService";
 import { AnalysisStore } from "./analysis";
 import { Anchor, AnchorPresenter, AnchorStore } from "./anchor";
 import { longLangs } from "./consts";
-import { VFSDecorator, EstateTreeProvider, VFSProvider } from "./estate";
+import { VFSDecorator, EstateProvider, VFSProvider } from "./estate";
 
 export interface EstateState {
   mdPreviewMode: boolean;
@@ -27,7 +27,7 @@ export class AppStore {
     mdPreviewMode: false,
   };
   public outputChannel = vscode.window.createOutputChannel("Flowify");
-  readonly tree: EstateTreeProvider;
+  readonly tree: EstateProvider;
   readonly vfs: VFSProvider;
   readonly vfsDecorator: VFSDecorator;
   readonly decorator: WikiDecorations;
@@ -43,11 +43,11 @@ export class AppStore {
   ) {
     logger.debug("[AppStore.constructor.start]");
     this.wiki = new IndexService();
-    this.activity = new ActivityStore<AppActivity>(this);
+    this.activity = new ActivityStore<AppActivity>(this, ctx);
     this.anchors = new AnchorStore(this);
     this.analysis = new AnalysisStore(this);
 
-    this.tree = new EstateTreeProvider(this);
+    this.tree = new EstateProvider(this);
     this.presenter = new AnchorPresenter(this);
     // For sidebar tree
     this.vfs = new VFSProvider(ctx, this);
@@ -57,57 +57,42 @@ export class AppStore {
     this.decorator = new WikiDecorations(this, this.wiki);
     this.codeLens = new WikiCodeLensProvider(this);
 
-    ctx.subscriptions.push(
+    logger.debug("[AppStore.constructor.end]");
+  }
+  init(context: vscode.ExtensionContext) {
+    this.wiki.initialize();
+    this.activity.attachTree(this.tree.treeView);
+    this.activity.attachWorkspace();
+    this.activity.init();
+    context.subscriptions.push(
+      vscode.workspace.registerTextDocumentContentProvider("estate", this.vfs),
+      vscode.window.registerFileDecorationProvider(this.vfsDecorator),
       vscode.languages.registerCodeLensProvider(longLangs, this.codeLens),
       vscode.languages.registerDocumentLinkProvider(
         longLangs,
         new WikiDocumentLinkProvider(this.wiki),
       ),
-    );
-    ctx.subscriptions.push(
-      this.tree.treeView.onDidChangeSelection((e) => {
-        console.log("[ctx.AppStore.constructor.subscriptions].onDidChangeSelection", e);
-        const node = e.selection[0];
-        if (!node?.anchor) return;
-
-        this.activity.emit({
-          type: "anchor",
-          anchor: node.anchor,
-          editor: vscode.window.activeTextEditor,
-        });
-      }),
-      this.tree.treeView.onDidChangeVisibility(async (e) => {
-        // If triggered whenever the estate activity bar panel is revealed
-        console.log("[ctx.AppStore.constructor.subscriptions].onDidChangeVisibility", e);
-        if (e.visible) {
-          // await this.tree.ensureEditorOpen();
-        }
-      }),
-      this.tree.treeView,
-    );
-    this.activity.init(this.ctx);
-    logger.debug("[AppStore.constructor.end]");
-  }
-  init(context: vscode.ExtensionContext) {
-    this.wiki.initialize();
-    context.subscriptions.push(
-      vscode.workspace.registerTextDocumentContentProvider("estate", this.vfs),
-      vscode.window.registerFileDecorationProvider(this.vfsDecorator),
       vscode.commands.registerCommand("estate.ui.quickPick", (anchor: Anchor) => {
         if (!anchor) return;
         vscode.window.showQuickPick([
           // 1. Show anchor path (useful for when we dont know "which" README.md/package.json we're looking at)
           // 2. Show Front matter?
           // 3. Outline Behavior. Collapse/expand
-          `🧩 Inline ${anchor.label}`,
-          `🕸 Graph ${anchor.label}`,
-          `♻️ Replace ${anchor.label}`,
-          `💾 Save ${anchor.label}`,
+          // 4. Edit label(sidebar)
+          // 4. Edit label(sidebar)
+          `🧩 Create label ${anchor.label}`,
+          `🕸 Update label ${anchor.label}`,
+          `♻️ Delete label ${anchor.label}`,
+          `💾 Create pipeline ${anchor.label}`,
+          `💾 Read pipeline ${anchor.label}`,
+          `💾 Update pipeline ${anchor.label}`,
+          `💾 Delete pipeline ${anchor.label}`,
         ]);
       }),
     );
     this.activity.subscribe((activity) => {
-      console.log("[AppStore].init Activity Click");
+      console.log("[AppStore.init.subsribe()]");
+      // this.logger.debug("[AppStore.init.subsribe()]");
       //   vscode.window.showInformationMessage(`app ${this.input}`);
       // this.analysis.analyzeLine(activity);
     });
@@ -148,7 +133,7 @@ interface ReferenceItem extends vscode.QuickPickItem {
   details?: string;
 }
 
-export function registerGiantQuickPickCommand(context: vscode.ExtensionContext, app: AppStore) {
+export function registerCustomCommandPalette(context: vscode.ExtensionContext, app: AppStore) {
   let disposable = vscode.commands.registerCommand(CMD.estate.ui.cmdPalette, async () => {
     const quickPick = vscode.window.createQuickPick<ReferenceItem>();
     quickPick.title = "🚀 Reference & Command Hub";

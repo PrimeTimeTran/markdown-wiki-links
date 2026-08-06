@@ -26,7 +26,7 @@ export function createPreviewResolver(resolver: WikiResolver) {
         return null;
       }
       if (IMAGE_RE.test(entry.uri.fsPath)) {
-        return resolveImage(entry.uri.fsPath);
+        return resolveImage(entry, resolver.root);
       }
       return resolveMarkdownEmbed(entry.uri.fsPath, fragment);
     },
@@ -35,7 +35,6 @@ export function createPreviewResolver(resolver: WikiResolver) {
 
 function resolveImage(entry: EstateEntry, workspaceRoot: string): EmbedResolved | null {
   const fsPath = entry.uri.fsPath;
-
   if (!IMAGE_RE.test(fsPath)) {
     return null;
   }

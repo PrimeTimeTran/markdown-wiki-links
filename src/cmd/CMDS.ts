@@ -102,7 +102,7 @@ export const COMMANDS: CommandDefinition[] = [
   {
     title: "Estate: View bookmark",
     id: "estate.bookmark.read",
-    icon: "$(view)",
+    icon: "$(preview)",
     menus: [
       {
         menu: "editor/title",

@@ -2,7 +2,7 @@
   "name": "markdown-wiki-links",
   "displayName": "Markdown Wiki Links",
   "publisher": "ltvan",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Obsidian-style [[wiki-links]] between Markdown files in the workspace.",
   "license": "MIT",
   "repository": {
@@ -205,7 +205,7 @@
         },
         {
           "command": "estate.bookmark.read",
-          "when": "viewItem == file",
+          "when": "viewItem == anchor",
           "group": "inline@2"
         },
         {

@@ -37,6 +37,8 @@ import {
 // option: enables picking one of more
 //  - graph problems: dfs, bfs, etc.
 // interface augments types
+
+// oxlint-disable-next-line typescript/no-unsafe-declaration-merging
 export interface Anchor {
   // Identity
   id: string;
@@ -365,6 +367,7 @@ export class AnchorStore implements AnchorStoreType {
     const document = editor.document;
     const selectedText = document.getText(selection);
     let id = randomUUID();
+    let name = path.basename(document.uri.toString() ?? "");
     this.create(
       id,
       {
@@ -373,7 +376,7 @@ export class AnchorStore implements AnchorStoreType {
         selection,
       },
       {
-        label: `Anchor ${id}`,
+        label: `⚓️ ${name} ${id}`,
         description: "Captured source block",
         privacy: "workspace",
       },
@@ -576,7 +579,7 @@ export class AnchorPresenter {
     app.ctx.subscriptions.push(
       vscode.commands.registerCommand(
         CMD.estate.bookmark.read,
-        async (node: EstateNode, anchor: Anchor, ...args) => {
+        async (uid: string, node: EstateNode, anchor: Anchor, ...args) => {
           await vscode.commands.executeCommand("setContext", "estate.hasAnchor", true);
           await this.app.tree.treeView.reveal(node, {
             expand: true,
@@ -588,11 +591,11 @@ export class AnchorPresenter {
             vscode.window.showInformationMessage("good work!");
           }
 
-          let activity: AnchorActivity = {
-            type: "anchor",
-            anchor,
-            editor: vscode.window.activeTextEditor,
-          };
+          // let activity: AnchorActivity = {
+          //   type: "anchor",
+          //   anchor,
+          //   editor: vscode.window.activeTextEditor,
+          // };
           // this.app.activity.emit(activity);
           // await this.showAnchor(anchor);
           // await this.refresh(activity);

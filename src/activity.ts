@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 
 import { Anchor } from "./anchor";
 import { AppStore } from "./app";
-import { EstateFocus } from "./estate";
+import { EstateFocus, EstateNode } from "./estate";
 // Right now store the cursor here.
 // - I have other ideas on how this could be used in compostion with event to do more interesting things.
 // Current user context.
@@ -44,7 +44,6 @@ export interface EditorSnapshot {
   fileName: string;
   scope: ScopeInfo;
 }
-
 export interface ScopeInfo {
   variant: string;
   name?: string;
@@ -54,39 +53,44 @@ export interface ScopeInfo {
   range?: vscode.Range;
   text: string;
 }
+const cfg = {
+  debugActivity: true,
+};
 // oxlint-disable-next-line typescript/no-unsafe-declaration-merging
 export interface ActivityStore<T = unknown> {
-  current(): T | undefined;
-  subscribe(listener: (activity: T) => void): vscode.Disposable;
-  emit(activity: T): void;
+  current(): AppActivity | undefined;
+  subscribe(listener: (activity: AppActivity) => void): vscode.Disposable;
+  emit(activity: AppActivity): void;
   clear(): void;
-  init(context: vscode.ExtensionContext): void;
+  init(): void;
 }
 export class ActivityStore<T = unknown> implements ActivityStore<T> {
-  private listeners = new Set<(activity: T) => void>();
-  private activity?: T;
-  constructor(private app: AppStore) {}
-  init(context: vscode.ExtensionContext): void {
-    context.subscriptions.push(
+  private activity?: AppActivity;
+  private activity2?: AppActivity;
+  private listeners = new Set<(activity: AppActivity) => void>();
+  constructor(
+    private readonly app: AppStore,
+    private readonly ctx: vscode.ExtensionContext,
+  ) {}
+  attachWorkspace() {
+    this.ctx.subscriptions.push(
       vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+        // this.app.logger.debug("[ActivityStore.onDidChangeActiveTextEditor].emit()");
+        if (cfg.debugActivity) console.log("[ActivityStore.onDidChangeActiveTextEditor].emit()");
         if (!editor) return;
         // 1. How do i properly let it know when i go between othr panels?
-        this.app.state.focushistory.push("editor");
-        console.log("[Activity].onDidChangeActiveTextEditor for ownership feature");
+        // this.app.state.focushistory.push("editor");
         const hasAnchor = editor ? this.app.anchors.has(editor.document.uri.fsPath) : false;
-        console.log("[Activity].checkingAnchor", hasAnchor);
         // await vscode.commands.executeCommand("setContext", "estate.hasAnchor", hasAnchor);
       }),
-    );
-    context.subscriptions.push(
       vscode.window.onDidChangeTextEditorSelection((event) => {
-        console.log("[Activity].onDidChangeTextEditorSelection click!");
+        // this.app.logger.debug("[ActivityStore.onDidChangeTextEditorSelection].emit()");
+        if (cfg.debugActivity) console.log("[ActivityStore.onDidChangeTextEditorSelection].emit()");
         this.update(event.textEditor);
       }),
-    );
-
-    context.subscriptions.push(
       vscode.workspace.onDidChangeTextDocument((event) => {
+        // this.app.logger.debug("[ActivityStore.onDidChangeTextDocument].emit()");
+        if (cfg.debugActivity) console.log("[ActivityStore.onDidChangeTextDocument].emit()");
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
           console.log("[Activity].onDidChangeTextDocument no active editor");
@@ -95,15 +99,40 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
         if (editor.document.uri.toString() !== event.document.uri.toString()) {
           return;
         }
-        console.log("[Activity].onDidChangeTextDocument edit! ");
         this.update(editor);
       }),
     );
+  }
+  attachTree(tree: vscode.TreeView<EstateNode>) {
+    this.ctx.subscriptions.push(
+      tree.onDidChangeSelection((e) => {
+        console.log("[ctx.AppStore.constructor.subscriptions].onDidChangeSelection", e);
+        const node = e.selection[0];
+        if (!node?.anchor) return;
+        this.emit({
+          type: "anchor",
+          anchor: node.anchor,
+          editor: vscode.window.activeTextEditor,
+        });
+      }),
+      tree.onDidChangeVisibility(async (e) => {
+        // If triggered whenever the estate activity bar panel is revealed
+        console.log("[ctx.AppStore.constructor.subscriptions].onDidChangeVisibility", e);
+        if (e.visible) {
+          // await this.tree.ensureEditorOpen();
+        }
+      }),
+      tree,
+    );
+  }
+  init(): void {
+    this.ctx.subscriptions.push();
     const editor = vscode.window.activeTextEditor;
     if (editor) {
       this.update(editor);
     }
   }
+
   private update(editor: vscode.TextEditor): void {
     const document = editor.document;
     const position = editor.selection.active;
@@ -139,18 +168,18 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
     this.app.activity.emit(activity);
   }
 
-  current(): T | undefined {
+  current(): AppActivity | undefined {
     return this.activity;
   }
 
-  emit(activity: T) {
+  emit(activity: AppActivity) {
     this.activity = activity;
     for (const listener of this.listeners) {
       listener(activity);
     }
   }
 
-  subscribe(listener: (activity: T) => void): vscode.Disposable {
+  subscribe(listener: (activity: AppActivity) => void): vscode.Disposable {
     this.listeners.add(listener);
     return new vscode.Disposable(() => {
       this.listeners.delete(listener);

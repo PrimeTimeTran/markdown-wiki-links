@@ -121,8 +121,8 @@ export class WikiCompletionProvider implements vscode.CompletionItemProvider {
 
 function getCompletionType(entry: EstateEntry) {
   switch (entry.kind) {
-    case "event":
-      return vscode.CompletionItemKind.Event;
+    // case "event":
+    //   return vscode.CompletionItemKind.Event;
     case "file":
       return vscode.CompletionItemKind.File;
     case "heading":
