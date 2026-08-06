@@ -2,9 +2,9 @@ import * as vscode from "vscode";
 
 import { CMD } from "../../generated/cmd";
 import { AppActivity, captureScope } from "../activity";
+import { Anchor, AnchorRef } from "../anchor";
 import { AppStore } from "../app";
 import { EstateContext } from "../estate";
-import { Anchor, AnchorRef } from "./anchorService";
 
 export class WikiCodeLensProvider implements vscode.CodeLensProvider {
   public folded = new Set<string>();

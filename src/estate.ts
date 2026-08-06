@@ -4,7 +4,7 @@ import * as vscode from "vscode";
 
 import { CMD } from "../generated/cmd";
 import { ScopeInfo } from "./activity";
-import { Anchor } from "./adapters/anchorService";
+import { Anchor } from "./anchor";
 import { AppStore } from "./app";
 import { SECTIONS_LIST, SNIPPET_ITEMS } from "./consts";
 

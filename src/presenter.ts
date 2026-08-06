@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 
-import { AnchorSeries } from "./adapters/anchorService";
+import { AnchorSeries } from "./anchor";
 
 export interface Presenter<T> {
   present(value: T): Thenable<void>;

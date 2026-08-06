@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 
-import { Anchor } from "./adapters/anchorService";
+import { Anchor } from "./anchor";
 import { AppStore } from "./app";
 import { EstateFocus } from "./estate";
 // Right now store the cursor here.

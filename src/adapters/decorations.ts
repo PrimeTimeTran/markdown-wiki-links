@@ -3,6 +3,7 @@ import * as path from "path";
 import * as vscode from "vscode";
 
 import { AppActivity } from "../activity";
+import { Anchor } from "../anchor";
 import { AppStore } from "../app";
 import { EXT_PATH, supportedLanguages } from "../consts";
 import { buildFenceMask } from "../core/fenceMask";
@@ -10,7 +11,6 @@ import { parseEmbeds } from "../core/parser/embedParser";
 import { parseLinks } from "../core/parser/linkParser";
 import { innerRange } from "../core/parser/refRange";
 import { icons } from "../ownership";
-import { Anchor } from "./anchorService";
 import { IndexService } from "./indexService";
 
 const DEBOUNCE_MS = 250;

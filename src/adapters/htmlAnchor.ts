@@ -1,4 +1,4 @@
-import { Anchor } from "./anchorService";
+import { Anchor } from "../anchor";
 
 export function anchorShowPage(anchor: Anchor) {
   console.log("anchorShowPage", {

@@ -6,13 +6,21 @@ import * as path from "path";
 
 import * as vscode from "vscode";
 
-import { CMD } from "../../generated/cmd";
-import { AnchorActivity, AppActivity } from "../activity";
-import { AppStore } from "../app";
-import { PATHS } from "../cfg";
-import { capability, flags } from "../cmd/flags";
-import { EstateContext, EstateFlag, EstateNode } from "../estate";
-import { anchorShowPage, getHtml } from "./htmlAnchor";
+import { CMD } from "../generated/cmd";
+import { AnchorActivity, AppActivity } from "./activity";
+import { anchorShowPage, getHtml } from "./adapters/htmlAnchor";
+import { AppStore } from "./app";
+import { PATHS } from "./cfg";
+import { capability, flags } from "./cmd/flags";
+import { EstateContext, EstateFlag, EstateNode } from "./estate";
+import {
+  AnchorSource,
+  CreateAnchorOptions,
+  AnchorRef,
+  AnchorStoreType,
+  AnchorLocation,
+  AnchorOrigin,
+} from "./types";
 // # Flag
 // - Fold flags: show prevent 'above' from 'unfolding' no matter how many depths I've unfolded. Think about how I might want to 'ignore' tests of rust or imports or 'first impl'
 // # Anchor capabilities
@@ -29,7 +37,6 @@ import { anchorShowPage, getHtml } from "./htmlAnchor";
 // option: enables picking one of more
 //  - graph problems: dfs, bfs, etc.
 // interface augments types
-
 export interface Anchor {
   // Identity
   id: string;
@@ -69,7 +76,7 @@ export interface Anchor {
   // Later this can become a proper relationship table/store
   lists?: string[];
 }
-export class Anchor {
+export class Anchor implements Anchor {
   id: string;
   label?: string;
   src?: AnchorSource;
@@ -96,41 +103,6 @@ export const AnchorTags = {
   Wiki: "wiki",
 } as const;
 
-export type AnchorOrigin = "system" | "personal" | "workspace";
-export interface AnchorSource {
-  uri: string;
-  startLine: number;
-  endLine: number;
-  startCharacter?: number;
-  endCharacter?: number;
-  languageId?: string;
-}
-
-// CRUD
-// - [ ] Create
-// - [ ] Read
-// - [ ] Update
-// - [ ] Delete
-export interface AnchorStoreType {
-  //
-  get(id: string): Anchor | undefined;
-  loadRegistry(path: string): void;
-  save(): void;
-  create(
-    id: string,
-    ctx: EstateContext,
-    opts: CreateAnchorOptions,
-    anchor: Partial<Anchor>,
-  ): Partial<Anchor>;
-  update(anchor: Anchor): void;
-  delete(id: string): void;
-  find(file: vscode.Uri, text: string, line: number): AnchorRef[];
-  findByUri(uri: vscode.Uri): Anchor[];
-
-  list(): Anchor[];
-  hasFlag(id: string): boolean;
-  getFlag(id: string): EstateFlag | undefined;
-}
 export class AnchorStore implements AnchorStoreType {
   private items = new Map<string, Anchor>();
   private fileIndex = new Map<string, Anchor[]>();
@@ -311,8 +283,8 @@ export class AnchorStore implements AnchorStoreType {
   }
   findByUri(uri: vscode.Uri): Anchor[] {
     const target = uri.toString();
-    return this.list().filter((anchor) =>
-      anchor.locations?.some((location) => location.uri === target),
+    return this.list().filter((anchor: Anchor) =>
+      anchor.locations?.some((location: AnchorLocation) => location.uri === target),
     );
   }
   find(file: vscode.Uri, text: string, line: number): AnchorRef[] {
@@ -594,19 +566,6 @@ export class AnchorStore implements AnchorStoreType {
     }
     return undefined;
   }
-}
-export interface CreateAnchorOptions {
-  label?: string;
-  description?: string;
-  privacy: "personal" | "repo" | "workspace";
-  captureCode?: boolean;
-  captureScope?: boolean;
-  captureContext?: boolean;
-}
-export interface Result<T> {
-  ok: boolean;
-  value?: T;
-  error?: string;
 }
 
 export class AnchorSeries {}
@@ -1065,35 +1024,4 @@ export class AnchorPresenter {
     // </html>
     // `;
   }
-}
-export interface AnchorRef {
-  id: string;
-  line: number;
-  start: number;
-  end: number;
-}
-// export function findFlags(text: string, store: AnchorStore, line: number): AnchorRef[] {
-//   return findAnchorsLocations(text, line).flatMap((t) => {
-//     const flag = store.getFlag(t.id);
-//     return flag ? [{ ...t, flag }] : [];
-//   });
-// }
-// export function findAnchorsLocations(text: string, line: number): AnchorRef[] {
-//   const results: AnchorRef[] = [];
-//   const regex = /@[A-Za-z0-9_-]+/g;
-//   for (const match of text.matchAll(regex)) {
-//     results.push({
-//       id: match[0],
-//       line,
-//       start: match.index!,
-//       end: match.index! + match[0].length,
-//     });
-//   }
-//   return results;
-// }
-export interface AnchorLocation {
-  uri: string;
-  line: number;
-  start: number;
-  end: number;
 }

@@ -3,12 +3,12 @@ import * as vscode from "vscode";
 
 import { CMD } from "../generated/cmd";
 import { ActivityStore, AppActivity } from "./activity";
-import { Anchor, AnchorPresenter, AnchorStore } from "./adapters/anchorService";
 import { WikiCodeLensProvider } from "./adapters/codelens";
 import { WikiDecorations } from "./adapters/decorations";
 import { WikiDocumentLinkProvider } from "./adapters/documentLinkProvider";
 import { IndexService } from "./adapters/indexService";
 import { AnalysisStore } from "./analysis";
+import { Anchor, AnchorPresenter, AnchorStore } from "./anchor";
 import { longLangs } from "./consts";
 import { VFSDecorator, EstateTreeProvider, VFSProvider } from "./estate";
 
