@@ -1,5 +1,5 @@
 module.exports = {
-  spec: 'out/test/unit/**/*.test.js',
+  spec: "out/test/unit/**/*.test.js",
   timeout: 5000,
-  ui: 'tdd',
+  ui: "tdd",
 };

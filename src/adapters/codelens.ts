@@ -4,7 +4,6 @@ import { CMD } from "../../generated/cmd";
 import { AppActivity, captureScope } from "../activity";
 import { AppStore } from "../app";
 import { EstateContext } from "../estate";
-import { icons } from "../ownership";
 import { Anchor, AnchorRef } from "./anchorService";
 
 export class WikiCodeLensProvider implements vscode.CodeLensProvider {
@@ -18,7 +17,7 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
       // console.log("[WikiCodeLensProvider].subscription", activity);
       this.refresh();
       // this.analyzeLine(activity);
-    }); 
+    });
   }
   public refresh(): void {
     this._onDidChangeCodeLenses.fire();
@@ -279,10 +278,16 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
       if (src.uri !== doc.uri.fsPath) continue;
       const line = src.startLine;
       if (line >= doc.lineCount) continue;
+      // vscode.window.showQuickPick([
+      //         `🧩 Inline ${anchor.label}`,
+      //         `🕸 Graph ${anchor.label}`,
+      //         `♻️ Replace ${anchor.label}`,
+      //         `💾 Save ${anchor.label}`,
+      //       ]);
       lenses.push(
         new vscode.CodeLens(new vscode.Range(line, 0, line, 0), {
           title: `$(bookmark) ${anchor.label ?? "Open Anchor"}`,
-          command: CMD.estate.bookmark.read,
+          command: "estate.ui.quickPick",
           arguments: [anchor],
         }),
       );

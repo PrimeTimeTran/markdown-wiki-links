@@ -6,9 +6,9 @@ export function buildFenceMask(text: string): FenceMask {
   // Split on \n only: a CRLF's \r stays inside `line`, so `line.length + 1` advances by the
   // true byte distance. Splitting on /\r?\n/ undercounted one char per CRLF line, drifting
   // every interval left of the offsets parsers compute on the raw text.
-  const lines = text.split('\n');
+  const lines = text.split("\n");
   let offset = 0;
-  let inFence: '```' | '~~~' | null = null;
+  let inFence: "```" | "~~~" | null = null;
   let fenceStart = 0;
   for (const line of lines) {
     const trimmed = line.trimStart();
@@ -17,8 +17,8 @@ export function buildFenceMask(text: string): FenceMask {
         out.push({ start: fenceStart, end: offset + line.length });
         inFence = null;
       }
-    } else if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
-      inFence = trimmed.startsWith('```') ? '```' : '~~~';
+    } else if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
+      inFence = trimmed.startsWith("```") ? "```" : "~~~";
       fenceStart = offset;
     }
     offset += line.length + 1;
@@ -27,8 +27,8 @@ export function buildFenceMask(text: string): FenceMask {
 
   for (let i = 0; i < text.length; i++) {
     if (isInsideAny(out, i)) continue;
-    if (text[i] === '`') {
-      const close = text.indexOf('`', i + 1);
+    if (text[i] === "`") {
+      const close = text.indexOf("`", i + 1);
       if (close === -1) break;
       out.push({ start: i, end: close + 1 });
       i = close;

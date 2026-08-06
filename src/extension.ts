@@ -7,7 +7,6 @@ import {
 import * as vscode from "vscode";
 
 import { CMD } from "../generated/cmd";
-import { OwnershipCodeActionProvider } from "./adapters/codeAction";
 import { WikiCompletionProvider } from "./adapters/completionProvider";
 import { WikiDiagnostics } from "./adapters/diagnostics";
 import { WikiHoverProvider } from "./adapters/hoverProvider";
@@ -15,6 +14,7 @@ import { newEditorGroupTabContent } from "./adapters/htmlAnchor";
 import { IndexService } from "./adapters/indexService";
 import { RenameHandler } from "./adapters/renameHandler";
 import { AppStore, registerGiantQuickPickCommand } from "./app";
+import { OwnershipCodeActionProvider } from "./codeActionOwnership";
 import { longLangs, supportedLanguages } from "./consts";
 import { OwnershipContentProvider, OwnershipEngine, showOwnershipView } from "./diff";
 import { EstateContext } from "./estate";
@@ -37,26 +37,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
 
   context.subscriptions.push(
     vscode.commands.registerCommand("estate.start", async () => {
-      let num = await app.bumpLeader();
-      vscode.window.showInformationMessage(`estate.start ${num}`);
+      await app.bumpLeader();
       await vscode.commands.executeCommand("setContext", "estate.leader", app.state.leader);
     }),
-  );
-  context.subscriptions.push(
     vscode.commands.registerCommand("estate.stop", async () => {
-      let num = await app.bumpLeader();
-      vscode.window.showInformationMessage(`estate.stop ${num}`);
+      await app.bumpLeader();
       await vscode.commands.executeCommand("setContext", "estate.leader", app.state.leader);
     }),
-  );
-  context.subscriptions.push(
     vscode.commands.registerCommand("estate.clear", async () => {
-      let num = await app.bumpLeader();
-      vscode.window.showInformationMessage(`estate.clear ${num}`);
+      await app.bumpLeader();
       await vscode.commands.executeCommand("setContext", "estate.leader", app.state.leader);
     }),
   );
   registerGiantQuickPickCommand(context, app);
+
   const ownershipEngine = new OwnershipEngine();
   const ownershipProvider = new OwnershipContentProvider(ownershipEngine);
 
@@ -91,84 +85,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
     );
   });
 
-  let store = app.anchors;
   // We accept the inserted wrapping () to prevent having to use context.subscriptions.push everywhere
-  // oxlint-disable-next-line no-unused-expressions
-  (context.subscriptions.push(
-    vscode.commands.registerCommand("ui.addInlinePanel", (ctx: { id: string }) => {
-      const anchor = app.anchors.get(ctx.id);
-      if (!anchor) return;
-      vscode.window.showInformationMessage(`Inline: ${anchor.label}`);
-    }),
-  ),
-    vscode.commands.registerCommand("estate.addPersistentNotification", (ctx: { id: string }) => {
-      const anchor = store.get(ctx.id);
-      if (!anchor) return;
-      vscode.window.showInformationMessage(`Pinned: ${anchor.label}`);
-    }),
-    vscode.commands.registerCommand("estate.openTextAndIconPanel", (ctx: { id: string }) => {
-      const anchor = store.get(ctx.id);
-      if (!anchor) return;
-      vscode.window.showInformationMessage(`Panel: ${anchor.label}`);
-    }),
-    vscode.commands.registerCommand("ui.openQuickpickDropdown", (ctx: { id: string }) => {
-      const anchor = store.get(ctx.id);
-      if (!anchor) return;
-      vscode.window.showQuickPick([
-        `🧩 Inline ${anchor.label}`,
-        `🕸 Graph ${anchor.label}`,
-        `♻️ Replace ${anchor.label}`,
-        `💾 Save ${anchor.label}`,
-      ]);
-    }),
-    // vscode.commands.registerCommand(
-    //   'anchor.create',
-    //   async (uri: vscode.Uri, range: vscode.Range) => {
-    //     console.log('ADD anchor', { uri, range });
-    //     await store.create(context);
-    //     codeLens.refresh();
-    //   },
-    // ),
-
-    // vscode.commands.registerCommand(
-    //   'estate.toggleFold',
-    //   async (uri: vscode.Uri, range: vscode.Range) => {
-    //     const editor = vscode.window.visibleTextEditors.find(
-    //       (e) => e.document.uri.toString() === uri.toString(),
-    //     );
-    //     if (!editor) {
-    //       return;
-    //     }
-    //     await vscode.window.showTextDocument(editor.document, editor.viewColumn);
-    //     const folded = codeLens.isFolded(uri, range);
-    //     editor.selection = new vscode.Selection(range.start, range.start);
-    //     editor.revealRange(range);
-    //     if (folded) {
-    //       await vscode.commands.executeCommand('editor.unfold');
-    //     } else {
-    //       await vscode.commands.executeCommand('editor.fold');
-    //     }
-    //     codeLens.setFolded(uri, range, !folded);
-    //     codeLens.refresh();
-    //   },
-    // ),
+  context.subscriptions.push(
     vscode.commands.registerCommand("wikiLinks.rebuildIndex", () => app.wiki?.refresh()),
     vscode.commands.registerCommand("wiki.showGraph", (ctx: EstateContext) => {
       vscode.window.showInformationMessage(`Graph for ${ctx.anchor}`);
     }),
     vscode.commands.registerCommand("ui.pinnable", (ctx: { id: string }) => {
-      const flag = store.getFlag(ctx.id);
+      const flag = app.anchors.getFlag(ctx.id);
       if (!flag) return;
       vscode.window.showInformationMessage(`Pinnable for ${flag?.label}`);
-    }),
-    vscode.commands.registerCommand("ui.pick", (ctx) => {
-      const anchor = store.get(ctx.id);
-      vscode.window.showQuickPick([
-        `🏠 ${anchor?.label}`,
-        "🕸 Graph",
-        "📄 Open Body",
-        "🌿 Branches",
-      ]);
     }),
     vscode.commands.registerCommand("ui.toggleMDPreview", async () => {
       app.toggleMdPreview();
@@ -203,9 +129,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
       if (!app.isMdPreviewEnabled()) return;
       if (!supportedLanguages.includes(editor.document.languageId)) return;
       await vscode.commands.executeCommand("markdown.togglePreview", editor.document.uri);
-    }));
+    }),
+    app.wiki,
+  );
 
-  context.subscriptions.push(app.wiki);
   new RenameHandler().register(context);
   new WikiDiagnostics(app.wiki).register(context);
   app.decorator.register(context);
@@ -252,7 +179,6 @@ function embedMaxDepth(): number {
 export function setupExtensionLogger(pipeline: string, stream: string) {
   const channel = vscode.window.createOutputChannel(pipeline);
   // channel.show(true);
-
   // Match the exact stream name to guarantee it passes shouldLog()
   setLoggerConfig({
     LOG_LEVEL: "debug",

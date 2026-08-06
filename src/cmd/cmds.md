@@ -31,7 +31,7 @@ const COMMAND_NAMES = [
 ```ts
 export const CMD = {
   estate: {
-    anchor: 'anchor.pipeline',
+    anchor: "anchor.pipeline",
     //...
   },
   //...
@@ -44,11 +44,11 @@ export const CMD = {
 let pkgJson = {
   menus: {
     // A single command can be inside of multiple contexts...? I dont underatand the system.
-    'view/title': [],
-    'view/item/context': [],
-    'editor/context': [],
-    'editor/title': [],
-    'editor/title/context': [],
+    "view/title": [],
+    "view/item/context": [],
+    "editor/context": [],
+    "editor/title": [],
+    "editor/title/context": [],
   },
   keybindings: [],
   commands: [],

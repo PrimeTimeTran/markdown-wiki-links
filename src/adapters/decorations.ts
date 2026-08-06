@@ -9,7 +9,6 @@ import { buildFenceMask } from "../core/fenceMask";
 import { parseEmbeds } from "../core/parser/embedParser";
 import { parseLinks } from "../core/parser/linkParser";
 import { innerRange } from "../core/parser/refRange";
-import { resolveTarget } from "../core/resolver/resolveTarget";
 import { icons } from "../ownership";
 import { Anchor } from "./anchorService";
 import { IndexService } from "./indexService";
@@ -18,7 +17,7 @@ const DEBOUNCE_MS = 250;
 // Colours `[[...]]` / `![[...]]` in the editor by whether the resolver can actually resolve
 // the target — resolved links take the editor link colour, unresolved ones are dimmed.
 // This reflects real resolution (spaces, Unicode, every character the parser accepts),
-// unlike a TextMate grammar that pattern-matches the link text.
+// unlike a TextMate grammar that pattjern-matches the link text.
 export class WikiDecorations {
   [x: string]: any;
   private mutedDecoration = vscode.window.createTextEditorDecorationType({

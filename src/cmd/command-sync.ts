@@ -24,11 +24,7 @@ interface CommandDefinition {
 }
 interface MenuContribution {
   menu:
-    | "view/title"
-    | "view/item/context"
-    | "editor/context"
-    | "editor/title"
-    | "editor/title/context";
+    "view/title" | "view/item/context" | "editor/context" | "editor/title" | "editor/title/context";
 
   when?: string;
   group?: string;

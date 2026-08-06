@@ -21,7 +21,20 @@ export const COMMANDS: CommandDefinition[] = [
   {
     title: "Estate: Open Command Palette",
     id: "estate.ui.cmdPalette",
-    shortTitle: "Quick Pick from the command palette",
+    shortTitle: "Find commands easily using the cmd palette",
+    icon: "$(zap)",
+    menus: [
+      // {
+      //   menu: "view/title",
+      //   group: "navigation",
+      //   when: "view == estateExplorer",
+      // },
+    ],
+  },
+  {
+    title: "Estate: Open Quick Pick",
+    id: "estate.ui.quickPick",
+    shortTitle: "Open quick picker",
     icon: "$(zap)",
     menus: [
       // {

@@ -1,23 +1,23 @@
 {
-    "compilerOptions": {
-        "target": "ESNext",
-        "module": "NodeNext",
-        "moduleResolution": "NodeNext",
-        "types": [
-            "node"
-        ],
-        "strict": true,
-        "esModuleInterop": true,
-        "skipLibCheck": true,
-        "outDir": "out",
-        "lib": [
-            "ES2022"
-        ],
-        "sourceMap": true,
-        "rootDir": ".",
-    },
-    "include": [
-        "src/**/*",
-        "test/**/*"
-    ]
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": [
+      "node"
+    ],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "out",
+    "lib": [
+      "ES2022"
+    ],
+    "sourceMap": true,
+    "rootDir": "."
+  },
+  "include": [
+    "src/**/*",
+    "test/**/*"
+  ]
 }

@@ -11,14 +11,14 @@ function pngSize(b: Uint8Array): ImageDimensions | undefined {
   if (b.length < 24) return undefined;
   const signature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
   if (!signature.every((v, i) => b[i] === v)) return undefined;
-  if (String.fromCharCode(b[12], b[13], b[14], b[15]) !== 'IHDR') return undefined;
+  if (String.fromCharCode(b[12], b[13], b[14], b[15]) !== "IHDR") return undefined;
   return { width: u32be(b, 16), height: u32be(b, 20) };
 }
 
 function gifSize(b: Uint8Array): ImageDimensions | undefined {
   // "GIF" then a logical-screen descriptor with width/height as 2-byte little-endian values.
   if (b.length < 10) return undefined;
-  if (String.fromCharCode(b[0], b[1], b[2]) !== 'GIF') return undefined;
+  if (String.fromCharCode(b[0], b[1], b[2]) !== "GIF") return undefined;
   return { width: b[6] | (b[7] << 8), height: b[8] | (b[9] << 8) };
 }
 

@@ -2,7 +2,7 @@
   "name": "markdown-wiki-links",
   "displayName": "Markdown Wiki Links",
   "publisher": "ltvan",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Obsidian-style [[wiki-links]] between Markdown files in the workspace.",
   "license": "MIT",
   "repository": {
@@ -38,7 +38,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint src test",
-    "pretest": "pnpm format:check && pnpm lint && pnpm build && pnpm compile:tests",
+    "test:pretest": "pnpm format:check && pnpm lint && pnpm build && pnpm compile:tests",
     "test": "pnpm test:unit && pnpm test:e2e",
     "test:unit": "mocha --config .mocharc.unit.cjs",
     "test:e2e": "vscode-test",
@@ -205,18 +205,18 @@
         },
         {
           "command": "estate.bookmark.read",
-          "when": "viewItem == folder",
-          "group": "inline@1"
+          "when": "viewItem == file",
+          "group": "inline@2"
         },
         {
           "command": "estate.bookmark.update",
           "when": "view == estateExplorer",
-          "group": "inline@2"
+          "group": "inline@3"
         },
         {
           "command": "estate.bookmark.delete",
           "when": "view == estateExplorer",
-          "group": "inline@3"
+          "group": "inline@4"
         }
       ]
     },
@@ -291,7 +291,7 @@
       {
         "command": "estate.bookmark.read",
         "title": "Estate: View bookmark",
-        "icon": "$(view)"
+        "icon": "$(preview)"
       },
       {
         "command": "estate.bookmark.filter",
@@ -416,6 +416,12 @@
       {
         "command": "estate.ui.cmdPalette",
         "title": "Estate: Open Command Palette",
+        "shortTitle": "Quick Pick from the command palette",
+        "icon": "$(zap)"
+      },
+      {
+        "command": "estate.ui.quickPick",
+        "title": "Estate: Open Quick Pick",
         "shortTitle": "Quick Pick from the command palette",
         "icon": "$(zap)"
       },
@@ -671,7 +677,6 @@
     "and": "^0.0.3",
     "build": "^0.1.4",
     "highlight.js": "^11.11.1",
-    "pnpm": "^11.19.0",
     "run": "^1.5.0",
     "tsx": "^4.23.1"
   }

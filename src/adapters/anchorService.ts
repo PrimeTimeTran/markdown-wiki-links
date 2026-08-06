@@ -69,7 +69,6 @@ export interface Anchor {
   // Later this can become a proper relationship table/store
   lists?: string[];
 }
-// Runtime
 export class Anchor {
   id: string;
   label?: string;
@@ -86,18 +85,17 @@ export class Anchor {
     }
     return this.src.uri.toString();
   }
+  get startLine(): number {
+    return this.src?.startLine ?? 0;
+  }
 }
+export const AnchorTags = {
+  SoftDeleted: "softDeleted",
+  Pipeline: "pipeline",
+  Index: "index",
+  Wiki: "wiki",
+} as const;
 
-// class AnchorResolver {
-//   constructor(private readonly sources: AnchorSource[]) {}
-
-//   resolve(label: string) {
-//     for (const source of this.sources) {
-//       const result = source.resolve(label);
-//       if (result) return result;
-//     }
-//   }
-// }
 export type AnchorOrigin = "system" | "personal" | "workspace";
 export interface AnchorSource {
   uri: string;
@@ -107,9 +105,7 @@ export interface AnchorSource {
   endCharacter?: number;
   languageId?: string;
 }
-// export class AnchorSource {
-//   resolve(label: string) {}
-// }
+
 // CRUD
 // - [ ] Create
 // - [ ] Read
@@ -228,20 +224,9 @@ export class AnchorStore implements AnchorStoreType {
 
     console.log("this.registryPath", this.registryPath);
   }
-  private initIntrinsic(): EstateFlag[] {
-    for (const f of flags) {
-      this.registerFlag(f);
-    }
-    for (const c of capability) {
-      this.registerFlag(c);
-    }
-    return flags;
-  }
   initializeRegistry(): void {
     const estate = this.resolveRegistry();
-    if (!estate) {
-      return;
-    }
+    if (!estate) return;
     const registry = path.join(estate, "registry", PATHS.anchors());
     if (!fs.existsSync(registry)) {
       return;
@@ -252,14 +237,10 @@ export class AnchorStore implements AnchorStoreType {
     }
   }
   public loadRegistry(file: string): void {
-    if (!fs.existsSync(file)) {
-      console.log("Missing registry:", file);
-      return;
-    }
+    if (!fs.existsSync(file)) return;
     const raw = fs.readFileSync(file, "utf8");
     const json = JSON.parse(raw);
     const items = json.items ?? {};
-    // console.log("itemsitems", items);
     for (const [id, anchor] of Object.entries(items as Record<string, Partial<Anchor>>)) {
       const b = new Anchor(id, anchor);
       this.register(id, b);
@@ -270,6 +251,15 @@ export class AnchorStore implements AnchorStoreType {
     for (const estate of estates) {
       this.loadRegistry(path.join(estate, "anchors.json"));
     }
+  }
+  private initIntrinsic(): EstateFlag[] {
+    for (const f of flags) {
+      this.registerFlag(f);
+    }
+    for (const c of capability) {
+      this.registerFlag(c);
+    }
+    return flags;
   }
   private findEstates(): string[] {
     const estates: string[] = [];
@@ -295,6 +285,62 @@ export class AnchorStore implements AnchorStoreType {
     }
     return estates.reverse();
   }
+  findAnchors(text: string, store: AnchorStore, line: number): AnchorRef[] {
+    return this.findAnchorsLocations(text, line)
+      .filter((t) => store.has(t.id))
+      .map((t) => ({ ...t }));
+  }
+  findFlags(text: string, store: AnchorStore, line: number): AnchorRef[] {
+    return this.findAnchorsLocations(text, line).flatMap((t) => {
+      const flag = store.getFlag(t.id);
+      return flag ? [{ ...t, flag }] : [];
+    });
+  }
+  findAnchorsLocations(text: string, line: number): AnchorRef[] {
+    const results: AnchorRef[] = [];
+    const regex = /@[A-Za-z0-9_-]+/g;
+    for (const match of text.matchAll(regex)) {
+      results.push({
+        id: match[0],
+        line,
+        start: match.index!,
+        end: match.index! + match[0].length,
+      });
+    }
+    return results;
+  }
+  findByUri(uri: vscode.Uri): Anchor[] {
+    const target = uri.toString();
+    return this.list().filter((anchor) =>
+      anchor.locations?.some((location) => location.uri === target),
+    );
+  }
+  find(file: vscode.Uri, text: string, line: number): AnchorRef[] {
+    const results = [...this.findAnchors(text, this, line), ...this.findFlags(text, this, line)];
+    for (const anchor of this.findSortedIndex(file, line)) {
+      results.push({
+        id: anchor.id,
+        line,
+        start: anchor.src!.startCharacter ?? 0,
+        end: anchor.src!.endCharacter ?? 0,
+      });
+    }
+    return results;
+  }
+  findInFile(file: vscode.Uri): Anchor[] {
+    let items = this.list().filter((a) => this.inFile(a, file));
+    // console.log("[AnchorStore].findInFile", file);
+    // console.log("[AnchorStore].findInFile", items);
+    return items;
+  }
+  findSortedIndex(file: vscode.Uri, line: number): Anchor[] {
+    return this.findInIndex(file).filter(
+      (b) => b.src && line >= b.src.startLine && line <= b.src.endLine,
+    );
+  }
+  findInIndex(file: vscode.Uri): Anchor[] {
+    return this.fileIndex.get(file.toString()) ?? [];
+  }
   public async saveAnchor(patch: Partial<Anchor>) {
     // if (!this.currentAnchor) {
     //   return;
@@ -302,24 +348,6 @@ export class AnchorStore implements AnchorStoreType {
     // this.app.anchors.update(this.currentAnchor.id, patch);
     // this.app.anchors.save();
   }
-  //   private findEstate(startPath: string): string | undefined {
-  //     let current = path.resolve(startPath);
-  //
-  //
-  //
-  //    while (true) {
-  //       const candidate = path.join(current, '.estate');
-  //       if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
-  //         return candidate;
-  //       }
-  //       const parent = path.dirname(current);
-  //       if (parent === current) {
-  //         break;
-  //       }
-  //       current = parent;
-  //     }
-  //     return undefined;
-  //   }
   create(
     id: string,
     ctx: EstateContext,
@@ -409,34 +437,66 @@ export class AnchorStore implements AnchorStoreType {
 
   //   this._onDidChange.fire();
   // }
+  // async deleteAnchor(node: EstateNode, anchor: Anchor) {
+  //   const id = node?.id || anchor.id;
+  //   vscode.window.showInformationMessage(`Deleted anchor ${id}`);
+
+  //   if (!this.items.has(id)) {
+  //     vscode.window.showWarningMessage(`Anchor not found: ${id}`);
+  //     return;
+  //   }
+  //   this.items.delete(id);
+  //   for (const [file, anchors] of this.fileIndex.entries()) {
+  //     const filtered = anchors.filter((a) => a.id !== id);
+
+  //     if (filtered.length === 0) {
+  //       this.fileIndex.delete(file);
+  //     } else {
+  //       this.fileIndex.set(file, filtered);
+  //     }
+  //   }
+  //   await this.save();
+  //   // optional but useful: guarantee consistency
+  //   // await this.reset();
+
+  //   this.app.tree.refresh();
+  //   this._onDidChange.fire();
+  // }
   async deleteAnchor(node: EstateNode, anchor: Anchor) {
+    const id = node?.id || anchor.id;
+    const item = this.items.get(id);
+    if (!item) return;
+    if (!item.tags.includes("softDeleted")) {
+      item.tags.push("softDeleted");
+    }
+    this.items.set(id, item);
+    await this.save();
+    this.app.tree.refresh();
     this._onDidChange.fire();
-    vscode.window.showInformationMessage("anchor store delete");
-  }
-  findByUri(uri: vscode.Uri): Anchor[] {
-    const target = uri.toString();
-    return this.list().filter((anchor) =>
-      anchor.locations?.some((location) => location.uri === target),
-    );
   }
   register(id: string, anchor: Anchor) {
-    console.log("registering");
+    if (anchor.tags?.includes("softDeleted")) {
+      return;
+    }
     try {
       this.items.set(id, anchor);
       const key = anchor.uri().toString();
       const list = this.fileIndex.get(key) ?? [];
       list.push(anchor);
-      list.sort((a, b) => a.src.startLine - b.src.startLine);
+      list.sort((a, b) => a.startLine - b.startLine);
+      // File anchors first.
+      // list.sort((a, b) => (a.src?.startLine ?? 0) - (b.src?.startLine ?? 0));
+      // If you want "whole-file anchors" to sort after line-based anchors, use something large:
+      // list.sort((a, b) => (a.src?.startLine ?? Infinity) - (b.src?.startLine ?? Infinity));
       this.fileIndex.set(key, list);
     } catch (error) {
-      vscode.window.showErrorMessage(`Error saving.`);
+      vscode.window.showErrorMessage(`Error saving. ${error}`);
     }
   }
   async save(): Promise<void> {
     const data = {
       items: Object.fromEntries(this.items),
     };
-    console.log("this.registryPath", this.registryPath);
     await fsPromise.mkdir(path.dirname(this.registryPath), { recursive: true });
     await fsPromise.writeFile(this.registryPath, JSON.stringify(data, null, 2), "utf8");
   }
@@ -467,7 +527,7 @@ export class AnchorStore implements AnchorStoreType {
     return [...this.items.keys()];
   }
   list(): Anchor[] {
-    return [...this.items.values()];
+    return [...this.items.values()].filter((a) => !a.tags.includes("softDeleted"));
   }
   inFile(a: Anchor, file: vscode.Uri) {
     let result = this.getUri(a);
@@ -477,34 +537,6 @@ export class AnchorStore implements AnchorStoreType {
     // console.log("[AnchorStore].inFile", resultLa);
     // console.log("[AnchorStore].inFile", result.fsPath);
     return result;
-  }
-  find(file: vscode.Uri, text: string, line: number): AnchorRef[] {
-    const results = [...findAnchors(text, this, line), ...findFlags(text, this, line)];
-    for (const anchor of this.findSortedIndex(file, line)) {
-      console.log("anchoranchor", anchor);
-      console.log("anchoranchor", anchor.id);
-      results.push({
-        id: anchor.id,
-        line,
-        start: anchor.src!.startCharacter ?? 0,
-        end: anchor.src!.endCharacter ?? 0,
-      });
-    }
-    return results;
-  }
-  findInFile(file: vscode.Uri): Anchor[] {
-    let items = this.list().filter((a) => this.inFile(a, file));
-    // console.log("[AnchorStore].findInFile", file);
-    // console.log("[AnchorStore].findInFile", items);
-    return items;
-  }
-  findSortedIndex(file: vscode.Uri, line: number): Anchor[] {
-    return this.findInIndex(file).filter(
-      (b) => b.src && line >= b.src.startLine && line <= b.src.endLine,
-    );
-  }
-  findInIndex(file: vscode.Uri): Anchor[] {
-    return this.fileIndex.get(file.toString()) ?? [];
   }
   async update(
     anchor: Anchor,
@@ -576,12 +608,7 @@ export interface Result<T> {
   value?: T;
   error?: string;
 }
-export function findFlags(text: string, store: AnchorStore, line: number): AnchorRef[] {
-  return findAnchorsLocations(text, line).flatMap((t) => {
-    const flag = store.getFlag(t.id);
-    return flag ? [{ ...t, flag }] : [];
-  });
-}
+
 export class AnchorSeries {}
 export class AnchorPresenter {
   private anchorPanels = new Map<string, vscode.WebviewPanel>();
@@ -1039,62 +1066,31 @@ export class AnchorPresenter {
     // `;
   }
 }
-// export interface Anchor {
-//   id: string;
-//   label?: string;
-
-//   // Organization
-//   lists?: string[];
-
-//   // Source references
-//   locations?: AnchorLocation[];
-
-//   // Content payload
-//   type?: string;
-//   body?: string;
-//   code?: string;
-//   context?: string;
-//   scratchpadBody?: string;
-
-//   // Metadata
-//   repo?: string;
-//   commit?: string;
-//   scope?: string;
-//   privacy?: string;
-
-//   updatedAt?: string;
-//   createdAt?: string;
-// }
-export interface AnchorList {
-  id: string;
-  label: string;
-  parent?: string;
-  anchors: string[];
-}
 export interface AnchorRef {
   id: string;
   line: number;
   start: number;
   end: number;
 }
-export function findAnchorsLocations(text: string, line: number): AnchorRef[] {
-  const results: AnchorRef[] = [];
-  const regex = /@[A-Za-z0-9_-]+/g;
-  for (const match of text.matchAll(regex)) {
-    results.push({
-      id: match[0],
-      line,
-      start: match.index!,
-      end: match.index! + match[0].length,
-    });
-  }
-  return results;
-}
-export function findAnchors(text: string, store: AnchorStore, line: number): AnchorRef[] {
-  return findAnchorsLocations(text, line)
-    .filter((t) => store.has(t.id))
-    .map((t) => ({ ...t }));
-}
+// export function findFlags(text: string, store: AnchorStore, line: number): AnchorRef[] {
+//   return findAnchorsLocations(text, line).flatMap((t) => {
+//     const flag = store.getFlag(t.id);
+//     return flag ? [{ ...t, flag }] : [];
+//   });
+// }
+// export function findAnchorsLocations(text: string, line: number): AnchorRef[] {
+//   const results: AnchorRef[] = [];
+//   const regex = /@[A-Za-z0-9_-]+/g;
+//   for (const match of text.matchAll(regex)) {
+//     results.push({
+//       id: match[0],
+//       line,
+//       start: match.index!,
+//       end: match.index! + match[0].length,
+//     });
+//   }
+//   return results;
+// }
 export interface AnchorLocation {
   uri: string;
   line: number;

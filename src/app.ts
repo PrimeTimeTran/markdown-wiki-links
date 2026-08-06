@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 
 import { CMD } from "../generated/cmd";
 import { ActivityStore, AppActivity } from "./activity";
-import { AnchorPresenter, AnchorStore } from "./adapters/anchorService";
+import { Anchor, AnchorPresenter, AnchorStore } from "./adapters/anchorService";
 import { WikiCodeLensProvider } from "./adapters/codelens";
 import { WikiDecorations } from "./adapters/decorations";
 import { WikiDocumentLinkProvider } from "./adapters/documentLinkProvider";
@@ -17,6 +17,7 @@ export interface EstateState {
   focushistory: FocusTarget[];
   leader: number;
 }
+
 type FocusTarget = "editor" | "sidebar" | "panel" | "outline" | "terminal";
 
 export class AppStore {
@@ -87,12 +88,23 @@ export class AppStore {
     this.activity.init(this.ctx);
     logger.debug("[AppStore.constructor.end]");
   }
-
   init(context: vscode.ExtensionContext) {
     this.wiki.initialize();
     context.subscriptions.push(
       vscode.workspace.registerTextDocumentContentProvider("estate", this.vfs),
       vscode.window.registerFileDecorationProvider(this.vfsDecorator),
+      vscode.commands.registerCommand("estate.ui.quickPick", (anchor: Anchor) => {
+        if (!anchor) return;
+        vscode.window.showQuickPick([
+          // 1. Show anchor path (useful for when we dont know "which" README.md/package.json we're looking at)
+          // 2. Show Front matter?
+          // 3. Outline Behavior. Collapse/expand
+          `🧩 Inline ${anchor.label}`,
+          `🕸 Graph ${anchor.label}`,
+          `♻️ Replace ${anchor.label}`,
+          `💾 Save ${anchor.label}`,
+        ]);
+      }),
     );
     this.activity.subscribe((activity) => {
       console.log("[AppStore].init Activity Click");

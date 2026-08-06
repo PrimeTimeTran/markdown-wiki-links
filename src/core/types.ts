@@ -1,5 +1,5 @@
 export type ParsedRef = {
-  kind: 'link' | 'embed';
+  kind: "link" | "embed";
   target: string;
   fragment?: string;
   display?: string;
@@ -8,6 +8,6 @@ export type ParsedRef = {
 };
 
 export type Heading = { text: string; slug: string; line: number; level: number };
-export type BlockId = { id: string; line: number; kind: 'suffix' | 'standalone' };
+export type BlockId = { id: string; line: number; kind: "suffix" | "standalone" };
 export type IndexEntry = { fsPath: string; relPath: string; baseNoExt: string };
 export type ResolvedTarget = { fsPath: string; line?: number };

@@ -1,7 +1,6 @@
 // GENERATED FILE
 
-export const CMD = 
-{
+export const CMD = {
   estate: {
     ui: {
       cmdPalette: "estate.ui.cmdPalette",

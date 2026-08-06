@@ -1,44 +1,44 @@
-import js from '@eslint/js';
-import tseslint from 'typescript-eslint';
-import importPlugin from 'eslint-plugin-import';
+import js from "@eslint/js";
+import importPlugin from "eslint-plugin-import";
+import tseslint from "typescript-eslint";
 
 export default [
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['src/**/*.ts', 'test/**/*.ts'],
+    files: ["src/**/*.ts", "test/**/*.ts"],
     plugins: { import: importPlugin },
-    languageOptions: { parserOptions: { project: './tsconfig.json' } },
+    languageOptions: { parserOptions: { project: "./tsconfig.json" } },
     rules: {
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-      '@typescript-eslint/no-explicit-any': 'warn',
-      'no-else-return': 'error',
-      'import/order': [
-        'error',
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-explicit-any": "warn",
+      "no-else-return": "error",
+      "import/order": [
+        "error",
         {
-          groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
-          'newlines-between': 'always',
+          groups: ["builtin", "external", "internal", "parent", "sibling", "index"],
+          "newlines-between": "always",
         },
       ],
     },
   },
   {
-    files: ['src/core/**/*.ts'],
+    files: ["src/core/**/*.ts"],
     rules: {
-      'no-restricted-imports': [
-        'error',
+      "no-restricted-imports": [
+        "error",
         {
           patterns: [
             {
               group: [
-                'vscode',
-                '../adapters/*',
-                '../../adapters/*',
-                '../markdownItPlugin/*',
-                '../../markdownItPlugin/*',
+                "vscode",
+                "../adapters/*",
+                "../../adapters/*",
+                "../markdownItPlugin/*",
+                "../../markdownItPlugin/*",
               ],
               message:
-                'src/core must stay pure: no vscode, no adapters, no markdownItPlugin imports',
+                "src/core must stay pure: no vscode, no adapters, no markdownItPlugin imports",
             },
           ],
         },
@@ -46,15 +46,15 @@ export default [
     },
   },
   {
-    files: ['src/markdownItPlugin/**/*.ts'],
+    files: ["src/markdownItPlugin/**/*.ts"],
     rules: {
-      'no-restricted-imports': [
-        'error',
+      "no-restricted-imports": [
+        "error",
         {
           patterns: [
             {
-              group: ['vscode'],
-              message: 'markdownItPlugin runs in the preview process; no vscode imports',
+              group: ["vscode"],
+              message: "markdownItPlugin runs in the preview process; no vscode imports",
             },
           ],
         },
@@ -62,15 +62,15 @@ export default [
     },
   },
   {
-    files: ['test/e2e/**/*.ts'],
+    files: ["test/e2e/**/*.ts"],
     rules: {
-      'no-restricted-imports': [
-        'error',
+      "no-restricted-imports": [
+        "error",
         {
           patterns: [
             {
-              group: ['../../src/*', '../../../src/*'],
-              message: 'e2e tests must not import extension internals',
+              group: ["../../src/*", "../../../src/*"],
+              message: "e2e tests must not import extension internals",
             },
           ],
         },

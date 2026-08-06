@@ -217,8 +217,8 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
   buildStage(section: string) {
     return new EstateNode(true, section, undefined, undefined);
   }
-  buildSection(section: string | vscode.TreeItemLabel, node: EstateNode) {
-    let anchors = this.app.anchors.list();
+  buildSection(section: string, node: EstateNode) {
+    let anchors = this.app.anchors.list().filter((a) => !a.tags.includes("softDeleted"));
     return anchors
       .filter((b) => section == "draft" || b.tags.includes(section))
       .map((a) => this.buildNode(node, a));
@@ -251,7 +251,7 @@ export class EstateTreeProvider implements vscode.TreeDataProvider<EstateNode> {
 export class EstateNode extends vscode.TreeItem {
   constructor(
     public isStageNode: boolean,
-    public readonly label: string | vscode.TreeItemLabel,
+    public readonly label: string,
     public readonly anchor?: Anchor,
     public readonly parent?: EstateNode,
     public tooltip?: string,
@@ -261,7 +261,7 @@ export class EstateNode extends vscode.TreeItem {
       label,
       hasChildren ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None,
     );
-    this.id = anchor ? `${parent?.id ?? "root"}:${anchor.id}` : `section:${label}`;
+    this.id = anchor ? anchor.id : `section:${label}`;
 
     if (anchor) {
       this.contextValue = "anchor";
@@ -313,7 +313,6 @@ export class EstateNode extends vscode.TreeItem {
     //   //   .map((b) => new EstateNode('anchor', b.label ?? '', b));
     // }
   }
-  //
   private applyAnchorStyle(anchor: Anchor) {
     const tags = anchor.tags ?? [];
 

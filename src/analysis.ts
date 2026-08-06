@@ -5,7 +5,7 @@ import * as vscode from "vscode";
 
 import { AppActivity } from "./activity";
 import { AppStore } from "./app";
-import { icons } from "./ownership";
+
 const execFileAsync = util.promisify(execFile);
 
 export class AnalysisStore {

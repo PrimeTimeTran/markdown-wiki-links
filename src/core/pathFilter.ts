@@ -8,8 +8,8 @@ export function isExcludedPath(relPath: string, excludedFolders: string[]): bool
 }
 
 export function buildExcludeGlob(excludedFolders: string[]): string | undefined {
-  const cleaned = excludedFolders.map((f) => f.trim()).filter((f) => f !== '');
+  const cleaned = excludedFolders.map((f) => f.trim()).filter((f) => f !== "");
   if (cleaned.length === 0) return undefined;
   if (cleaned.length === 1) return `**/${cleaned[0]}/**`;
-  return `**/{${cleaned.join(',')}}/**`;
+  return `**/{${cleaned.join(",")}}/**`;
 }
