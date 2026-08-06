@@ -12,6 +12,7 @@ export class WikiDocumentLinkProvider implements vscode.DocumentLinkProvider {
   constructor(private idx: IndexService) {}
 
   async provideDocumentLinks(doc: vscode.TextDocument): Promise<vscode.DocumentLink[]> {
+    console.log("[-- 10 -- WikiDocumentLinkProvider.windowClick().provideDocumentLinks()]");
     const text = doc.getText();
     const mask = buildFenceMask(text);
     const refs = [...parseLinks(text, mask), ...parseEmbeds(text, mask)];
@@ -21,19 +22,10 @@ export class WikiDocumentLinkProvider implements vscode.DocumentLinkProvider {
 
     for (const r of refs) {
       const entry = resolver.resolveLink(r, doc.uri.fsPath);
-
-      if (!entry) {
-        continue;
-      }
-
+      if (!entry) continue;
       const targetUri = entry.linkUri();
-
-      if (!targetUri) {
-        continue;
-      }
-
+      if (!targetUri) continue;
       let final = targetUri;
-
       if (r.fragment) {
         const fsPath = targetUri.fsPath;
         const targetText = fsPath === doc.uri.fsPath ? text : await safeRead(fsPath);
@@ -49,13 +41,10 @@ export class WikiDocumentLinkProvider implements vscode.DocumentLinkProvider {
 
       const start = doc.positionAt(r.range.start);
       const end = doc.positionAt(r.range.end);
-
       let item = new vscode.DocumentLink(new vscode.Range(start, end), final);
-      console.log("item.target", item.target);
       out.push(new vscode.DocumentLink(new vscode.Range(start, end), final));
     }
     // console.log("out", out);
-
     return out;
   }
 }

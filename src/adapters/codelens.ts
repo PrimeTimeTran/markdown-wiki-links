@@ -5,6 +5,7 @@ import { AppActivity, captureScope } from "../activity";
 import { Anchor } from "../anchor";
 import { AppStore } from "../app";
 import { EstateContext } from "../estate";
+import { icons } from "../ownership";
 import { AnchorRef } from "../types";
 
 export class WikiCodeLensProvider implements vscode.CodeLensProvider {
@@ -14,9 +15,9 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
   readonly onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
   constructor(private app: AppStore) {
     app.activity.subscribe((activity) => {
+      this.refresh();
       // app.logger.debug("[WikiCodeLensProvider]");
       // console.log("[WikiCodeLensProvider].subscription", activity);
-      this.refresh();
       // this.analyzeLine(activity);
     });
   }
@@ -24,10 +25,11 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
     this._onDidChangeCodeLenses.fire();
   }
   provideCodeLenses(doc: vscode.TextDocument): vscode.CodeLens[] {
+    console.log("[-- 1 -- WikiCodeLensProvider.windowClick().provideCodeLenses()]");
     // this.app.logger.debug("[WikiCodeLensProvider].subscribe/refresh");
     let inlineFlags = this.addIntrinsicAnchors(doc);
     let documentAnchors = this.addDocumentAnchors(doc);
-    console.log("[WikiCodeLensProvider].refresh documentAnchors", documentAnchors.length);
+
     const lenses: vscode.CodeLens[] = [...inlineFlags, ...documentAnchors];
     // WIP: Add multiple inline lenses
     // lenses.push(...addIntrinsicAnchors(lenses));
@@ -43,13 +45,12 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
     //   lenses.push(
     //     new vscode.CodeLens(range, {
     //       title: `🔹 ${icon}`,
-    //       command: 'flowify.previewIcon',
+    //       command: "flowify.previewIcon",
     //       arguments: [icon, line],
     //     }),
     //   );
     // });
     // lenses.push(...this.provideAnchorFlags(doc));
-    console.log("[WikiCodeLensProvider] returning lenses", lenses.length, lenses);
     return lenses;
   }
   addIntrinsicAnchors(doc: vscode.TextDocument): vscode.CodeLens[] {
@@ -68,33 +69,11 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
               arguments: [this.makeCtx(doc, match, range)],
             }),
           );
-          // lenses.push(
-          //   new vscode.CodeLens(range, {
-          //     title: `🔖 Present ${anchor?.label ?? match.id}`,
-          //     command: CMD.anchor.present,
-          //     arguments: [this.makeCtx(doc, match, range), anchor],
-          //   }),
-          // );
           new vscode.CodeLens(range, {
             title: "🔖 Anchor",
             command: "anchor.edit",
             arguments: [doc.uri, range],
           });
-          //   const hasAnchor = this.store.hasSource(doc.uri.fsPath, range);
-          //   lenses.push(
-          //     new vscode.CodeLens(range, {
-          //       title: hasAnchor ? '🔖 Saved' : '➕ Anchor',
-          //       command: hasAnchor ? 'estate.removeAnchor' : 'anchor.create',
-          //       arguments: [doc.uri, range],
-          //     }),
-          //   );
-          //   lenses.push(
-          //     new vscode.CodeLens(range, {
-          //       title: '🕸 Graph',
-          //       command: 'wiki.showGraph',
-          //       arguments: [this.makeCtx(doc, match, range)],
-          //     }),
-          //   );
         }
         const flag = this.app.anchors.getFlag(match.id);
         if (flag?.id == "@easy") {
@@ -141,6 +120,15 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
           lenses.push(
             new vscode.CodeLens(range, {
               title: "🏘️ Connected",
+              command: "ui.openInNewEditorGroup",
+              arguments: [this.makeCtx(doc, match, range)],
+            }),
+          );
+        }
+        if (flag?.id == "@branch") {
+          lenses.push(
+            new vscode.CodeLens(range, {
+              title: "🏘️ Branch",
               command: "ui.openInNewEditorGroup",
               arguments: [this.makeCtx(doc, match, range)],
             }),
@@ -295,8 +283,8 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
     }
     return lenses;
   }
-  private analyzeLine(_activity: AppActivity) {
-    // console.log('analyzeLine WikiCodeLensProvider event', activity);
+  private analyzeLine(activity: AppActivity) {
+    console.log("[-- 6 -- WikiCodeLensProvider.analyzeLine.windowClick()]", activity);
   }
   init(context: vscode.ExtensionContext) {
     context.subscriptions.push(
@@ -328,22 +316,6 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
       this.folded.delete(key);
     }
   }
-  //   addLabel(
-  //     match: AnchorOccurrence | FlagOccurrence,
-  //     doc: vscode.TextDocument,
-  //     range: vscode.Range,
-  //   ) {
-  //     switch (match) {
-  //       case '@connected':
-  //         return {
-  //           title: '🏘️ Connected',
-  //           command: 'ui.openInNewEditorGroup',
-  //           arguments: [this.makeCtx(doc, match, range)],
-  //         };
-  //       default:
-  //         break;
-  //     }
-  //   }
   // Add inline link with click actions()
   //   [
   //     'ui.addInlinePanel', // Give more content
@@ -355,7 +327,6 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
   //     'estate.contentCycle', // Select from anchor(go through a list of options)
   //     'estate.contentReplace', // Select from anchor(after having captured/saved I any to apply)
   //   ];
-  addIcon() {}
   private provideAnchorFlags(doc: vscode.TextDocument): vscode.CodeLens[] {
     const lenses: vscode.CodeLens[] = [];
     const anchors = this.app.anchors.list();

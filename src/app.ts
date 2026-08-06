@@ -88,7 +88,7 @@ export class AppStore {
           // 2. Show Front matter?
           // 3. Outline Behavior. Collapse/expand
           // 4. Edit label(sidebar)
-          // 4. Edit label(sidebar)
+          // 5. Edit label(sidebar)
           `🧩 Create label ${anchor.label}`,
           `🕸 Update label ${anchor.label}`,
           `♻️ Delete label ${anchor.label}`,
@@ -100,7 +100,7 @@ export class AppStore {
       }),
     );
     this.activity.subscribe((activity) => {
-      console.log("[AppStore.init.subsribe()]");
+      console.log("[-- 7 -- AppStore.windowClick()]");
       // this.logger.debug("[AppStore.init.subsribe()]");
       //   vscode.window.showInformationMessage(`app ${this.input}`);
       // this.analysis.analyzeLine(activity);

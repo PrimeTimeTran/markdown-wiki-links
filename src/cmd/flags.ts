@@ -197,13 +197,6 @@ export const flag = [
     action: "wiki.branch",
   },
   {
-    id: "@branch",
-    label: "Branch",
-    description: "Branch...",
-    scope: "language",
-    action: "wiki.branch",
-  },
-  {
     id: "@hoverable",
     label: "Hoverable",
     description: "Hoverable...",

@@ -8,7 +8,7 @@ import { newEditorGroupTabContent } from "./adapters/htmlAnchor";
 import { IndexService } from "./adapters/indexService";
 import { RenameHandler } from "./adapters/renameHandler";
 import { AppStore, registerCustomCommandPalette } from "./app";
-import { EstateActionProvider, OwnershipCodeActionProvider } from "./codeActionOwnership";
+import { EstateActionProvider } from "./codeAction";
 import { longLangs, supportedLanguages } from "./consts";
 import { OwnershipContentProvider, OwnershipEngine, showOwnershipView } from "./diff";
 import { EstateContext } from "./estate";
@@ -17,6 +17,7 @@ import {
   setResolver,
   resetResolver,
 } from "./markdownItPlugin/index";
+import { OwnershipCodeActionProvider, OwnershipInlayProvider } from "./ownership";
 
 export let indexService: IndexService | undefined;
 
@@ -27,6 +28,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   app.init(context);
   app.logger.debug("[activate.app.logger]");
 
+  // VSCode UI
   context.subscriptions.push(
     vscode.commands.registerCommand("estate.start", async () => {
       await app.bumpLeader();
@@ -43,42 +45,27 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   );
   registerCustomCommandPalette(context, app);
 
+  // Ownership
   const ownershipEngine = new OwnershipEngine();
   const ownershipProvider = new OwnershipContentProvider(ownershipEngine);
-
+  let inlineProvider = new OwnershipInlayProvider(app);
   context.subscriptions.push(
     vscode.workspace.registerTextDocumentContentProvider("estate", ownershipProvider),
-    vscode.commands.registerCommand(CMD.estate.ownership.show, showOwnershipView),
     vscode.workspace.onDidChangeTextDocument((e) => {
       const ownershipUri = vscode.Uri.parse(`estate://ownership${e.document.uri.path}`);
       ownershipProvider.refresh(ownershipUri);
     }),
-    vscode.languages.registerCodeActionsProvider("rust", new OwnershipCodeActionProvider()),
+    vscode.languages.registerInlayHintsProvider({ language: "rust" }, inlineProvider),
+    vscode.languages.registerCodeActionsProvider("rust", new OwnershipCodeActionProvider(context)),
+    vscode.commands.registerCommand(CMD.estate.ownership.show, showOwnershipView),
+  );
+  // Commands
+
+  context.subscriptions.push(
     vscode.languages.registerCodeActionsProvider("markdown", new EstateActionProvider(), {
       providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
     }),
   );
-  // Commands
-  const commands = [
-    "estate.ownership.lineage",
-    "estate.ast.ancestors",
-    "estate.ast.children",
-    "estate.ast.siblings",
-    "estate.node.pin",
-    "estate.node.recent",
-    "estate.symbol.references",
-    "estate.value.lineage",
-    "estate.scope.show",
-    "estate.graph.open",
-    "estate.symbol.rename",
-  ];
-  commands.forEach((command) => {
-    context.subscriptions.push(
-      vscode.commands.registerCommand(command, (ctx) => {
-        console.log("[ESTATE COMMAND]", command, ctx);
-      }),
-    );
-  });
 
   // We accept the inserted wrapping () to prevent having to use context.subscriptions.push everywhere
   context.subscriptions.push(
@@ -132,14 +119,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
   new WikiDiagnostics(app.wiki).register(context);
   app.decorator.register(context);
 
-  // let inlineProvider = new OwnershipInlayProvider(app);
-  //   context.subscriptions.push(
-  //     vscode.languages.registerInlayHintsProvider({ language: 'rust' }, inlineProvider),
-  //   );
-
   // VSCode reads `extendMarkdownIt` off the extension's exports — i.e. activate's return value.
   // context.subscriptions.push(trace);
-  app.logger.debug("[activate.end]");
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     extendMarkdownIt(md: any): any {

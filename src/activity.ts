@@ -15,6 +15,12 @@ export interface AnchorActivity {
   anchor: Anchor;
   editor?: vscode.TextEditor;
 }
+// export interface Activity {
+//   editor: EditorActivity;
+//   scope?: ScopeInfo;
+//   focus?: EstateFocus;
+//   updatedAt: number;
+// }
 export interface AnalysisActivity {
   type: "analysis";
   editor: EditorActivity;
@@ -22,15 +28,10 @@ export interface AnalysisActivity {
 }
 export interface EditorActivity {
   type: "editor";
+  range: vscode.Range;
   snapshot: EditorSnapshot;
   editor: vscode.TextEditor;
   scope: ScopeInfo;
-  updatedAt: number;
-}
-export interface Activity {
-  editor: EditorActivity;
-  scope?: ScopeInfo;
-  focus?: EstateFocus;
   updatedAt: number;
 }
 export interface EditorSnapshot {
@@ -65,7 +66,6 @@ export interface ActivityStore<T = unknown> {
 }
 export class ActivityStore<T = unknown> implements ActivityStore<T> {
   private activity?: AppActivity;
-  private activity2?: AppActivity;
   private listeners = new Set<(activity: AppActivity) => void>();
   constructor(
     private readonly app: AppStore,
@@ -75,7 +75,8 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
     this.ctx.subscriptions.push(
       vscode.window.onDidChangeActiveTextEditor(async (editor) => {
         // this.app.logger.debug("[ActivityStore.onDidChangeActiveTextEditor].emit()");
-        if (cfg.debugActivity) console.log("[ActivityStore.onDidChangeActiveTextEditor].emit()");
+        if (cfg.debugActivity)
+          console.log("[-- 2 -- ActivityStore.onDidChangeActiveTextEditor.windowClick()]");
         if (!editor) return;
         // 1. How do i properly let it know when i go between othr panels?
         // this.app.state.focushistory.push("editor");
@@ -84,12 +85,12 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
       }),
       vscode.window.onDidChangeTextEditorSelection((event) => {
         // this.app.logger.debug("[ActivityStore.onDidChangeTextEditorSelection].emit()");
-        if (cfg.debugActivity) console.log("[ActivityStore.onDidChangeTextEditorSelection].emit()");
+        if (cfg.debugActivity)
+          console.log("[-- 2 -- ActivityStore.windowClick().onDidChangeTextEditorSelection()]");
         this.update(event.textEditor);
       }),
       vscode.workspace.onDidChangeTextDocument((event) => {
-        // this.app.logger.debug("[ActivityStore.onDidChangeTextDocument].emit()");
-        if (cfg.debugActivity) console.log("[ActivityStore.onDidChangeTextDocument].emit()");
+        if (cfg.debugActivity) console.log("[ActivityStore.onDidChangeTextDocument]");
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
           console.log("[Activity].onDidChangeTextDocument no active editor");
@@ -105,7 +106,7 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
   attachTree(tree: vscode.TreeView<EstateNode>) {
     this.ctx.subscriptions.push(
       tree.onDidChangeSelection((e) => {
-        console.log("[ctx.AppStore.constructor.subscriptions].onDidChangeSelection", e);
+        console.log("[-- 1 -- ActivityStore.windowClick().attachTree().onDidChangeSelection()]", e);
         const node = e.selection[0];
         if (!node?.anchor) return;
         this.emit({
@@ -116,7 +117,7 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
       }),
       tree.onDidChangeVisibility(async (e) => {
         // If triggered whenever the estate activity bar panel is revealed
-        console.log("[ctx.AppStore.constructor.subscriptions].onDidChangeVisibility", e);
+        console.log("[ActivityStore.windowClick().attachTree().onDidChangeVisibility()]", e);
         if (e.visible) {
           // await this.tree.ensureEditorOpen();
         }
@@ -125,7 +126,6 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
     );
   }
   init(): void {
-    this.ctx.subscriptions.push();
     const editor = vscode.window.activeTextEditor;
     if (editor) {
       this.update(editor);
@@ -135,7 +135,6 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
   private update(editor: vscode.TextEditor): void {
     const document = editor.document;
     const position = editor.selection.active;
-
     const range = new vscode.Range(
       position.line,
       position.character,
@@ -147,7 +146,8 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
 
     const activity: EditorActivity = {
       type: "editor",
-      editor: editor,
+      editor,
+      range,
       snapshot: {
         uri: document.uri,
         cursor: position,

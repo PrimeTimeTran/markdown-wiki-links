@@ -122,8 +122,6 @@ export class VFSProvider implements vscode.TextDocumentContentProvider {
       vscode.commands.registerCommand("estate.snippet.export", () => {
         vscode.window.showInformationMessage("Export");
       }),
-    );
-    ctx.subscriptions.push(
       vscode.commands.registerCommand("estate.snippet-maker", async () => {
         const language = await this.pickSnippetLanguage();
         if (!language) {
@@ -133,13 +131,12 @@ export class VFSProvider implements vscode.TextDocumentContentProvider {
           language: language.id,
           content: language.template,
         });
-        const editor = await vscode.window.showTextDocument(doc);
+        const _editor = await vscode.window.showTextDocument(doc);
         await vscode.commands.executeCommand("editor.action.formatDocument");
       }),
     );
-
     app.activity.subscribe((a) => {
-      console.log("VFS Click");
+      console.log("[-- 3 -- VFSProvider.windowClick()]");
     });
   }
 
@@ -154,14 +151,22 @@ export class VFSProvider implements vscode.TextDocumentContentProvider {
 }
 
 export class VFSDecorator implements vscode.FileDecorationProvider {
+  private readonly _onDidChangeFileDecorations = new vscode.EventEmitter<
+    vscode.Uri | vscode.Uri[] | undefined
+  >();
+
+  readonly onDidChangeFileDecorations = this._onDidChangeFileDecorations.event;
+
   constructor(ctx: vscode.ExtensionContext, app: AppStore) {
     app.activity.subscribe((a) => {
-      console.log("[VFSDecorator.constructor].subscription");
+      console.log("[-- 4 -- VFSDecorator.windowClick()]");
+      this._onDidChangeFileDecorations.fire();
     });
   }
 
   // Decorates Tree & Editor
   provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
+    console.log("[-- 9 -- VFSDecorator.windowClick().provideFileDecoration()]");
     if (uri.scheme !== "estate") {
       return;
     }
@@ -180,7 +185,7 @@ export class EstateProvider implements vscode.TreeDataProvider<EstateNode> {
       treeDataProvider: this,
     });
     app.ctx.subscriptions.push(
-      this.onDidChangeTreeData(async (e) => {
+      this.onDidChangeTreeData(async (_e) => {
         console.log("[EstateProvider].onDidChangeTreeData");
         // if (e.visible) {
         //   //   await this.tree.ensureEditorOpen();
@@ -307,7 +312,7 @@ export class EstateNode extends vscode.TreeItem {
   getParent(element: EstateNode): vscode.ProviderResult<EstateNode> {
     return element.parent;
   }
-  private applyCommand(anchor: Anchor) {
+  private applyCommand(_anchor: Anchor) {
     // switch (anchor.label) {
     //   case 'Main':
     //     this.command = {

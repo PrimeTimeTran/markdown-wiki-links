@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 
 import { AppActivity } from "./activity";
 import { AppStore } from "./app";
+import { cfg } from "./cfg";
 
 const execFileAsync = util.promisify(execFile);
 
@@ -16,30 +17,39 @@ export class AnalysisStore {
   private listeners = new Set<() => void>();
   constructor(private app: AppStore) {}
   async analyzeLine(activity: AppActivity, analysisMode = "default"): Promise<void> {
-    this.currentActivity = activity;
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-      return;
-    }
-    // const config = vscode.workspace.getConfiguration('flowify');
-    // const defaultMode = config.get<string>('defaultAnalysisMode', 'default');
     try {
+      this.currentActivity = activity;
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) return;
+      if (!(activity.type == "editor")) return;
+      if (!activity.snapshot) return;
+      if (!activity.snapshot?.uri) return;
       const item = {
-        file: activity?.editor?.uri?.fsPath,
-        column: activity.editor.column,
-        line: activity.editor.line,
-        text: activity.editor.lineText,
+        file: activity.snapshot.fileName,
+        column: activity.snapshot.column,
+        line: activity.snapshot.line,
+        text: activity.snapshot.lineText,
         scope: activity.scope,
       };
-      this.printExtClick(item);
+      // if (item.file !== "file") return;
+      // const config = vscode.workspace.getConfiguration('flowify');
+      // const defaultMode = config.get<string>('defaultAnalysisMode', 'default');
+      if (cfg.debugAnalysis) this.printExtClick(item);
       const { stdout, stderr } = await execFileAsync(
-        binaryPath,
-        ["analyze", item.file, "--line", item.line + 1, "--column", item.column],
-        { cwd: cratePath },
+        cfg.binaryPath,
+        [
+          "analyze",
+          item.file,
+          "--line",
+          (item.line + 1).toString(),
+          "--column",
+          item.column.toString(),
+        ],
+        { cwd: cfg.cratePath },
       );
       if (stderr) console.error("Daemon error:", stderr);
       const raw = JSON.parse(stdout.trim());
-      console.log("Keys received from Rust:", Object.keys(raw));
+      if (cfg.debugAnalysis) console.log("Keys received from Rust:", Object.keys(raw));
       const analysis = new OwnershipAnalysisResult(
         raw.click,
         raw.analysis?.node_context,
@@ -49,9 +59,8 @@ export class AnalysisStore {
       if (!analysis) {
         return;
       }
-
-      logAnalysis(this.app.outputChannel, raw.click.file, raw.click.line.toString(), raw);
-
+      if (cfg.debugAnalysis)
+        logAnalysis(this.app.outputChannel, raw.click.file, raw.click.line.toString(), raw);
       if (raw.formatted_output) {
         this.app.outputChannel.appendLine(`  🖼️ FORMATTED OUTPUT:`);
         this.app.outputChannel.appendLine(raw.formatted_output);
@@ -60,22 +69,22 @@ export class AnalysisStore {
       }
 
       this.setAnalysis(analysis, raw.analysis.related_lines, raw.formatted_output);
-      this.printformatted();
+      if (cfg.debugAnalysis) this.printformatted();
     } catch (error: any) {
-      //   console.error('Analysis failed: LSP Installed?', error);
-      //   if (error.stdout) {
-      //     console.error(error.stdout);
-      //   }
+      vscode.window.showWarningMessage(`Analysis failed: LSP Installed? ${error}`);
+      if (error.stdout) {
+        console.error(error.stdout);
+      }
     }
   }
   printExtClick(item: any) {
-    // console.log(item);
-    // console.log('[Flowity]:');
-    // console.log('[EXT].file', item.file);
-    // console.log('[EXT].line', item.line);
-    // console.log('[EXT].column', item.column);
-    // console.log('[EXT].scope', item.scope);
-    // console.log('[EXT].text', item.text);
+    console.log(item);
+    console.log("[Flowity]:");
+    console.log("[EXT].file", item.file);
+    console.log("[EXT].line", item.line);
+    console.log("[EXT].column", item.column);
+    console.log("[EXT].scope", item.scope);
+    console.log("[EXT].text", item.text);
   }
   printformatted() {
     let output = this.getFormattedOutput();
@@ -183,12 +192,9 @@ export class OwnershipAnalysisResult {
     return this.nodes.find((n) => n.id === id);
   }
 }
-export const cratePath = "/Users/future/KB/project/app/loi/crates/learn";
-export const binaryPath = "/Users/future/KB/project/app/loi/target/debug/loi";
 export function printFormattedOutput(outputChannel: vscode.OutputChannel, formattedOutput: string) {
-  outputChannel.show(true);
+  // outputChannel.show(true);
   outputChannel.appendLine(formattedOutput);
-  outputChannel.appendLine("--------------------------------------------------\n");
 }
 export function logAnalysis(
   outputChannel: vscode.OutputChannel,
