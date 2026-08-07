@@ -89,20 +89,6 @@ export class WikiDecorations {
       this.declarationDecorationType,
       this.usageDecorationType,
     );
-    // 1. Ownership analysis of subject/selection
-    // app.activity.subscribe((activity) => {
-    //   const editor = vscode.window.activeTextEditor;
-    //   if (!editor) return;
-    //   const lines = app.analysis.getRelatedLines();
-    //   // 1. Anchors always have what they need to decorate.
-    //   this.refresh(editor, lines);
-    //   // 2. Analysis doesn't. So request that the LSP tell us.
-    //   //
-    //   const result = app.analysis.get();
-    //   if (!result) return;
-    // });
-
-    // 2. Anchor review workflow.
     app.activity.subscribe((activity) => {
       // app.logger.debug("[WikiDecorations]");
       console.log("[-- 5 -- WikiDecorations.windowClick()]");
@@ -437,94 +423,6 @@ export interface OwnershipDecorationStyles {
   related: vscode.TextEditorDecorationType;
   label: vscode.TextEditorDecorationType;
 }
-// export class DecorationService {
-//   private unrelatedDecorationType = vscode.window.createTextEditorDecorationType({
-//     opacity: '0.35', // Greys out unrelated code
-//   });
-//   private declarationDecorationType = vscode.window.createTextEditorDecorationType({
-//     after: { contentText: ' 📌 [Declaration]', color: '#007acc', fontStyle: 'italic' },
-//   });
-//   private usageDecorationType = vscode.window.createTextEditorDecorationType({
-//     after: { contentText: ' ⚡ [Flow]', color: '#28a745', fontStyle: 'italic' },
-//   });
-//   private resolved = vscode.window.createTextEditorDecorationType({
-//     color: new vscode.ThemeColor('textLink.foreground'),
-//   });
-//   private unresolved = vscode.window.createTextEditorDecorationType({
-//     color: new vscode.ThemeColor('descriptionForeground'),
-//   });
-//   constructor(private outputChannel: vscode.OutputChannel) {}
-//   public getDisposables() {
-//     return [
-//       this.unrelatedDecorationType,
-//       this.declarationDecorationType,
-//       this.usageDecorationType,
-//       this.resolved,
-//       this.unresolved,
-//     ];
-//   }
-//   public async analyzeAndDecorate(
-//     uri?: vscode.Uri,
-//     range?: vscode.Range,
-//     analysisMode: string = 'default',
-//   ) {
-//     const editor = vscode.window.activeTextEditor;
-//     const targetUri = uri || editor?.document.uri;
-//     if (!targetUri) {
-//       vscode.window.showErrorMessage('No active file found to analyze.');
-//       return;
-//     }
-//     const filePath = targetUri.fsPath;
-//     const targetRange = range || editor?.selection;
-//     const lineNumber = targetRange ? targetRange.start.line + 1 : 1;
-//     const config = vscode.workspace.getConfiguration('flowify');
-//     const defaultMode = config.get<string>('defaultAnalysisMode', 'default');
-//     const mode = analysisMode !== 'default' ? analysisMode : defaultMode;
-//     try {
-//       const cratePath = '/Users/future/KB/project/app/loi/crates/learn';
-//       const binaryPath = '/Users/future/KB/project/app/loi/target/debug/loi';
-//       const { stdout, stderr } = await execFileAsync(
-//         binaryPath,
-//         ['analyze', filePath, '--line', lineNumber.toString(), '--mode', mode],
-//         { cwd: cratePath },
-//       );
-//       if (stderr) console.error('Daemon error:', stderr);
-//       const result = JSON.parse(stdout.trim());
-//       if (result.status === 'ok' && result.related_lines) {
-//         const activeEditor = vscode.window.activeTextEditor;
-//         if (activeEditor && activeEditor.document.uri.fsPath === filePath) {
-//           const doc = activeEditor.document;
-//           const declarationRanges: vscode.Range[] = [];
-//           const usageRanges: vscode.Range[] = [];
-//           const allRelatedLineNumbers = new Set<number>();
-//           for (const item of result.related_lines) {
-//             const lineIdx = item.line - 1;
-//             if (lineIdx < 0 || lineIdx >= doc.lineCount) continue;
-//             allRelatedLineNumbers.add(lineIdx);
-//             const lineRange = doc.lineAt(lineIdx).range;
-//             if (item.relation_type === 'Declaration' || item.relation_type === 'Assignment') {
-//               declarationRanges.push(lineRange);
-//             } else {
-//               usageRanges.push(lineRange);
-//             }
-//           }
-//           const unrelatedRanges: vscode.Range[] = [];
-//           for (let i = 0; i < doc.lineCount; i++) {
-//             if (!allRelatedLineNumbers.has(i)) {
-//               unrelatedRanges.push(doc.lineAt(i).range);
-//             }
-//           }
-//           activeEditor.setDecorations(this.unrelatedDecorationType, unrelatedRanges);
-//           activeEditor.setDecorations(this.declarationDecorationType, declarationRanges);
-//           activeEditor.setDecorations(this.usageDecorationType, usageRanges);
-//         }
-//       }
-//     } catch (error) {
-//       console.error('Failed to run background analyzer:', error);
-//     }
-//   }
-// }
-
 export interface RangeDecorationResult {
   type: vscode.TextEditorDecorationType;
   kind: "range";

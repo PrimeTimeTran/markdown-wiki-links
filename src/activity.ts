@@ -20,12 +20,6 @@ export interface AnchorActivity {
   anchor: Anchor;
   editor?: vscode.TextEditor;
 }
-// export interface Activity {
-//   editor: EditorActivity;
-//   scope?: ScopeInfo;
-//   focus?: EstateFocus;
-//   updatedAt: number;
-// }
 export interface AnalysisActivity {
   type: "analysis";
   editor: EditorActivity;
@@ -60,7 +54,6 @@ export interface ScopeInfo {
   range?: vscode.Range;
   text: string;
 }
-
 // oxlint-disable-next-line typescript/no-unsafe-declaration-merging
 export interface ActivityStore<T = unknown> {
   current(): AppActivity | undefined;
