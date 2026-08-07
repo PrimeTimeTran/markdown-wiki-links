@@ -171,6 +171,9 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
       updatedAt: Date.now(),
     };
 
+    console.log("[ActivityStore] ", activity.snapshot.fileName);
+    console.log("[ActivityStore] ", activity.snapshot.line);
+
     this.app.activity.emit(activity);
   }
 

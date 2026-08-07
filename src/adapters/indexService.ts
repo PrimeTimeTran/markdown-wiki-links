@@ -3,10 +3,11 @@ import * as path from "path";
 
 import * as vscode from "vscode";
 
+import { cfg } from "../cfg";
 import { buildExcludeGlob } from "../core/pathFilter";
 import { IndexSnapshot, createSnapshot } from "../core/resolver/resolveTarget";
 import { ParsedRef } from "../core/types";
-import { EmbedResolved, LinkResolved } from "../markdownItPlugin/wikiRule";
+import { EmbedResolved } from "../markdownItPlugin/wikiRule";
 import { IMAGE_RE } from "./hoverProvider";
 
 const GLOB = "**/*.{md,markdown,png,jpg,jpeg,gif,webp,svg,rs,ts,js,py}";
@@ -48,7 +49,7 @@ export class IndexService {
       throw new Error("No workspace folder");
     }
     this.workspaceRegistry = new WorkspaceRegistry(this.root);
-    this.estateRegistry = new EstateRegistry("/Users/future/.estate");
+    this.estateRegistry = new EstateRegistry(cfg.estateDirRootPath);
     this.resolver = new EstateResolver(this.root, [this.workspaceRegistry, this.estateRegistry]);
   }
   getResolver() {
@@ -297,7 +298,7 @@ interface WikiRegistry {
 class EstateRegistry implements WikiRegistry {
   readonly name = "estate";
   readonly priority = 100;
-  readonly anchorsPath = "/Users/future/.estate/anchors.json";
+  readonly anchorsPath = cfg.registryPath;
   private readonly items = new Map<string, EstateEntry>();
   constructor(readonly root: string) {}
   all(): Iterable<EstateEntry> {
@@ -305,8 +306,8 @@ class EstateRegistry implements WikiRegistry {
   }
   async refresh(): Promise<void> {
     this.items.clear();
-    const data = JSON.parse(await fs.promises.readFile(this.anchorsPath, "utf8"));
-    for (const anchor of Object.values(data.items)) {
+    const { items } = JSON.parse(await fs.promises.readFile(this.anchorsPath, "utf8"));
+    for (const anchor of Object.values(items)) {
       if (!anchor.tags?.includes("wiki")) continue;
       const entry = new EstateAnchorEntry(anchor);
       this.items.set(entry.id, entry);
@@ -426,7 +427,7 @@ export class EstateResolver {
     }
     return this.resolveRelative(target, fromFsPath);
   }
-  resolveEmbed(target: string, fragment?: string): EmbedResolved | null {
+  resolveEmbed(target: string, _fragment?: string): EmbedResolved | null {
     const entry = this.resolve(target);
 
     if (!entry) {
@@ -446,7 +447,7 @@ export class EstateResolver {
       sourcePath: entry.uri.fsPath,
     };
   }
-  fileHref(entry: EstateEntry, fragment: string | undefined): string {
+  fileHref(_entry: EstateEntry, _fragment: string | undefined): string {
     throw new Error("Method not implemented fileHref.");
   }
   private isImage(entry: EstateEntry): boolean {
@@ -454,7 +455,7 @@ export class EstateResolver {
   }
 }
 
-function stripExtension(name: string): string {
+function _stripExtension(name: string): string {
   return name.replace(/\.[^.]+$/, "");
 }
 

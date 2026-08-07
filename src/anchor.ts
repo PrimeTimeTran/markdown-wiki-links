@@ -10,7 +10,7 @@ import { CMD } from "../generated/cmd";
 import { AnchorActivity, AppActivity } from "./activity";
 import { anchorShowPage, getHtml } from "./adapters/htmlAnchor";
 import { AppStore } from "./app";
-import { PATHS } from "./cfg";
+import { cfg, PATHS } from "./cfg";
 import { capability, flags } from "./cmd/flags";
 import { EstateContext, EstateFlag, EstateNode } from "./estate";
 import {
@@ -146,19 +146,16 @@ export class AnchorStore implements AnchorStoreType {
     });
     const estates = this.findEstates();
     for (const estate of estates) {
-      this.loadRegistry(path.join(estate, "anchors.json"));
+      this.loadRegistry(path.join(estate, cfg.registryName));
     }
     this.initIntrinsic();
     this.initializeRegistry();
-
-    // app.logger.debug("Registering delete command");
-    vscode.commands.registerCommand(
-      CMD.estate.bookmark.delete,
-      (node: EstateNode, anchor: Anchor) => {
-        if (!node) return;
-        this.deleteAnchor(node, anchor);
-      },
-    );
+    vscode.commands.registerCommand(CMD.estate.bookmark.delete, (ctx) => {
+      // Works like this.
+      // vscode.window.showWarningMessage(`Delete id: ${Object.keys(ctx)}, Anchor ${ctx?.anchor?.id}`);
+      if (!ctx) return;
+      this.deleteAnchor(ctx.anchor);
+    });
 
     // ⚠️ Careful!
     // - Pass app, ctx, or a 3rd argument to have it later. Otherwise the properties of this will be lost
@@ -230,7 +227,7 @@ export class AnchorStore implements AnchorStoreType {
   }
   private findEstates(): string[] {
     const estates: string[] = [];
-    const homeEstate = path.join(os.homedir(), ".estate");
+    const homeEstate = path.join(os.homedir(), cfg.estateDirName);
     if (fs.existsSync(homeEstate)) {
       estates.push(homeEstate);
     }
@@ -240,7 +237,7 @@ export class AnchorStore implements AnchorStoreType {
     const estates: string[] = [];
     let current = path.dirname(filePath);
     while (true) {
-      const candidate = path.join(current, ".estate");
+      const candidate = path.join(current, cfg.estateDirName);
       if (fs.existsSync(candidate)) {
         estates.push(candidate);
       }
@@ -394,9 +391,7 @@ export class AnchorStore implements AnchorStoreType {
     //   );
     // });
     await this.save();
-    vscode.window.showInformationMessage(`Created ${id}`);
   }
-
   private _onDidChange = new vscode.EventEmitter<void>();
   readonly onDidChange = this._onDidChange.event;
   // delete(id: string) {
@@ -430,9 +425,10 @@ export class AnchorStore implements AnchorStoreType {
   //   this.app.tree.refresh();
   //   this._onDidChange.fire();
   // }
-  async deleteAnchor(node: EstateNode, anchor: Anchor) {
-    const id = node?.id || anchor.id;
+  async deleteAnchor(anchor: Anchor) {
+    const id = anchor.id;
     const item = this.items.get(id);
+    vscode.window.showWarningMessage(`Deleted ${id}`);
     if (!item) return;
     if (!item.tags.includes("AnchorTags.SoftDeleted")) {
       item.tags.push("AnchorTags.SoftDeleted");
@@ -457,6 +453,7 @@ export class AnchorStore implements AnchorStoreType {
       // If you want "whole-file anchors" to sort after line-based anchors, use something large:
       // list.sort((a, b) => (a.src?.startLine ?? Infinity) - (b.src?.startLine ?? Infinity));
       this.fileIndex.set(key, list);
+      vscode.window.showInformationMessage(`Before Save ${list.length}`);
     } catch (error) {
       vscode.window.showErrorMessage(`Error saving. ${error}`);
     }
@@ -467,6 +464,7 @@ export class AnchorStore implements AnchorStoreType {
     };
     await fsPromise.mkdir(path.dirname(this.registryPath), { recursive: true });
     await fsPromise.writeFile(this.registryPath, JSON.stringify(data, null, 2), "utf8");
+    vscode.window.showInformationMessage(`After Save ${data.items.size}`);
   }
   get(id: string) {
     // console.log("lookup:", id);
@@ -510,9 +508,6 @@ export class AnchorStore implements AnchorStoreType {
     anchor: Anchor,
     // opts: CreateAnchorOptions,
   ) {
-    console.log("hi");
-    vscode.window.showInformationMessage(`hi "hi" anchor ${anchor}`);
-    vscode.window.showInformationMessage(`hi "hi" anchor ${anchor.id.split(":")[2]}`);
     await this.app?.presenter?.showAnchorPane(anchor);
   }
   delete(id: string) {
@@ -553,7 +548,7 @@ export class AnchorStore implements AnchorStoreType {
     for (const root of this.roots) {
       let current = root;
       while (current !== path.dirname(current)) {
-        const candidate = path.join(current, ".estate");
+        const candidate = path.join(current, cfg.estateDirName);
         if (fs.existsSync(candidate)) {
           return candidate;
         }
@@ -611,7 +606,6 @@ export class AnchorPresenter {
   }
 
   private async showAnchor(anchor: Anchor, mode: "source" | "page" | "popup" = "source") {
-    this.app.logger.debug("[AnchorPresenter.showAnchor]");
     const id = anchor.id;
 
     //

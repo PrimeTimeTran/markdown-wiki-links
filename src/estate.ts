@@ -250,11 +250,11 @@ export class EstateProvider implements vscode.TreeDataProvider<EstateNode> {
       .map((a) => this.buildNode(node, a));
   }
   buildChildren(node: EstateNode) {
-    console.log("parent", node.anchor?.id);
-    console.log("anchor ids", node.anchor?.anchors);
+    // console.log("parent", node.anchor?.id);
+    // console.log("anchor ids", node.anchor?.anchors);
     const resolved = (node.anchor?.anchors ?? []).map((id) => {
       const a = this.app.anchors.get(id);
-      console.log(id, "->", a);
+      // console.log(id, "->", a);
       return a;
     });
 

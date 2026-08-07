@@ -44,7 +44,6 @@ export interface OwnershipAnalysisType {
 class OwnershipAnalysis {
   constructor(public readonly analysis: OwnershipAnalysisType) {}
 }
-
 export class AnalysisStore {
   public current?: OwnershipAnalysis;
   private currentActivity?: AppActivity;
@@ -107,17 +106,19 @@ export class AnalysisStore {
         this.app.outputChannel.appendLine(`  [WARNING: formatted_output was empty or missing]`);
       }
 
-      this.setAnalysis(analysis);
+      this.current = analysis;
+      this.app.decorator.refresh(editor, this.currentActivity);
+
       if (cfg.debugAnalysis) this.printformatted();
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message === "parse error: No subject node found at position") {
+        if (error.message.includes("parse error")) {
           // vscode.window.showWarningMessage(`Subject unresolved: ${error.message}`);
         } else {
-          vscode.window.showWarningMessage(`Analysis failed: LSP on? ${error.message}`);
+          // vscode.window.showWarningMessage(`Analysis failed: LSP on? ${error.message}`);
         }
       } else {
-        vscode.window.showWarningMessage(`Analysis failed. LSP on? `);
+        // vscode.window.showWarningMessage(`Analysis failed. LSP on? `);
         console.error(error);
       }
     }
@@ -136,10 +137,6 @@ export class AnalysisStore {
     } else {
       this.app.outputChannel.appendLine("No formatted output available.");
     }
-  }
-  public setAnalysis(context: OwnershipAnalysis) {
-    this.current = context;
-    // this.notifyListeners();
   }
   get(): OwnershipAnalysis | undefined {
     return this.current;

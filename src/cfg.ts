@@ -1,28 +1,35 @@
 import os from "node:os";
 import path from "node:path";
 
+export const estateDirName = `.estate`;
+export const registryName = `anchors.json`;
+
+export const estateDirRootPath = path.join(os.homedir(), estateDirName);
+export const registryPath = path.join(estateDirRootPath, registryName);
+
 export const cratePath = "/Users/future/KB/project/app/loi/crates/learn";
 export const binaryPath = "/Users/future/KB/project/app/loi/target/debug/loi";
-
 export const logLevel = {
   1: "debug",
   2: "info",
   3: "warn",
   4: "error",
-};
+} as const;
 
 export const cfg = {
-  debugActivity: true,
-  debugAnalysis: true,
+  estateDirName,
+  registryName,
+  estateDirRootPath,
+  registryPath,
+  debugActivity: false,
+  debugAnalysis: false,
   cratePath,
   binaryPath,
-};
-
-const ESTATE_DIR = path.join(os.homedir(), ".estate");
+} as const;
 
 export const PATHS = {
-  root: () => ESTATE_DIR,
-  assets: () => path.join(ESTATE_DIR, "assets"),
-  asset: (filename: string) => path.join(ESTATE_DIR, "assets", filename),
-  anchors: () => path.join(ESTATE_DIR, "anchorsp.json"),
+  root: () => estateDirRootPath,
+  assets: () => path.join(estateDirRootPath, "assets"),
+  asset: (filename: string) => path.join(estateDirRootPath, "assets", filename),
+  anchors: () => cfg.registryPath,
 };

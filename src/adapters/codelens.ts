@@ -15,6 +15,7 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
   readonly onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
   constructor(private app: AppStore) {
     app.activity.subscribe((activity) => {
+      console.log("[WikiCodeLensProvider.subscription]");
       this.refresh();
       // app.logger.debug("[WikiCodeLensProvider]");
       // console.log("[WikiCodeLensProvider].subscription", activity);
@@ -22,9 +23,11 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
     });
   }
   public refresh(): void {
+    console.log("[WikiCodeLensProvider.refresh]");
     this._onDidChangeCodeLenses.fire();
   }
   provideCodeLenses(doc: vscode.TextDocument): vscode.CodeLens[] {
+    console.log("[WikiCodeLensProvider.provideCodeLenses]");
     console.log("[-- 1 -- WikiCodeLensProvider.windowClick().provideCodeLenses()]");
     // this.app.logger.debug("[WikiCodeLensProvider].subscribe/refresh");
     let inlineFlags = this.addIntrinsicAnchors(doc);
