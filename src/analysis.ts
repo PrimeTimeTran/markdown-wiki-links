@@ -22,9 +22,9 @@ export class AnalysisStore {
   private readonly tracer;
   constructor(private app: AppStore) {
     this.tracer = app.tracer.namespace("Analysis");
-    app.initFlow.debug("Analysis");
+    app.initFlow.info("Analysis");
     app.activity.subscribe((activity: AppActivity) => {
-      this.app.click.info("AnalysisStore");
+      this.app.clickFlow.info("AnalysisStore");
       void this.analyzeLine(activity);
     });
   }

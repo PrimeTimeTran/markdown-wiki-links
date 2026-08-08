@@ -16,7 +16,7 @@ export class WikiDocumentLinkProvider implements vscode.DocumentLinkProvider {
   ) {}
 
   async provideDocumentLinks(doc: vscode.TextDocument): Promise<vscode.DocumentLink[]> {
-    this.app.click.info("WikiDocumentLinkProvider.provideDocumentLinks");
+    this.app.clickFlow.info("WikiDocumentLinkProvider.provideDocumentLinks");
     const text = doc.getText();
     const mask = buildFenceMask(text);
     const refs = [...parseLinks(text, mask), ...parseEmbeds(text, mask)];

@@ -17,7 +17,7 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
     this.app.initFlow.info("WikiCodeLensProvider");
     app.activity.subscribe((_activity) => {
       // Doesn't work....
-      // this.app.click.info("WikiCodeLensProvider.provideCodeLenses");
+      // this.app.clickFlow.info("WikiCodeLensProvider.provideCodeLenses");
       this.refresh();
       // this.analyzeLine(activity);
     });
@@ -28,7 +28,7 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
   private readonly tracer;
   provideCodeLenses(doc: vscode.TextDocument): vscode.CodeLens[] {
     // #1 on window click
-    this.app.click.info("WikiCodeLensProvider.provideCodeLenses");
+    this.app.clickFlow.info("WikiCodeLensProvider.provideCodeLenses");
     let inlineFlags = this.addIntrinsicAnchors(doc);
     let documentAnchors = this.addDocumentAnchors(doc);
 

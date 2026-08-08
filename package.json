@@ -423,6 +423,16 @@
     "configuration": {
       "title": "Wiki Links",
       "properties": {
+        "flowify.log.level": {
+          "type": "string",
+          "default": "info",
+          "description": "Log Level"
+        },
+        "flowify.namespace": {
+          "type": "string",
+          "default": "app",
+          "description": "Name space"
+        },
         "flowify.enabled": {
           "type": "boolean",
           "default": true,

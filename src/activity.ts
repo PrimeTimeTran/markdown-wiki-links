@@ -23,7 +23,7 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
     private readonly app: AppStore,
     private readonly ctx: vscode.ExtensionContext,
   ) {
-    this.app.initFlow.debug("ActivityStore");
+    this.app.initFlow.info("ActivityStore");
   }
   init(): void {
     const editor = vscode.window.activeTextEditor;
@@ -118,10 +118,10 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
     return anchor;
   }
   attachWorkspace() {
-    this.app.initFlow.debug("ActivityStore.attachWorkspace");
+    this.app.initFlow.info("ActivityStore.attachWorkspace");
     this.ctx.subscriptions.push(
       vscode.window.onDidChangeActiveTextEditor(async (editor) => {
-        this.app.click.info("ActivityStore.onDidChangeActiveTextEditor");
+        this.app.clickFlow.info("ActivityStore.onDidChangeActiveTextEditor");
         if (!editor) return;
         // 1. How do i properly let it know when i go between othr panels?
         // this.app.state.focushistory.push("editor");
@@ -129,11 +129,11 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
         // await vscode.commands.executeCommand("setContext", "estate.hasAnchor", hasAnchor);
       }),
       vscode.window.onDidChangeTextEditorSelection((event) => {
-        this.app.click.info("ActivityStore.onDidChangeTextEditorSelection");
+        this.app.clickFlow.info("ActivityStore.onDidChangeTextEditorSelection");
         this.update(event.textEditor);
       }),
       vscode.workspace.onDidChangeTextDocument((event) => {
-        this.app.click.info("ActivityStore.onDidChangeTextDocument");
+        this.app.clickFlow.info("ActivityStore.onDidChangeTextDocument");
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
           console.log("[Activity].onDidChangeTextDocument no active editor");
@@ -147,10 +147,10 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
     );
   }
   attachTree(tree: vscode.TreeView<EstateNode>) {
-    this.app.initFlow.debug("ActivityStore.attachTree");
+    this.app.initFlow.info("ActivityStore.attachTree");
     this.ctx.subscriptions.push(
       tree.onDidChangeSelection((e) => {
-        this.app.click.info("ActivityStore.attachTree.onDidChangeSelection");
+        this.app.clickFlow.info("ActivityStore.attachTree.onDidChangeSelection");
         const node = e.selection[0];
         if (!node?.anchor) return;
         this.emit({
@@ -160,7 +160,7 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
         });
       }),
       tree.onDidChangeVisibility(async (e) => {
-        this.app.click.info("ActivityStore.attachTree.onDidChangeVisibility");
+        this.app.clickFlow.info("ActivityStore.attachTree.onDidChangeVisibility");
         // Triggered when Estate Activity Bar panel is revealed
         if (e.visible) {
           // await this.tree.ensureEditorOpen();

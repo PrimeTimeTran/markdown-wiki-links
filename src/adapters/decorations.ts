@@ -105,7 +105,7 @@ export class WikiDecorations {
       this.usageDecorationType,
     );
     app.activity.subscribe((activity) => {
-      this.app.click.info("WikiDecorations");
+      this.app.clickFlow.info("WikiDecorations");
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
       this.refresh(editor, activity);

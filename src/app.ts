@@ -23,15 +23,15 @@ export class AppStore {
   readonly tracer = new Tracer(Level.debug, cfg.appName, {
     namespaces: ["App"],
   });
+  readonly clickFlow: TraceFlow;
   readonly initFlow: TraceFlow;
-  readonly click: TraceFlow;
   constructor(public ctx: vscode.ExtensionContext) {
-    this.initFlow = this.tracer.flow("init");
-    this.click = this.tracer.flow("windowClick");
+    this.initFlow = this.tracer.flow("App Init");
+    this.clickFlow = this.tracer.flow("onWindowClick");
     const { logger, channel } = setupExtensionLogger(cfg.appName, "ext:activate");
     ctx.subscriptions.push(channel);
     this.logger = logger;
-    logger.debug("[AppStore.constructor.start]");
+    this.initFlow.info("[AppStore.constructor.start]");
 
     this.wiki = new IndexService();
     this.activity = new ActivityStore<AppActivity>(this, ctx);
@@ -47,7 +47,7 @@ export class AppStore {
     this.decorator = new WikiDecorations(this, this.wiki);
     this.codeLens = new WikiCodeLensProvider(this);
 
-    logger.debug("[AppStore.constructor.end]");
+    this.initFlow.info("[AppStore.constructor.end]");
   }
   public state: EstateState = {
     leader: 0,

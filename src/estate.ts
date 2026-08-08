@@ -141,7 +141,7 @@ export class VFSProvider implements vscode.TextDocumentContentProvider {
       }),
     );
     app.activity.subscribe((_a) => {
-      this.app.click.info("VFSProvider");
+      this.app.clickFlow.info("VFSProvider");
     });
   }
 
@@ -167,7 +167,7 @@ export class VFSDecorator implements vscode.FileDecorationProvider {
     private app: AppStore,
   ) {
     app.activity.subscribe((_a) => {
-      this.app.click.info("VFSDecorator");
+      this.app.clickFlow.info("VFSDecorator");
       this._onDidChangeFileDecorations.fire();
     });
   }
