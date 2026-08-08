@@ -49,6 +49,29 @@ export class WikiDecorations {
   private providers: DecorationProvider[] = [];
   private decorations = new Map<string, vscode.TextEditorDecorationType>();
   private stateDecorations = new Map<string, vscode.TextEditorDecorationType>();
+  private subject = vscode.window.createTextEditorDecorationType({
+    textDecoration: "underline wavy #19b60b",
+  });
+  private related = vscode.window.createTextEditorDecorationType({
+    backgroundColor: new vscode.ThemeColor("editor.findMatchHighlightBackground"),
+  });
+
+  private dim = vscode.window.createTextEditorDecorationType({
+    opacity: "0.65",
+  });
+  private leftStrip = vscode.window.createTextEditorDecorationType({
+    isWholeLine: true,
+    border: "solid",
+    borderWidth: "0 0 0 3px",
+    borderColor: "#19b60b",
+  });
+  private rightStrip = vscode.window.createTextEditorDecorationType({
+    isWholeLine: true,
+    border: "solid",
+    borderWidth: "0 3px 0 0",
+    borderColor: "#19b60b",
+  });
+  private label: vscode.TextEditorDecorationType;
   private styles: OwnershipDecorationStyles;
   refresh(editor: vscode.TextEditor, activity: AppActivity) {
     for (const provider of this.providers) {
@@ -58,15 +81,22 @@ export class WikiDecorations {
       }
     }
   }
-  decorationTypes(ctx: vscode.ExtensionContext): OwnershipDecorationStyles {
-    const subject = vscode.window.createTextEditorDecorationType({
-      textDecoration: "underline wavy #19b60b",
-    });
-    const related = vscode.window.createTextEditorDecorationType({
-      backgroundColor: new vscode.ThemeColor("editor.findMatchHighlightBackground"),
-    });
-    const iconPath = vscode.Uri.file(path.join(ctx.extensionPath, "resources", `eye.svg`));
-    const label = vscode.window.createTextEditorDecorationType({
+  decorationTypes(): OwnershipDecorationStyles {
+    return {
+      dim: this.dim,
+      label: this.label,
+      subject: this.subject,
+      related: this.related,
+      leftStrip: this.leftStrip,
+      rightStrip: this.rightStrip,
+    } as OwnershipDecorationStyles;
+  }
+  constructor(
+    private app: AppStore,
+    private idx: IndexService,
+  ) {
+    const iconPath = vscode.Uri.file(path.join(app.ctx.extensionPath, "resources", `eye.svg`));
+    this.label = vscode.window.createTextEditorDecorationType({
       after: {
         margin: "0 0 0 1.5em",
         color: new vscode.ThemeColor("editorCodeLens.foreground"),
@@ -75,36 +105,7 @@ export class WikiDecorations {
       gutterIconPath: iconPath,
       gutterIconSize: "contain",
     });
-    const dim = vscode.window.createTextEditorDecorationType({
-      opacity: "0.65",
-    });
-    const leftStrip = vscode.window.createTextEditorDecorationType({
-      isWholeLine: true,
-      border: "solid",
-      borderWidth: "0 0 0 3px",
-      borderColor: "#19b60b",
-    });
-    const rightStrip = vscode.window.createTextEditorDecorationType({
-      isWholeLine: true,
-      border: "solid",
-      borderWidth: "0 3px 0 0",
-      borderColor: "#19b60b",
-    });
-    return {
-      subject,
-      related,
-      label,
-      dim,
-      leftStrip,
-      rightStrip,
-    } as OwnershipDecorationStyles;
-  }
-  constructor(
-    private app: AppStore,
-    private idx: IndexService,
-  ) {
-    this.styles = this.decorationTypes(app.ctx);
-
+    this.styles = this.decorationTypes();
     this.initIcons();
     this.initStateIcons();
 
@@ -120,6 +121,13 @@ export class WikiDecorations {
       this.unrelatedDecorationType,
       this.declarationDecorationType,
       this.usageDecorationType,
+
+      this.dim,
+      this.label,
+      this.subject,
+      this.related,
+      this.leftStrip,
+      this.rightStrip,
     );
 
     app.activity.subscribe((activity) => {
@@ -170,6 +178,13 @@ export class WikiDecorations {
       this.unrelatedDecorationType,
       this.declarationDecorationType,
       this.usageDecorationType,
+
+      this.dim,
+      this.label,
+      this.subject,
+      this.related,
+      this.leftStrip,
+      this.rightStrip,
       // vscode.window.onDidChangeTextEditorVisibleRanges((event) => {
       //   this.decorate(event.textEditor);
       // }),
@@ -280,6 +295,12 @@ export class WikiDecorations {
     this.unrelatedDecorationType.dispose();
     this.declarationDecorationType.dispose();
     this.usageDecorationType.dispose();
+    this.dim.dispose();
+    this.label.dispose();
+    this.subject.dispose();
+    this.related.dispose();
+    this.leftStrip.dispose();
+    this.rightStrip.dispose();
   }
   private cancel(): void {
     if (this.timer) {
@@ -668,45 +689,32 @@ export class OwnershipDecorationProvider implements DecorationProvider {
   }
 
   getRanges(editor: vscode.TextEditor): DecorationResult[] {
-    console.log("OWNERSHIP GET RANGES");
-
     const currentAnalysis = this.app.analysis.get();
-
     if (!currentAnalysis?.analysis?.node_context?.subject) {
       console.log("NO SUBJECT — RETURNING");
       return [];
     }
-
     const {
       node_context: { subject },
       classification,
       related_lines = [],
     } = currentAnalysis.analysis;
-
     const span = subject.span;
-
     const subjectLine = span.start_line - 1;
-
     if (subjectLine < 0 || subjectLine >= editor.document.lineCount) {
       return [];
     }
-
     const subjectRange = new vscode.Range(
       new vscode.Position(span.start_line - 1, span.start_col),
       new vscode.Position(span.end_line - 1, span.end_col),
     );
-
     const relatedRanges: vscode.Range[] = [];
     const dimRanges: vscode.Range[] = [];
-
     for (const rel of related_lines) {
       const line = rel.line - 1;
-
       if (line < 0 || line >= editor.document.lineCount) {
         continue;
       }
-
-      // The subject line is never dimmed or treated as a related line.
       if (line === subjectLine) {
         continue;
       }
@@ -743,14 +751,14 @@ export class OwnershipDecorationProvider implements DecorationProvider {
       },
     };
 
-    console.log({
-      subject: subject.kind,
-      subjectLine: subjectLine + 1,
-      subjectRange,
-      related: relatedRanges.map((r) => r.start.line + 1),
-      dim: dimRanges.map((r) => r.start.line + 1),
-      all: allLineRanges.map((r) => r.start.line + 1),
-    });
+    // console.log({
+    //   subject: subject.kind,
+    //   subjectLine: subjectLine + 1,
+    //   subjectRange,
+    //   related: relatedRanges.map((r) => r.start.line + 1),
+    //   dim: dimRanges.map((r) => r.start.line + 1),
+    //   all: allLineRanges.map((r) => r.start.line + 1),
+    // });
 
     return [
       {
