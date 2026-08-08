@@ -15,46 +15,28 @@ import { WikiDocumentLinkProvider } from "./adapters/documentLinkProvider";
 import { IndexService } from "./adapters/indexService";
 import { AnalysisStore } from "./analysis";
 import { Anchor, AnchorPresenter, AnchorStore } from "./anchor";
+import { cfg, Level, TraceFlow, Tracer } from "./cfg";
 import { longLangs } from "./consts";
 import { VFSDecorator, EstateProvider, VFSProvider } from "./estate";
 
-export interface EstateState {
-  mdPreviewMode: boolean;
-  focushistory: FocusTarget[];
-  leader: number;
-}
-
-type FocusTarget = "editor" | "sidebar" | "panel" | "outline" | "terminal";
-
 export class AppStore {
-  public state: EstateState = {
-    leader: 0,
-    focushistory: [],
-    mdPreviewMode: false,
-  };
-  public outputChannel = vscode.window.createOutputChannel("Flowify");
-  readonly tree: EstateProvider;
-  readonly vfs: VFSProvider;
-  readonly vfsDecorator: VFSDecorator;
-  readonly decorator: WikiDecorations;
-  readonly activity: ActivityStore<AppActivity>;
-  readonly analysis: AnalysisStore;
-  readonly anchors: AnchorStore;
-  readonly presenter: AnchorPresenter;
-  readonly codeLens: WikiCodeLensProvider;
-  readonly wiki: IndexService;
-  readonly logger: TraceApi;
+  readonly tracer = new Tracer(Level.debug, cfg.appName, {
+    namespaces: ["AnalysisStore"],
+  });
+  readonly initFlow: TraceFlow;
+  readonly click: TraceFlow;
   constructor(public ctx: vscode.ExtensionContext) {
-    const { logger, channel } = setupExtensionLogger("Flowify", "ext:activate");
+    this.initFlow = this.tracer.flow("init");
+    this.click = this.tracer.flow("windowClick");
+    const { logger, channel } = setupExtensionLogger(cfg.appName, "ext:activate");
     ctx.subscriptions.push(channel);
-    logger.debug("[AppStore.constructor.start]");
     this.logger = logger;
+    logger.debug("[AppStore.constructor.start]");
 
     this.wiki = new IndexService();
     this.activity = new ActivityStore<AppActivity>(this, ctx);
     this.anchors = new AnchorStore(this);
     this.analysis = new AnalysisStore(this);
-
     this.tree = new EstateProvider(this);
     this.presenter = new AnchorPresenter(this);
     // For sidebar tree
@@ -67,6 +49,23 @@ export class AppStore {
 
     logger.debug("[AppStore.constructor.end]");
   }
+  public state: EstateState = {
+    leader: 0,
+    focushistory: [],
+    mdPreviewMode: false,
+  };
+  public outputChannel = vscode.window.createOutputChannel(cfg.appName);
+  readonly logger: TraceApi;
+  readonly tree: EstateProvider;
+  readonly vfs: VFSProvider;
+  readonly vfsDecorator: VFSDecorator;
+  readonly decorator: WikiDecorations;
+  readonly activity: ActivityStore<AppActivity>;
+  readonly analysis: AnalysisStore;
+  readonly anchors: AnchorStore;
+  readonly presenter: AnchorPresenter;
+  readonly codeLens: WikiCodeLensProvider;
+  readonly wiki: IndexService;
   init(context: vscode.ExtensionContext) {
     this.wiki.initialize();
     this.activity.attachTree(this.tree.treeView);
@@ -79,7 +78,7 @@ export class AppStore {
       vscode.languages.registerCodeLensProvider(longLangs, this.codeLens),
       vscode.languages.registerDocumentLinkProvider(
         longLangs,
-        new WikiDocumentLinkProvider(this.wiki),
+        new WikiDocumentLinkProvider(this, this.wiki),
       ),
       vscode.commands.registerCommand("estate.ui.quickPick", (anchor: Anchor) => {
         if (!anchor) return;
@@ -95,11 +94,8 @@ export class AppStore {
         ]);
       }),
     );
-    this.activity.subscribe((activity) => {
-      console.log("[-- 7 -- AppStore.windowClick()]");
-      // this.logger.debug("[AppStore.init.subsribe()]");
-      //   vscode.window.showInformationMessage(`app ${this.input}`);
-      // this.analysis.analyzeLine(activity);
+    this.activity.subscribe((_activity) => {
+      this.click.info("AppStore");
     });
   }
 
@@ -132,7 +128,12 @@ export class AppStore {
     return num;
   }
 }
-
+export interface EstateState {
+  mdPreviewMode: boolean;
+  focushistory: FocusTarget[];
+  leader: number;
+}
+type FocusTarget = "editor" | "sidebar" | "panel" | "outline" | "terminal";
 interface ReferenceItem extends vscode.QuickPickItem {
   id: string;
   details?: string;

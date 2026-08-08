@@ -68,7 +68,6 @@ export class WikiDiagnostics {
           vscode.DiagnosticSeverity.Warning,
         );
         diagnostic.code = "estate.unresolved-estate-link";
-        // this.estateDiag.set(diagnostic);
         this.estateDiag.set(doc.uri, [diagnostic]);
         let wikiMsg = new vscode.Diagnostic(
           range,

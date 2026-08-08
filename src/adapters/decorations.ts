@@ -65,14 +65,29 @@ export class WikiDecorations {
       gutterIconPath: iconPath,
       gutterIconSize: "contain",
     });
+    const leftStrip = vscode.window.createTextEditorDecorationType({
+      isWholeLine: true,
+      border: "solid",
+      borderWidth: "0 0 0 3px",
+      borderColor: "#19b60b",
+    });
+
+    const rightStrip = vscode.window.createTextEditorDecorationType({
+      isWholeLine: true,
+      border: "solid",
+      borderWidth: "0 3px 0 0",
+      borderColor: "#19b60b",
+    });
     return {
       subject,
       related,
       label,
+      leftStrip,
+      rightStrip,
     } as OwnershipDecorationStyles;
   }
   constructor(
-    app: AppStore,
+    private app: AppStore,
     private idx: IndexService,
   ) {
     this.initIcons();
@@ -90,8 +105,7 @@ export class WikiDecorations {
       this.usageDecorationType,
     );
     app.activity.subscribe((activity) => {
-      // app.logger.debug("[WikiDecorations]");
-      console.log("[-- 5 -- WikiDecorations.windowClick()]");
+      this.app.click.info("WikiDecorations");
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
       this.refresh(editor, activity);
@@ -129,7 +143,8 @@ export class WikiDecorations {
       this.decorations.set(icon, decoration);
     }
   }
-  public refresh(editor: vscode.TextEditor, activity: AppActivity) {
+  public refresh(editor: vscode.TextEditor, activity: AppActivity | undefined) {
+    if (!activity) return;
     const rangeGroups = new Map<vscode.TextEditorDecorationType, vscode.Range[]>();
     const optionGroups = new Map<vscode.TextEditorDecorationType, vscode.DecorationOptions[]>();
     for (const provider of this.providers) {
@@ -422,6 +437,8 @@ export interface OwnershipDecorationStyles {
   subject: vscode.TextEditorDecorationType;
   related: vscode.TextEditorDecorationType;
   label: vscode.TextEditorDecorationType;
+  leftStrip: vscode.TextEditorDecorationType;
+  rightStrip: vscode.TextEditorDecorationType;
 }
 export interface RangeDecorationResult {
   type: vscode.TextEditorDecorationType;
@@ -557,7 +574,6 @@ export class GutterProvider implements DecorationProvider {
     });
   }
 }
-
 export class OwnershipDecorationProvider implements DecorationProvider {
   constructor(
     private readonly app: AppStore,
@@ -575,6 +591,7 @@ export class OwnershipDecorationProvider implements DecorationProvider {
 
   getRanges(editor: vscode.TextEditor): DecorationResult[] {
     const currentAnalysis = this.app.analysis.get();
+
     if (!currentAnalysis?.analysis?.node_context?.subject) {
       return [];
     }
@@ -593,6 +610,7 @@ export class OwnershipDecorationProvider implements DecorationProvider {
 
     const relatedRanges = (currentAnalysis.analysis.related_lines ?? []).map((rel) => {
       const line = rel.line - 1;
+
       return new vscode.Range(line, 0, line, editor.document.lineAt(line).range.end.character);
     });
 
@@ -623,6 +641,23 @@ export class OwnershipDecorationProvider implements DecorationProvider {
         type: this.styles.label,
         kind: "options",
         items: [labelDecoration],
+      },
+
+      // Overview ruler — left
+      {
+        type: this.styles.leftStrip,
+        kind: "range",
+        // items: [subjectRange],
+        items: [subjectRange, ...relatedRanges],
+        // items: [],
+      },
+
+      // Overview ruler — right
+      {
+        type: this.styles.rightStrip,
+        kind: "range",
+        items: [subjectRange],
+        // items: [],
       },
     ];
   }

@@ -110,7 +110,10 @@ export class VFSProvider implements vscode.TextDocumentContentProvider {
   provideTextDocumentContent(uri: vscode.Uri): string {
     return this.documents.get(uri.toString()) ?? "";
   }
-  constructor(ctx: vscode.ExtensionContext, app: AppStore) {
+  constructor(
+    ctx: vscode.ExtensionContext,
+    private app: AppStore,
+  ) {
     ctx.subscriptions.push(
       vscode.commands.registerCommand(CMD.estate.snippet.create, async () => {
         const language = await this.pickSnippetLanguage();
@@ -138,7 +141,7 @@ export class VFSProvider implements vscode.TextDocumentContentProvider {
       }),
     );
     app.activity.subscribe((_a) => {
-      console.log("[-- 3 -- VFSProvider.windowClick()]");
+      this.app.click.info("VFSProvider");
     });
   }
 
@@ -159,16 +162,18 @@ export class VFSDecorator implements vscode.FileDecorationProvider {
 
   readonly onDidChangeFileDecorations = this._onDidChangeFileDecorations.event;
 
-  constructor(ctx: vscode.ExtensionContext, app: AppStore) {
+  constructor(
+    ctx: vscode.ExtensionContext,
+    private app: AppStore,
+  ) {
     app.activity.subscribe((_a) => {
-      console.log("[-- 4 -- VFSDecorator.windowClick()]");
+      this.app.click.info("VFSDecorator");
       this._onDidChangeFileDecorations.fire();
     });
   }
 
   // Decorates Tree & Editor
   provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
-    console.log("[-- 9 -- VFSDecorator.windowClick().provideFileDecoration()]");
     if (uri.scheme !== "estate") {
       return;
     }
@@ -250,11 +255,8 @@ export class EstateProvider implements vscode.TreeDataProvider<EstateNode> {
       .map((a) => this.buildNode(node, a));
   }
   buildChildren(node: EstateNode) {
-    // console.log("parent", node.anchor?.id);
-    // console.log("anchor ids", node.anchor?.anchors);
     const resolved = (node.anchor?.anchors ?? []).map((id) => {
       const a = this.app.anchors.get(id);
-      // console.log(id, "->", a);
       return a;
     });
 

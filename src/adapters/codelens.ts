@@ -5,7 +5,6 @@ import { AppActivity, captureScope } from "../activity";
 import { Anchor } from "../anchor";
 import { AppStore } from "../app";
 import { EstateContext } from "../estate";
-import { icons } from "../ownership";
 import { AnchorRef } from "../types";
 
 export class WikiCodeLensProvider implements vscode.CodeLensProvider {
@@ -14,22 +13,22 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
   private readonly _onDidChangeCodeLenses = new vscode.EventEmitter<void>();
   readonly onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
   constructor(private app: AppStore) {
-    app.activity.subscribe((activity) => {
-      console.log("[WikiCodeLensProvider.subscription]");
+    this.tracer = app.tracer.namespace("AnalysisStore");
+    this.app.initFlow.info("WikiCodeLensProvider");
+    app.activity.subscribe((_activity) => {
+      // Doesn't work....
+      // this.app.click.info("WikiCodeLensProvider.provideCodeLenses");
       this.refresh();
-      // app.logger.debug("[WikiCodeLensProvider]");
-      // console.log("[WikiCodeLensProvider].subscription", activity);
       // this.analyzeLine(activity);
     });
   }
   public refresh(): void {
-    console.log("[WikiCodeLensProvider.refresh]");
     this._onDidChangeCodeLenses.fire();
   }
+  private readonly tracer;
   provideCodeLenses(doc: vscode.TextDocument): vscode.CodeLens[] {
-    console.log("[WikiCodeLensProvider.provideCodeLenses]");
-    console.log("[-- 1 -- WikiCodeLensProvider.windowClick().provideCodeLenses()]");
-    // this.app.logger.debug("[WikiCodeLensProvider].subscribe/refresh");
+    // #1 on window click
+    this.app.click.info("WikiCodeLensProvider.provideCodeLenses");
     let inlineFlags = this.addIntrinsicAnchors(doc);
     let documentAnchors = this.addDocumentAnchors(doc);
 

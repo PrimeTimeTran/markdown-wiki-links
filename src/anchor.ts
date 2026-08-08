@@ -188,8 +188,6 @@ export class AnchorStore implements AnchorStoreType {
       //   console.log('Anchor store... activity detcted');
       //   this.decorateAnchors();
     });
-
-    console.log("this.registryPath", this.registryPath);
   }
   initializeRegistry(): void {
     const estate = this.resolveRegistry();

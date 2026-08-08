@@ -56,6 +56,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
       ownershipProvider.refresh(ownershipUri);
     }),
     // vscode.languages.registerInlayHintsProvider({ language: "rust" }, inlineProvider),
+    // vscode.languages.registerInlayHintsProvider({ language: "md" }, inlineProvider),
     vscode.languages.registerCodeActionsProvider("rust", new OwnershipCodeActionProvider(context)),
     vscode.commands.registerCommand(CMD.estate.ownership.show, showOwnershipView),
   );

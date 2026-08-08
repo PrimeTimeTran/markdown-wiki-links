@@ -54,7 +54,7 @@ export class WikiHoverProvider implements vscode.HoverProvider {
     );
 
     if (!entry) {
-      vscode.window.showInformationMessage("Unresolved entry");
+      // vscode.window.showInformationMessage("Unresolved entry");
       return undefined;
     }
 
@@ -98,7 +98,7 @@ export class WikiHoverProvider implements vscode.HoverProvider {
       doc.uri.fsPath,
     );
     if (!entry) {
-      vscode.window.showInformationMessage("Unresolved entry");
+      // vscode.window.showInformationMessage("Unresolved entry");
       return undefined;
     }
 

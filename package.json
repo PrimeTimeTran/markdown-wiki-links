@@ -428,6 +428,21 @@
           "default": true,
           "description": "Enable Flowify"
         },
+        "flowify.dim.upstream": {
+          "type": "boolean",
+          "default": true,
+          "description": "Dim code unrelated to upstream ownership flow"
+        },
+        "flowify.dim.downstream": {
+          "type": "boolean",
+          "default": true,
+          "description": "Dim code unrelated to downstream ownership flow"
+        },
+        "flowify.display-inline-anchors": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Flowify"
+        },
         "wikiLinks.showInOutputChannel": {
           "type": "boolean",
           "default": true,

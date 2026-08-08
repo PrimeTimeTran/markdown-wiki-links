@@ -2,6 +2,7 @@ import * as fs from "fs/promises";
 
 import * as vscode from "vscode";
 
+import { AppStore } from "../app";
 import { lineForFragment } from "../core/blocks/sectionSlice";
 import { buildFenceMask } from "../core/fenceMask";
 import { parseEmbeds } from "../core/parser/embedParser";
@@ -9,10 +10,13 @@ import { parseLinks } from "../core/parser/linkParser";
 import { IndexService } from "./indexService";
 
 export class WikiDocumentLinkProvider implements vscode.DocumentLinkProvider {
-  constructor(private idx: IndexService) {}
+  constructor(
+    private app: AppStore,
+    private idx: IndexService,
+  ) {}
 
   async provideDocumentLinks(doc: vscode.TextDocument): Promise<vscode.DocumentLink[]> {
-    console.log("[-- 10 -- WikiDocumentLinkProvider.windowClick().provideDocumentLinks()]");
+    this.app.click.info("WikiDocumentLinkProvider.provideDocumentLinks");
     const text = doc.getText();
     const mask = buildFenceMask(text);
     const refs = [...parseLinks(text, mask), ...parseEmbeds(text, mask)];
@@ -44,7 +48,6 @@ export class WikiDocumentLinkProvider implements vscode.DocumentLinkProvider {
       let item = new vscode.DocumentLink(new vscode.Range(start, end), final);
       out.push(new vscode.DocumentLink(new vscode.Range(start, end), final));
     }
-    // console.log("out", out);
     return out;
   }
 }

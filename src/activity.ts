@@ -2,58 +2,12 @@ import * as vscode from "vscode";
 
 import { Anchor } from "./anchor";
 import { AppStore } from "./app";
-import { cfg } from "./cfg";
 import { EstateNode } from "./estate";
 // Right now store the cursor here.
 // - I have other ideas on how this could be used in compostion with event to do more interesting things.
 // Current user context.
 // Always changing as the user navigates.
 
-export type AppActivity = AnchorActivity | AnalysisActivity | EditorActivity;
-// export interface Activity {
-//   editor: EditorActivity;
-//   leader?: boolean;
-//   updatedAt: number;
-// }
-export interface AnchorActivity {
-  type: "anchor";
-  anchor: Anchor;
-  editor?: vscode.TextEditor;
-}
-export interface AnalysisActivity {
-  type: "analysis";
-  editor: EditorActivity;
-  lines: number[];
-}
-export interface EditorActivity {
-  type: "editor";
-  range: vscode.Range;
-  snapshot: EditorSnapshot;
-  editor: vscode.TextEditor;
-  scope: ScopeInfo;
-  updatedAt: number;
-}
-export interface EditorSnapshot {
-  uri: vscode.Uri;
-  cursor: vscode.Position;
-  selection: vscode.Selection;
-  line: number;
-  column: number;
-  displayColumn: number;
-  lineText: string;
-  languageId: string;
-  fileName: string;
-  scope: ScopeInfo;
-}
-export interface ScopeInfo {
-  variant: string;
-  name?: string;
-  kind: "heading" | "codeblock" | "list" | "paragraph";
-  startLine: number;
-  endLine: number;
-  range?: vscode.Range;
-  text: string;
-}
 // oxlint-disable-next-line typescript/no-unsafe-declaration-merging
 export interface ActivityStore<T = unknown> {
   current(): AppActivity | undefined;
@@ -68,62 +22,8 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
   constructor(
     private readonly app: AppStore,
     private readonly ctx: vscode.ExtensionContext,
-  ) {}
-  attachWorkspace() {
-    this.ctx.subscriptions.push(
-      vscode.window.onDidChangeActiveTextEditor(async (editor) => {
-        // this.app.logger.debug("[ActivityStore.onDidChangeActiveTextEditor].emit()");
-        if (cfg.debugActivity)
-          console.log("[-- 2 -- ActivityStore.onDidChangeActiveTextEditor.windowClick()]");
-        if (!editor) return;
-        // 1. How do i properly let it know when i go between othr panels?
-        // this.app.state.focushistory.push("editor");
-        const hasAnchor = editor ? this.app.anchors.has(editor.document.uri.fsPath) : false;
-        // await vscode.commands.executeCommand("setContext", "estate.hasAnchor", hasAnchor);
-      }),
-      vscode.window.onDidChangeTextEditorSelection((event) => {
-        // this.app.logger.debug("[ActivityStore.onDidChangeTextEditorSelection].emit()");
-        if (cfg.debugActivity)
-          console.log("[-- 2 -- ActivityStore.windowClick().onDidChangeTextEditorSelection()]");
-        this.update(event.textEditor);
-      }),
-      vscode.workspace.onDidChangeTextDocument((event) => {
-        if (cfg.debugActivity) console.log("[ActivityStore.onDidChangeTextDocument]");
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-          console.log("[Activity].onDidChangeTextDocument no active editor");
-          return;
-        }
-        if (editor.document.uri.toString() !== event.document.uri.toString()) {
-          return;
-        }
-        this.update(editor);
-      }),
-    );
-  }
-  attachTree(tree: vscode.TreeView<EstateNode>) {
-    this.ctx.subscriptions.push(
-      tree.onDidChangeSelection((e) => {
-        if (cfg.debugActivity)
-          console.log("[-- 1 -- ActivityStore.windowClick().attachTree().onDidChangeSelection()]");
-        const node = e.selection[0];
-        if (!node?.anchor) return;
-        this.emit({
-          type: "anchor",
-          anchor: node.anchor,
-          editor: vscode.window.activeTextEditor,
-        });
-      }),
-      tree.onDidChangeVisibility(async (e) => {
-        if (cfg.debugActivity)
-          console.log("[ActivityStore.windowClick().attachTree().onDidChangeVisibility()]");
-        // Triggered when Estate Activity Bar panel is revealed
-        if (e.visible) {
-          // await this.tree.ensureEditorOpen();
-        }
-      }),
-      tree,
-    );
+  ) {
+    this.app.initFlow.debug("ActivityStore");
   }
   init(): void {
     const editor = vscode.window.activeTextEditor;
@@ -163,9 +63,6 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
       scope: scope as ScopeInfo,
       updatedAt: Date.now(),
     };
-
-    console.log("[ActivityStore] ", activity.snapshot.fileName);
-    console.log("[ActivityStore] ", activity.snapshot.line);
 
     this.app.activity.emit(activity);
   }
@@ -220,6 +117,98 @@ export class ActivityStore<T = unknown> implements ActivityStore<T> {
     };
     return anchor;
   }
+  attachWorkspace() {
+    this.app.initFlow.debug("ActivityStore.attachWorkspace");
+    this.ctx.subscriptions.push(
+      vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+        this.app.click.info("ActivityStore.onDidChangeActiveTextEditor");
+        if (!editor) return;
+        // 1. How do i properly let it know when i go between othr panels?
+        // this.app.state.focushistory.push("editor");
+        const hasAnchor = editor ? this.app.anchors.has(editor.document.uri.fsPath) : false;
+        // await vscode.commands.executeCommand("setContext", "estate.hasAnchor", hasAnchor);
+      }),
+      vscode.window.onDidChangeTextEditorSelection((event) => {
+        this.app.click.info("ActivityStore.onDidChangeTextEditorSelection");
+        this.update(event.textEditor);
+      }),
+      vscode.workspace.onDidChangeTextDocument((event) => {
+        this.app.click.info("ActivityStore.onDidChangeTextDocument");
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+          console.log("[Activity].onDidChangeTextDocument no active editor");
+          return;
+        }
+        if (editor.document.uri.toString() !== event.document.uri.toString()) {
+          return;
+        }
+        this.update(editor);
+      }),
+    );
+  }
+  attachTree(tree: vscode.TreeView<EstateNode>) {
+    this.app.initFlow.debug("ActivityStore.attachTree");
+    this.ctx.subscriptions.push(
+      tree.onDidChangeSelection((e) => {
+        this.app.click.info("ActivityStore.attachTree.onDidChangeSelection");
+        const node = e.selection[0];
+        if (!node?.anchor) return;
+        this.emit({
+          type: "anchor",
+          anchor: node.anchor,
+          editor: vscode.window.activeTextEditor,
+        });
+      }),
+      tree.onDidChangeVisibility(async (e) => {
+        this.app.click.info("ActivityStore.attachTree.onDidChangeVisibility");
+        // Triggered when Estate Activity Bar panel is revealed
+        if (e.visible) {
+          // await this.tree.ensureEditorOpen();
+        }
+      }),
+      tree,
+    );
+  }
+}
+export type AppActivity = AnchorActivity | AnalysisActivity | EditorActivity;
+export interface AnchorActivity {
+  type: "anchor";
+  anchor: Anchor;
+  editor?: vscode.TextEditor;
+}
+export interface AnalysisActivity {
+  type: "analysis";
+  editor: EditorActivity;
+  lines: number[];
+}
+export interface EditorActivity {
+  type: "editor";
+  range: vscode.Range;
+  snapshot: EditorSnapshot;
+  editor: vscode.TextEditor;
+  scope: ScopeInfo;
+  updatedAt: number;
+}
+export interface EditorSnapshot {
+  uri: vscode.Uri;
+  cursor: vscode.Position;
+  selection: vscode.Selection;
+  line: number;
+  column: number;
+  displayColumn: number;
+  lineText: string;
+  languageId: string;
+  fileName: string;
+  scope: ScopeInfo;
+}
+export interface ScopeInfo {
+  variant: string;
+  name?: string;
+  kind: "heading" | "codeblock" | "list" | "paragraph";
+  startLine: number;
+  endLine: number;
+  range?: vscode.Range;
+  text: string;
 }
 export function captureScope(
   document: vscode.TextDocument,

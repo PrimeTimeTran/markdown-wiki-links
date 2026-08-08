@@ -16,19 +16,26 @@ export class AnalysisStore {
   private currentRelatedLines: any[] = [];
   private currentFormattedOutput?: string;
   private listeners = new Set<() => void>();
+  private config = vscode.workspace.getConfiguration("flowify");
+  private execFileAsync = util.promisify(execFile);
+
+  private readonly tracer;
   constructor(private app: AppStore) {
+    this.tracer = app.tracer.namespace("Analysis");
+    app.initFlow.debug("Analysis");
     app.activity.subscribe((activity: AppActivity) => {
-      console.log("[-- 2 -- AnalysisStore.windowClick()]");
+      this.app.click.info("AnalysisStore");
       void this.analyzeLine(activity);
     });
   }
   async analyzeLine(activity: AppActivity, _analysisMode = "default"): Promise<void> {
     try {
-      const config = vscode.workspace.getConfiguration("flowify");
-      const enabled = config.get<boolean>("enabled");
-      console.log("ENABLED:", enabled);
+      let flow = this.tracer.flow("analyzeLine");
+      const enabled = this.config.get<boolean>("enabled");
+      flow.info("analyzeLine start");
       if (!enabled) {
-        console.log("not enabled");
+        this.clear();
+        flow.debug("not enabled");
         return;
       }
       this.currentActivity = activity;
@@ -37,50 +44,36 @@ export class AnalysisStore {
       const editor = vscode.window.activeTextEditor;
       if (!editor || !(activity.type == "editor")) return;
       if (!uri.fsPath.endsWith(".rs")) {
-        console.log("not a rs");
+        this.clear();
+        flow.debug("not .rs");
         return;
       }
       const item = {
         file: activity.snapshot.fileName,
-        column: activity.snapshot.column,
-        line: activity.snapshot.line,
+        column: activity.snapshot.column.toString(),
+        line: (activity.snapshot.line + 1).toString(),
         text: activity.snapshot.lineText,
         scope: activity.scope,
       };
-      if (cfg.debugAnalysis) this.printExtClick(item);
-      const { stdout, stderr } = await execFileAsync(
-        cfg.binaryPath,
-        [
-          "analyze",
-          item.file,
-          "--line",
-          (item.line + 1).toString(),
-          "--column",
-          item.column.toString(),
-        ],
-        { cwd: cfg.cratePath },
-      );
+      flow.debug("analyzeLine", item);
+      const args = ["analyze", item.file, "--line", item.line, "--column", item.column];
+      const { stdout, stderr } = await this.execFileAsync(cfg.binaryPath, args, {
+        cwd: cfg.cratePath,
+      });
       if (stderr) console.error("Daemon error:", stderr);
       const raw = JSON.parse(stdout.trim());
-      if (cfg.debugAnalysis) console.log("Keys received from Rust:");
-      // if (cfg.debugAnalysis) console.log(JSON.stringify(raw, null, 2));
+      // flow.debug("windowClick", "Keys received from Rust:" + JSON.stringify(raw, null, 1));
+      flow.debug("analyzeLine", "Analysis Keys" + Object.keys(raw));
       if (raw.status === "error") throw new Error(raw.message);
       const analysis = new OwnershipAnalysis(raw.analysis);
       if (!analysis) return;
-
-      // if (cfg.debugAnalysis)
-      //   logAnalysis(this.app.outputChannel, raw.click.file, raw.click.line.toString(), raw);
-
-      if (raw.formatted_output) {
-        this.app.outputChannel.appendLine(`  🖼️ FORMATTED OUTPUT:`);
-        this.app.outputChannel.appendLine(raw.formatted_output);
-      } else {
-        this.app.outputChannel.appendLine(`  [WARNING: formatted_output was empty or missing]`);
-      }
+      flow.debug("analyzeLine", raw.click.line);
+      flow.debug("analyzeLine", raw.click.file);
       this.current = analysis;
       this.app.decorator.refresh(editor, this.currentActivity);
-      if (cfg.debugAnalysis) this.printformatted();
+      flow.info("analyzeLine", "analyzeLine end");
     } catch (error) {
+      this.tracer.error("error", error);
       if (error instanceof Error) {
         if (error.message.includes("parse error")) {
           // vscode.window.showWarningMessage(`Subject unresolved: ${error.message}`);
@@ -94,11 +87,11 @@ export class AnalysisStore {
     }
   }
   printExtClick(item: any) {
-    console.log("[-- 2 -- AnalysisStore].file", item.file);
-    console.log("[-- 2 -- AnalysisStore].line", item.line);
-    console.log("[-- 2 -- AnalysisStore].column", item.column);
-    console.log("[-- 2 -- AnalysisStore].scope", item.scope);
-    console.log("[-- 2 -- AnalysisStore].text", item.text);
+    console.log("[-- 2 -- Analysis].file", item.file);
+    console.log("[-- 2 -- Analysis].line", item.line);
+    console.log("[-- 2 -- Analysis].column", item.column);
+    console.log("[-- 2 -- Analysis].scope", item.scope);
+    console.log("[-- 2 -- Analysis].text", item.text);
   }
   printformatted() {
     let output = this.getFormattedOutput();
@@ -125,6 +118,13 @@ export class AnalysisStore {
     return () => {
       this.listeners.delete(fn);
     };
+  }
+  private clear(editor?: vscode.TextEditor): void {
+    const target = editor ?? vscode.window.activeTextEditor;
+    if (!target) return;
+    this.current = undefined;
+    this.currentActivity = undefined;
+    this.app.decorator.refresh(target, this.currentActivity);
   }
 }
 export type RelationKind =
@@ -265,4 +265,3 @@ export interface OwnershipAnalysisType {
     subject: NodeSubject;
   };
 }
-const execFileAsync = util.promisify(execFile);
