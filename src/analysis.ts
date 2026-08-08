@@ -1,4 +1,5 @@
-import { execFile } from "child_process";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import * as util from "util";
 
 import * as vscode from "vscode";
@@ -6,6 +7,8 @@ import * as vscode from "vscode";
 import { AppActivity } from "./activity";
 import { AppStore } from "./app";
 import { cfg } from "./cfg";
+
+const execFileDirect = promisify(execFile);
 
 class OwnershipAnalysis {
   constructor(public readonly analysis: OwnershipAnalysisType) {}
@@ -17,8 +20,7 @@ export class AnalysisStore {
   private currentFormattedOutput?: string;
   private listeners = new Set<() => void>();
   private config = vscode.workspace.getConfiguration("flowify");
-  private execFileAsync = util.promisify(execFile);
-
+  private execFileAsync = execFileDirect;
   private readonly tracer;
   constructor(private app: AppStore) {
     this.tracer = app.tracer.namespace("Analysis");
@@ -57,10 +59,14 @@ export class AnalysisStore {
       };
       flow.debug("analyzeLine", item);
       const args = ["analyze", item.file, "--line", item.line, "--column", item.column];
-      const { stdout, stderr } = await this.execFileAsync(cfg.binaryPath, args, {
+      const { stdout, stderr } = await execFileDirect(cfg.binaryPath, args, {
         cwd: cfg.cratePath,
+        maxBuffer: 10 * 1024 * 1024,
       });
       if (stderr) console.error("Daemon error:", stderr);
+      console.log("STDOUT LENGTH:", stdout.length);
+      console.log("STDOUT START:", stdout.slice(0, 100));
+      console.log("STDOUT END:", stdout.slice(-100));
       const raw = JSON.parse(stdout.trim());
       // flow.debug("windowClick", "Keys received from Rust:" + JSON.stringify(raw, null, 1));
       flow.debug("analyzeLine", "Analysis Keys" + Object.keys(raw));
@@ -68,7 +74,7 @@ export class AnalysisStore {
       const analysis = new OwnershipAnalysis(raw.analysis);
       if (!analysis) return;
       flow.debug("analyzeLine", raw.click.line);
-      flow.debug("analyzeLine", raw.click.file);
+      // flow.debug("analyzeLine", raw.click.file);
       this.current = analysis;
       this.app.decorator.refresh(editor, this.currentActivity);
       flow.info("analyzeLine", "analyzeLine end");
@@ -82,17 +88,17 @@ export class AnalysisStore {
         }
       } else {
         // vscode.window.showWarningMessage(`Analysis failed. LSP on? `);
-        console.error(error);
+        this.tracer.error("error", error);
       }
     }
   }
-  printExtClick(item: any) {
-    console.log("[-- 2 -- Analysis].file", item.file);
-    console.log("[-- 2 -- Analysis].line", item.line);
-    console.log("[-- 2 -- Analysis].column", item.column);
-    console.log("[-- 2 -- Analysis].scope", item.scope);
-    console.log("[-- 2 -- Analysis].text", item.text);
-  }
+  // printExtClick(item: any) {
+  //   console.log("[-- 2 -- Analysis].file", item.file);
+  //   console.log("[-- 2 -- Analysis].line", item.line);
+  //   console.log("[-- 2 -- Analysis].column", item.column);
+  //   console.log("[-- 2 -- Analysis].scope", item.scope);
+  //   console.log("[-- 2 -- Analysis].text", item.text);
+  // }
   printformatted() {
     let output = this.getFormattedOutput();
     if (output) {

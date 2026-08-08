@@ -21,7 +21,7 @@ import { VFSDecorator, EstateProvider, VFSProvider } from "./estate";
 
 export class AppStore {
   readonly tracer = new Tracer(Level.debug, cfg.appName, {
-    namespaces: ["App"],
+    namespaces: ["Analysis"],
   });
   readonly clickFlow: TraceFlow;
   readonly initFlow: TraceFlow;
