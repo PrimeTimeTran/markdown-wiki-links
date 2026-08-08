@@ -84,12 +84,8 @@ export class AppStore {
       vscode.commands.registerCommand("estate.ui.quickPick", (anchor: Anchor) => {
         if (!anchor) return;
         vscode.window.showQuickPick([
-          // 1. Show anchor path (useful for when we dont know "which" README.md/package.json we're looking at)
-          // 2. Show Front matter?
-          // 3. Outline Behavior. Collapse/expand
-          // 4. Edit label(sidebar)
-          // 5. Edit label(sidebar)
           `🧩 Create label ${anchor.label}`,
+          `🕸 Read label ${anchor.label}`,
           `🕸 Update label ${anchor.label}`,
           `♻️ Delete label ${anchor.label}`,
           `💾 Create pipeline ${anchor.label}`,
@@ -143,7 +139,7 @@ interface ReferenceItem extends vscode.QuickPickItem {
 }
 
 export function registerCustomCommandPalette(context: vscode.ExtensionContext, app: AppStore) {
-  let disposable = vscode.commands.registerCommand(CMD.estate.ui.cmdPalette, async () => {
+  let disposable = vscode.commands.registerCommand(CMD.estate.cmdPalette.show, async () => {
     const quickPick = vscode.window.createQuickPick<ReferenceItem>();
     quickPick.title = "🚀 Reference & Command Hub";
     quickPick.placeholder = "Type to search references, snippets, or actions...";

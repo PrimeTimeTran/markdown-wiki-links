@@ -10,11 +10,11 @@ import { EstateNode } from "./estate";
 // Always changing as the user navigates.
 
 export type AppActivity = AnchorActivity | AnalysisActivity | EditorActivity;
-export interface Activity {
-  editor: EditorActivity;
-  leader?: boolean;
-  updatedAt: number;
-}
+// export interface Activity {
+//   editor: EditorActivity;
+//   leader?: boolean;
+//   updatedAt: number;
+// }
 export interface AnchorActivity {
   type: "anchor";
   anchor: Anchor;

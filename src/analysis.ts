@@ -7,40 +7,6 @@ import { AppActivity } from "./activity";
 import { AppStore } from "./app";
 import { cfg } from "./cfg";
 
-const execFileAsync = util.promisify(execFile);
-
-// export interface OwnershipAnalysisContext {
-//   analysis: OwnershipAnalysisResult;
-//   relatedLines: any[];
-//   formattedOutput?: string;
-// }
-
-export interface Span {
-  start_line: number;
-  start_col: number;
-  end_line: number;
-  end_col: number;
-}
-export interface NodeSubject {
-  kind: string;
-  span: Span;
-}
-export interface RelatedLine {
-  line: number;
-  relations: string[];
-}
-
-export interface NodeContext {
-  subject: NodeSubject;
-  ancestors?: NodeSubject[];
-}
-export interface OwnershipAnalysisType {
-  classification: string;
-  related_lines: RelatedLine[];
-  node_context: {
-    subject: NodeSubject;
-  };
-}
 class OwnershipAnalysis {
   constructor(public readonly analysis: OwnershipAnalysisType) {}
 }
@@ -53,18 +19,27 @@ export class AnalysisStore {
   constructor(private app: AppStore) {
     app.activity.subscribe((activity: AppActivity) => {
       console.log("[-- 2 -- AnalysisStore.windowClick()]");
-      this.analyzeLine(activity);
+      void this.analyzeLine(activity);
     });
   }
-  async analyzeLine(activity: AppActivity, analysisMode = "default"): Promise<void> {
+  async analyzeLine(activity: AppActivity, _analysisMode = "default"): Promise<void> {
     try {
+      const config = vscode.workspace.getConfiguration("flowify");
+      const enabled = config.get<boolean>("enabled");
+      console.log("ENABLED:", enabled);
+      if (!enabled) {
+        console.log("not enabled");
+        return;
+      }
       this.currentActivity = activity;
+      const uri = activity.type == "editor" ? activity.snapshot?.uri : false;
+      if (!uri) return;
       const editor = vscode.window.activeTextEditor;
-      if (!editor) return;
-      if (!(activity.type == "editor")) return;
-      if (!activity.snapshot) return;
-      if (!activity.snapshot?.uri) return;
-      if (!activity.snapshot.fileName) return;
+      if (!editor || !(activity.type == "editor")) return;
+      if (!uri.fsPath.endsWith(".rs")) {
+        console.log("not a rs");
+        return;
+      }
       const item = {
         file: activity.snapshot.fileName,
         column: activity.snapshot.column,
@@ -72,9 +47,6 @@ export class AnalysisStore {
         text: activity.snapshot.lineText,
         scope: activity.scope,
       };
-      // if (item.file !== "file") return;
-      // const config = vscode.workspace.getConfiguration('flowify');
-      // const defaultMode = config.get<string>('defaultAnalysisMode', 'default');
       if (cfg.debugAnalysis) this.printExtClick(item);
       const { stdout, stderr } = await execFileAsync(
         cfg.binaryPath,
@@ -92,23 +64,21 @@ export class AnalysisStore {
       const raw = JSON.parse(stdout.trim());
       if (cfg.debugAnalysis) console.log("Keys received from Rust:");
       // if (cfg.debugAnalysis) console.log(JSON.stringify(raw, null, 2));
-      if (raw.status === "error") {
-        throw new Error(raw.message);
-      }
+      if (raw.status === "error") throw new Error(raw.message);
       const analysis = new OwnershipAnalysis(raw.analysis);
       if (!analysis) return;
+
       // if (cfg.debugAnalysis)
       //   logAnalysis(this.app.outputChannel, raw.click.file, raw.click.line.toString(), raw);
+
       if (raw.formatted_output) {
         this.app.outputChannel.appendLine(`  🖼️ FORMATTED OUTPUT:`);
         this.app.outputChannel.appendLine(raw.formatted_output);
       } else {
         this.app.outputChannel.appendLine(`  [WARNING: formatted_output was empty or missing]`);
       }
-
       this.current = analysis;
       this.app.decorator.refresh(editor, this.currentActivity);
-
       if (cfg.debugAnalysis) this.printformatted();
     } catch (error) {
       if (error instanceof Error) {
@@ -270,3 +240,29 @@ export function logAnalysis(
   }
   outputChannel.appendLine(``);
 }
+export interface Span {
+  start_line: number;
+  start_col: number;
+  end_line: number;
+  end_col: number;
+}
+export interface NodeSubject {
+  kind: string;
+  span: Span;
+}
+export interface RelatedLine {
+  line: number;
+  relations: string[];
+}
+export interface NodeContext {
+  subject: NodeSubject;
+  ancestors?: NodeSubject[];
+}
+export interface OwnershipAnalysisType {
+  classification: string;
+  related_lines: RelatedLine[];
+  node_context: {
+    subject: NodeSubject;
+  };
+}
+const execFileAsync = util.promisify(execFile);

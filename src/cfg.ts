@@ -21,8 +21,8 @@ export const cfg = {
   registryName,
   estateDirRootPath,
   registryPath,
-  debugActivity: false,
-  debugAnalysis: false,
+  debugActivity: true,
+  debugAnalysis: true,
   cratePath,
   binaryPath,
 } as const;

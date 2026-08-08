@@ -18,18 +18,16 @@ const newCmd: CommandDefinition = {
 // Menu icons aren't behaving consistently in sidebar click of file explorer
 // Tab switchhotkey)
 export const COMMANDS: CommandDefinition[] = [
+  // - Search anchors
+  // - Search state commands. Switch filters quick an easily.
+  //
   {
     title: "Estate: Open Command Palette",
-    id: "estate.ui.cmdPalette",
+    id: "estate.cmdPalette.show",
     shortTitle: "Find commands easily using the cmd palette",
     icon: "$(zap)",
-    menus: [
-      // {
-      //   menu: "view/title",
-      //   group: "navigation",
-      //   when: "view == estateExplorer",
-      // },
-    ],
+    category: "cmd",
+    menus: [],
   },
   {
     title: "Estate: Open Quick Pick",

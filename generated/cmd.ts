@@ -2,6 +2,9 @@
 
 export const CMD = {
   estate: {
+    cmdPalette: {
+      show: "estate.cmdPalette.show",
+    },
     ui: {
       cmdPalette: "estate.ui.cmdPalette",
     },

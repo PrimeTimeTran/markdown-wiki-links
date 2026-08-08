@@ -14,12 +14,12 @@ import { cfg, PATHS } from "./cfg";
 import { capability, flags } from "./cmd/flags";
 import { EstateContext, EstateFlag, EstateNode } from "./estate";
 import {
-  AnchorSource,
-  CreateAnchorOptions,
   AnchorRef,
-  AnchorStoreType,
-  AnchorLocation,
+  AnchorSource,
   AnchorOrigin,
+  AnchorLocation,
+  AnchorStoreType,
+  CreateAnchorOptions,
 } from "./types";
 // # Flag
 // - Fold flags: show prevent 'above' from 'unfolding' no matter how many depths I've unfolded. Think about how I might want to 'ignore' tests of rust or imports or 'first impl'
@@ -98,6 +98,9 @@ export class Anchor implements Anchor {
     return this.src?.startLine ?? 0;
   }
 }
+// - Rename
+// - Link
+// - Pipeline
 export class AnchorStore implements AnchorStoreType {
   private items = new Map<string, Anchor>();
   private fileIndex = new Map<string, Anchor[]>();
@@ -558,7 +561,6 @@ export class AnchorStore implements AnchorStoreType {
     return undefined;
   }
 }
-
 export class AnchorSeries {}
 export class AnchorPresenter {
   private anchorPanels = new Map<string, vscode.WebviewPanel>();
@@ -578,7 +580,6 @@ export class AnchorPresenter {
           if (args[0]) {
             vscode.window.showInformationMessage("good work!");
           }
-
           // let activity: AnchorActivity = {
           //   type: "anchor",
           //   anchor,
@@ -604,10 +605,8 @@ export class AnchorPresenter {
   async refresh(a: AnchorActivity) {
     this.showAnchor(a.anchor);
   }
-
   private async showAnchor(anchor: Anchor, mode: "source" | "page" | "popup" = "source") {
     const id = anchor.id;
-
     //
     // Source view
     //
@@ -620,7 +619,6 @@ export class AnchorPresenter {
       // Fix bug, logic is right but it takes a second click to show buttons in editor tabs row
       // console.log("estate.hasAnchor =", true);
       // await vscode.commands.executeCommand("setContext", "estate.hasAnchor", true);
-
       const uri = vscode.Uri.file(anchor.uri());
 
       let editor = vscode.window.visibleTextEditors.find(
@@ -643,7 +641,6 @@ export class AnchorPresenter {
 
       return;
     }
-
     //
     // Popup (TODO)
     //
@@ -651,7 +648,6 @@ export class AnchorPresenter {
       // TODO
       return;
     }
-
     //
     // Page
     //
@@ -762,7 +758,6 @@ export class AnchorPresenter {
     // 3. Load HTML from file path safely
     panel.webview.html = this.getHtmlForWebview(panel.webview, anchor);
   }
-
   private getHtmlForWebview(webview: vscode.Webview, anchor: Anchor): string {
     const htmlPath = path.join(this.app.ctx.extensionPath, "media", "pipeline.html");
     let htmlContent = fs.readFileSync(htmlPath, "utf8");
@@ -780,7 +775,6 @@ export class AnchorPresenter {
 
     return htmlContent.replace("</head>", `${bootstrapScript}</head>`);
   }
-
   private async showAnchorPane2(anchor: Anchor) {
     const id = anchor.id;
 

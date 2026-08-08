@@ -2,7 +2,7 @@
   "name": "markdown-wiki-links",
   "displayName": "Markdown Wiki Links",
   "publisher": "ltvan",
-  "version": "0.3.1",
+  "version": "0.3.4",
   "description": "Obsidian-style [[wiki-links]] between Markdown files in the workspace.",
   "license": "MIT",
   "repository": {
@@ -423,6 +423,11 @@
     "configuration": {
       "title": "Wiki Links",
       "properties": {
+        "flowify.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Flowify"
+        },
         "wikiLinks.showInOutputChannel": {
           "type": "boolean",
           "default": true,
