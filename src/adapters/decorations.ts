@@ -177,12 +177,6 @@ export class WikiDecorations {
       //   this.decorate(event.textEditor);
       // }),
       // vscode.window.onDidChangeVisibleTextEditors(() => {}),
-      // vscode.workspace.onDidChangeTextDocument((event) => {
-      //   const editor = vscode.window.visibleTextEditors.find((e) => e.document === event.document);
-      //   if (editor) {
-      //     this.decorate(editor);
-      //   }
-      // }),
     );
   }
   public refreshAnchor(editor: vscode.TextEditor, anchor: Anchor) {
@@ -231,13 +225,7 @@ export class WikiDecorations {
         unresolvedRanges.push(range);
       }
     }
-    // const estate = this.findEstateAnchors(doc);
-
-    editor.setDecorations(this.resolved, [
-      // ...estate.map((e) => e.range),
-      ...resolvedRanges,
-    ]);
-
+    editor.setDecorations(this.resolved, resolvedRanges);
     editor.setDecorations(this.unresolved, unresolvedRanges);
   }
   public highlightSurroundingLines(editor: vscode.TextEditor) {

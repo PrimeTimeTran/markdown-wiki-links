@@ -88,26 +88,6 @@ export class Tracer {
     });
   }
 
-  trace(event: string, data?: unknown, level: TraceLevel = Level.debug): void {
-    if (level < this.level) return;
-    if (!this.isNamespaceEnabled()) return;
-
-    const caller = this.getCaller();
-
-    const tag = this.prefix ? `[${this.prefix}.${event}]` : `[${event}]`;
-    // const tag = this.prefix
-    //   ? `[${this.channel}] [${this.prefix}.${event}]`
-    //   : `[${this.channel}] [${event}]`;
-
-    const message = `${this.color(level)}${tag}${ansi.reset}`;
-
-    console.log(message, data ?? "");
-
-    if (caller) {
-      console.log(`${ansi.caller}${caller}${ansi.reset}`);
-    }
-  }
-
   // private getCaller(): string | undefined {
   //   const stack = new Error().stack;
 
@@ -139,14 +119,49 @@ export class Tracer {
 
   //   return match?.[1];
   // }
+  // trace(event: string, data?: unknown, level: TraceLevel = Level.debug): void {
+  //   if (level < this.level) return;
+  //   if (!this.isNamespaceEnabled()) return;
+
+  //   const caller = this.getCaller();
+
+  //   const tag = this.prefix ? `[${this.prefix}.${event}]` : `[${event}]`;
+  //   // const tag = this.prefix
+  //   //   ? `[${this.channel}] [${this.prefix}.${event}]`
+  //   //   : `[${this.channel}] [${event}]`;
+
+  //   const message = `${this.color(level)}${tag}${ansi.reset}`;
+
+  //   console.log(message, data ?? "");
+
+  //   if (caller) {
+  //     console.log(`${ansi.caller}${caller}${ansi.reset}`);
+  //   }
+  // }
+  trace(event: string, data?: unknown, level: TraceLevel = Level.debug): void {
+    if (level < this.level) return;
+    if (!this.isNamespaceEnabled()) return;
+
+    const caller = this.getCaller();
+    // const tag = this.prefix
+    //   ? `[${this.channel}] [${this.prefix}.${event}]`
+    //   : `[${this.channel}] [${event}]`;
+    const tag = this.prefix ? `[${this.prefix}.${event}]` : `[${event}]`;
+
+    const message = `${this.color(level)}${tag}${ansi.reset}`;
+
+    console.log(message, data ?? "");
+
+    if (caller) {
+      console.log(caller);
+    }
+  }
   private getCaller(): string | undefined {
     const stack = new Error().stack;
 
     if (!stack) return;
 
-    const lines = stack.split("\n");
-
-    for (const line of lines.slice(1)) {
+    for (const line of stack.split("\n").slice(1)) {
       if (line.includes("Tracer.") || line.includes("TraceFlow.")) {
         continue;
       }
@@ -157,12 +172,15 @@ export class Tracer {
         continue;
       }
 
-      return [
-        caller.functionName ? `    at ${caller.functionName}` : undefined,
-        `    in ${caller.location}`,
-      ]
-        .filter(Boolean)
-        .join("\n");
+      const lines = [
+        caller.functionName
+          ? `${ansi.caller}    at ${caller.functionName}${ansi.reset}`
+          : undefined,
+
+        `${ansi.caller}    in ${caller.location}${ansi.reset}`,
+      ];
+
+      return lines.filter(Boolean).join("\n");
     }
 
     return;
