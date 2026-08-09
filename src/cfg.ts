@@ -7,8 +7,8 @@ export const registryName = `anchors.json`;
 export const estateDirRootPath = path.join(os.homedir(), estateDirName);
 export const registryPath = path.join(estateDirRootPath, registryName);
 
-export const cratePath = "/Users/future/KB/project/app/loi/crates/learn";
-export const binaryPath = "/Users/future/KB/project/app/loi/target/debug/loi";
+export const cratePath = "/Users/future/KB/project/crates/estate-engine";
+export const binaryPath = "/Users/future/KB/project/target/debug/estate-engine";
 
 export const Level = {
   debug: 1,

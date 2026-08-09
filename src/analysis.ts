@@ -59,6 +59,7 @@ export class AnalysisStore {
       };
       flow.debug("analyzeLine", item);
       const args = ["analyze", item.file, "--line", item.line, "--column", item.column];
+
       const { stdout, stderr } = await execFileDirect(cfg.binaryPath, args, {
         cwd: cfg.cratePath,
         maxBuffer: 10 * 1024 * 1024,
