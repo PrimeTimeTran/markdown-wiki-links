@@ -51,3 +51,5 @@ export const CMD = {
     analyzeLine: "flowify.analyzeLine",
   },
 } as const;
+
+export const CMDs = CMD;

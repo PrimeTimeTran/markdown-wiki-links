@@ -11,6 +11,7 @@ import { AnchorActivity, AppActivity } from "./activity";
 import { anchorShowPage, getHtml } from "./adapters/htmlAnchor";
 import { AppStore } from "./app";
 import { cfg, PATHS } from "./cfg";
+import { ActionContext } from "./cmd/errors";
 import { capability, flags } from "./cmd/flags";
 import { EstateContext, EstateFlag, EstateNode } from "./estate";
 import {
@@ -139,7 +140,6 @@ export class AnchorStore implements AnchorStoreType {
     editor.setDecorations(this.anchorDecoration, ranges);
   }
   constructor(public app: AppStore) {
-    console.log("[AnchorStore.constructor].start");
     this.anchorDecoration = vscode.window.createTextEditorDecorationType({
       before: {
         margin: "0 0 0 1rem",
@@ -163,7 +163,26 @@ export class AnchorStore implements AnchorStoreType {
     // ⚠️ Careful!
     // - Pass app, ctx, or a 3rd argument to have it later. Otherwise the properties of this will be lost
     app.ctx.subscriptions.push(
-      vscode.commands.registerCommand(CMD.estate.bookmark.create, this.addAnchor, this),
+      vscode.commands.registerCommand(
+        CMD.estate.bookmark.create,
+        async (ctx: ActionContext, paths) => {
+          const editor = vscode.window.visibleTextEditors.find(
+            (editor) => editor.document.uri.toString() === ctx.document.uri.toString(),
+          );
+
+          if (!editor) {
+            vscode.window.showErrorMessage(`${ctx.document.uri.toString()} ${paths.estate}`);
+            return;
+          }
+
+          const success = await editor.edit((editBuilder) => {
+            editBuilder.replace(ctx.range, "[[life-pipeline|Life Pipeline]]");
+          });
+
+          vscode.window.showInformationMessage(`edit success: ${success}`);
+        },
+        this,
+      ),
       vscode.commands.registerCommand(
         CMD.estate.bookmark.update,
         (node: EstateNode) => {

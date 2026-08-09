@@ -60,13 +60,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<WikiLi
     vscode.languages.registerCodeActionsProvider("rust", new OwnershipCodeActionProvider(context)),
     vscode.commands.registerCommand(CMD.estate.ownership.show, showOwnershipView),
   );
-  // Commands
-
-  context.subscriptions.push(
-    vscode.languages.registerCodeActionsProvider("markdown", new EstateActionProvider(), {
-      providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
-    }),
-  );
 
   // We accept the inserted wrapping () to prevent having to use context.subscriptions.push everywhere
   context.subscriptions.push(

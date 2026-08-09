@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import {
   createTrace,
   getLoggerConfig,
@@ -16,6 +18,7 @@ import { IndexService } from "./adapters/indexService";
 import { AnalysisStore } from "./analysis";
 import { Anchor, AnchorPresenter, AnchorStore } from "./anchor";
 import { cfg, Level, TraceFlow, Tracer } from "./cfg";
+import { CodeActionAdapter, CodeLensAdapter, EstateActionProvider } from "./codeAction";
 import { longLangs } from "./consts";
 import { VFSDecorator, EstateProvider, VFSProvider } from "./estate";
 
@@ -66,6 +69,7 @@ export class AppStore {
   readonly presenter: AnchorPresenter;
   readonly codeLens: WikiCodeLensProvider;
   readonly wiki: IndexService;
+  readonly actionProviders = new Map<string, EstateActionProvider>();
   init(context: vscode.ExtensionContext) {
     this.wiki.initialize();
     this.activity.attachTree(this.tree.treeView);
@@ -94,6 +98,33 @@ export class AppStore {
         ]);
       }),
     );
+
+    const actionProviders = [
+      {
+        languageId: "markdown",
+        provider: new EstateActionProvider(this),
+      },
+    ];
+
+    for (const entry of actionProviders) {
+      this.actionProviders.set(entry.languageId, entry.provider);
+      context.subscriptions.push(
+        vscode.languages.registerCodeActionsProvider(
+          entry.languageId,
+          new CodeActionAdapter(entry.provider),
+          {
+            providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
+          },
+        ),
+      );
+
+      context.subscriptions.push(
+        vscode.languages.registerCodeLensProvider(
+          entry.languageId,
+          new CodeLensAdapter(entry.provider),
+        ),
+      );
+    }
     this.activity.subscribe((_activity) => {
       this.click.info("AppStore");
     });
@@ -126,6 +157,18 @@ export class AppStore {
     await vscode.commands.executeCommand("setContext", "estate.leader", num);
     this.tree.refresh();
     return num;
+  }
+
+  getTargetPaths(doc: vscode.TextDocument, fileName: string) {
+    const estate = path.join(process.env.HOME ?? "", ".estate", fileName);
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(doc.uri);
+    const workspace = workspaceFolder ? path.join(workspaceFolder.uri.fsPath, fileName) : undefined;
+    const sibling = path.join(path.dirname(doc.uri.fsPath), fileName);
+    return {
+      estate,
+      workspace,
+      sibling,
+    };
   }
 }
 export interface EstateState {

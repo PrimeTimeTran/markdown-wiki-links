@@ -2,7 +2,7 @@
   "name": "markdown-wiki-links",
   "displayName": "Markdown Wiki Links",
   "publisher": "ltvan",
-  "version": "0.3.5",
+  "version": "0.3.7",
   "description": "Obsidian-style [[wiki-links]] between Markdown files in the workspace.",
   "license": "MIT",
   "repository": {

@@ -1,84 +1,102 @@
-import * as path from "node:path";
-
 import * as vscode from "vscode";
 
-export class EstateActionProvider implements vscode.CodeActionProvider {
-  provideCodeActions(
+import { AppStore } from "./app";
+import {
+  actions,
+  ActionContext,
+  diagnosticCode,
+  EstateErrorCode,
+  ActionDefinition,
+} from "./cmd/errors";
+
+type Handler = (actionContext: ActionContext) => ActionDefinition[];
+
+export class EstateActionProvider {
+  readonly handlers = new Map<EstateErrorCode, Handler>();
+
+  constructor(private readonly app: AppStore) {
+    for (const code of Object.keys(actions.estate) as EstateErrorCode[]) {
+      const action = actions.estate[code];
+      this.handlers.set(code, (ctx) => this.handle(ctx, action));
+    }
+  }
+
+  provide(
     document: vscode.TextDocument,
     range: vscode.Range,
-    context: vscode.CodeActionContext,
-  ): vscode.CodeAction[] {
-    const diagnostic = context.diagnostics.find((d) => d.code === "estate.unresolved-estate-link");
+    diagnostic: vscode.Diagnostic,
+  ): ActionDefinition[] {
+    const code = diagnosticCode(diagnostic);
+    if (!code) return [];
+    const handler = this.handlers.get(code);
+    if (!handler) return [];
+    return handler({
+      document,
+      range,
+      diagnostic,
+    });
+  }
 
-    if (!diagnostic) return [];
-
-    const fileName = this.getFileName(document, diagnostic);
-    if (!fileName) return [];
-
-    const paths = this.getTargetPaths(document, fileName);
-
-    const ctx = {
-      uri: document.uri.toString(),
-      line: range.start.line,
-      column: range.start.character,
-      endColumn: range.end.character,
-    };
+  private handle(ctx: ActionContext, action: ActionDefinition): ActionDefinition[] {
+    const fileName = this.getFileName(ctx.document, ctx.diagnostic);
+    const paths = this.app.getTargetPaths(ctx.document, fileName || "");
 
     return [
-      this.action(`🏡 Create estate link (${paths.estate})`, "estate.bookmark.create", {
-        ...ctx,
-        targetPath: paths.estate,
-      }),
-      this.action(`💼 Create workspace link (${paths.workspace})`, "estate.bookmark.create", {
-        ...ctx,
-        targetPath: paths.workspace,
-      }),
-      this.action(`💼 Create sibling link (${paths.sibling})`, "estate.bookmark.create", {
-        ...ctx,
-        targetPath: paths.sibling,
-      }),
-      this.action("🔗 Link from estate", "estate.bookmark.create", ctx),
+      {
+        ...action,
+        arguments: [ctx, paths],
+      },
     ];
   }
 
-  private getFileName(
-    document: vscode.TextDocument,
-    diagnostic: vscode.Diagnostic,
-  ): string | undefined {
-    const raw = document.getText(diagnostic.range);
-
+  private getFileName(doc: vscode.TextDocument, diagnostic: vscode.Diagnostic): string | undefined {
+    const raw = doc.getText(diagnostic.range);
     const target = raw.replace(/^\[\[/, "").replace(/\]\]$/, "").split("|")[0].split("#")[0].trim();
-
     if (!target) return undefined;
-
     return `${target.toLowerCase().replace(/\s+/g, "-")}.md`;
   }
+}
 
-  private getTargetPaths(document: vscode.TextDocument, fileName: string) {
-    const estate = path.join(process.env.HOME ?? "", ".estate", fileName);
+export class CodeActionAdapter implements vscode.CodeActionProvider {
+  constructor(private actions: EstateActionProvider) {}
 
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
+  provideCodeActions(
+    doc: vscode.TextDocument,
+    range: vscode.Range,
+    context: vscode.CodeActionContext,
+  ): vscode.CodeAction[] {
+    return context.diagnostics.flatMap((diagnostic) =>
+      this.actions.provide(doc, range, diagnostic).map((action: ActionDefinition) => {
+        const result = new vscode.CodeAction(
+          `$(trash) ${action.title}: ${action?.arguments[1].estate}`,
+          vscode.CodeActionKind.QuickFix,
+        );
+        result.command = {
+          title: `${action.title}:`,
+          command: action.command,
+          arguments: action.arguments,
+        };
 
-    const workspace = workspaceFolder ? path.join(workspaceFolder.uri.fsPath, fileName) : undefined;
-
-    const sibling = path.join(path.dirname(document.uri.fsPath), fileName);
-
-    return {
-      estate,
-      workspace,
-      sibling,
-    };
+        return result;
+      }),
+    );
   }
+}
+export class CodeLensAdapter implements vscode.CodeLensProvider {
+  constructor(private actions: EstateActionProvider) {}
 
-  private action(title: string, command: string, ctx: Record<string, unknown>): vscode.CodeAction {
-    const action = new vscode.CodeAction(title, vscode.CodeActionKind.QuickFix);
+  provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
+    const diagnostics = vscode.languages.getDiagnostics(document.uri);
 
-    action.command = {
-      command,
-      title,
-      arguments: [ctx],
-    };
-
-    return action;
+    return diagnostics.flatMap((diagnostic) =>
+      this.actions.provide(document, diagnostic.range, diagnostic).map(
+        (action) =>
+          new vscode.CodeLens(diagnostic.range, {
+            title: `${action.title}`,
+            command: action.command,
+            arguments: action.arguments,
+          }),
+      ),
+    );
   }
 }

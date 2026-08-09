@@ -16,8 +16,9 @@ export interface MenuContribution {
   when?: string;
   group?: string;
 }
+export type CommandId = string;
 export interface CommandDefinition {
-  id: string;
+  id: CommandId;
 
   title: string;
   shortTitle?: string;
