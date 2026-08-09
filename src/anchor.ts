@@ -175,11 +175,13 @@ export class AnchorStore implements AnchorStoreType {
             return;
           }
 
+          vscode.window.showInformationMessage(`${editor.document.getText(ctx.range)}`);
+
           const success = await editor.edit((editBuilder) => {
             editBuilder.replace(ctx.range, "[[life-pipeline|Life Pipeline]]");
           });
 
-          vscode.window.showInformationMessage(`edit success: ${success}`);
+          // vscode.window.showInformationMessage(`edit success: ${success}`);
         },
         this,
       ),

@@ -67,14 +67,17 @@ export class AnalysisStore {
       console.log("STDOUT LENGTH:", stdout.length);
       console.log("STDOUT START:", stdout.slice(0, 100));
       console.log("STDOUT END:", stdout.slice(-100));
-      const raw = JSON.parse(stdout.trim());
-      // flow.debug("windowClick", "Keys received from Rust:" + JSON.stringify(raw, null, 1));
-      flow.debug("analyzeLine", "Analysis Keys" + Object.keys(raw));
-      if (raw.status === "error") throw new Error(raw.message);
-      const analysis = new OwnershipAnalysis(raw.analysis);
+      const response = JSON.parse(stdout);
+      if (response.status !== "ok") {
+        throw new Error(response.message ?? "Daemon request failed");
+      }
+      const data = response.data;
+      flow.debug("analyzeLine", "Analysis Keys" + Object.keys(data));
+      if (data.status === "error") throw new Error(data.message);
+      // flow.debug("windowClick", "Keys received from Rust:" + JSON.stringify(data, null, 1));
+      const analysis = new OwnershipAnalysis(data.analysis);
       if (!analysis) return;
-      flow.debug("analyzeLine", raw.click.line);
-      // flow.debug("analyzeLine", raw.click.file);
+      flow.debug("analyzeLine", data.click.line);
       this.current = analysis;
       this.app.decorator.refresh(editor, this.currentActivity);
       flow.info("analyzeLine", "analyzeLine end");
