@@ -475,7 +475,7 @@ export class AnchorStore implements AnchorStoreType {
       // If you want "whole-file anchors" to sort after line-based anchors, use something large:
       // list.sort((a, b) => (a.src?.startLine ?? Infinity) - (b.src?.startLine ?? Infinity));
       this.fileIndex.set(key, list);
-      vscode.window.showInformationMessage(`Before Save ${list.length}`);
+      // vscode.window.showInformationMessage(`Before Save ${list.length}`);
     } catch (error) {
       vscode.window.showErrorMessage(`Error saving. ${error}`);
     }

@@ -1,12 +1,11 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import * as util from "util";
 
 import * as vscode from "vscode";
 
-import { AppActivity } from "./activity";
+import { AppActivity, EditorActivity } from "./activity";
 import { AppStore } from "./app";
-import { cfg } from "./cfg";
+import { cfg, TraceFlow } from "./cfg";
 
 const execFileDirect = promisify(execFile);
 
@@ -14,76 +13,59 @@ class OwnershipAnalysis {
   constructor(public readonly analysis: OwnershipAnalysisType) {}
 }
 export class AnalysisStore {
+  private readonly tracer;
+  private readonly flow: TraceFlow;
   public current?: OwnershipAnalysis;
   private currentActivity?: AppActivity;
-  private currentRelatedLines: any[] = [];
-  private currentFormattedOutput?: string;
+  private formattedAnalysis?: string;
   private listeners = new Set<() => void>();
   private config = vscode.workspace.getConfiguration("flowify");
-  private execFileAsync = execFileDirect;
-  private readonly tracer;
+
   constructor(private app: AppStore) {
     this.tracer = app.tracer.namespace("Analysis");
+    this.flow = this.tracer.flow("analyzeLine");
     app.initFlow.info("Analysis");
     app.activity.subscribe((activity: AppActivity) => {
       this.app.clickFlow.info("AnalysisStore");
-      void this.analyzeLine(activity);
+      if (!(activity.type == "editor")) return;
+      const editor = this.canAnalyze(activity);
+      if (!editor) return;
+      void this.analyzeLine(editor, activity);
     });
   }
-  async analyzeLine(activity: AppActivity, _analysisMode = "default"): Promise<void> {
+  private canAnalyze(activity: EditorActivity): vscode.TextEditor | undefined {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) return;
+    const enabled = this.config.get<boolean>("enabled");
+    if (!enabled) {
+      this.clear();
+      this.flow.debug("not enabled");
+      return;
+    }
+    const { uri } = activity.snapshot;
+    if (!uri || !uri.fsPath.endsWith(".rs")) {
+      this.clear(editor);
+      this.flow.debug("not .rs");
+      return;
+    }
+    return editor;
+  }
+  async analyzeLine(editor: vscode.TextEditor, activity: EditorActivity): Promise<void> {
     try {
-      let flow = this.tracer.flow("analyzeLine");
-      const enabled = this.config.get<boolean>("enabled");
-      flow.info("analyzeLine start");
-      if (!enabled) {
-        this.clear();
-        flow.debug("not enabled");
-        return;
-      }
-      this.currentActivity = activity;
-      const uri = activity.type == "editor" ? activity.snapshot?.uri : false;
-      if (!uri) return;
-      const editor = vscode.window.activeTextEditor;
-      if (!editor || !(activity.type == "editor")) return;
-      if (!uri.fsPath.endsWith(".rs")) {
-        this.clear();
-        flow.debug("not .rs");
-        return;
-      }
-      const item = {
-        file: activity.snapshot.fileName,
-        column: activity.snapshot.column.toString(),
-        line: (activity.snapshot.line + 1).toString(),
-        text: activity.snapshot.lineText,
-        scope: activity.scope,
-      };
-      flow.debug("analyzeLine", item);
-      const args = ["analyze", item.file, "--line", item.line, "--column", item.column];
-
-      const { stdout, stderr } = await execFileDirect(cfg.binaryPath, args, {
-        cwd: cfg.cratePath,
-        maxBuffer: 10 * 1024 * 1024,
-      });
+      this.flow.info("analyzeLine start");
+      const { file, line, column } = this.buildItem(activity);
+      const args = ["analyze", file, "--line", line, "--column", column];
+      const options = { cwd: cfg.cratePath, maxBuffer: 10 * 1024 * 1024 };
+      const { stdout, stderr } = await execFileDirect(cfg.binaryPath, args, options);
       if (stderr) console.error("Daemon error:", stderr);
-      console.log("STDOUT LENGTH:", stdout.length);
-      console.log("STDOUT START:", stdout.slice(0, 100));
-      console.log("STDOUT END:", stdout.slice(-100));
-      const response = JSON.parse(stdout);
-      if (response.status !== "ok") {
-        throw new Error(response.message ?? "Daemon request failed");
+      const { data, status, message } = JSON.parse(stdout);
+      if (status !== "ok") {
+        throw new Error(message ?? "Daemon request failed");
       }
-      const data = response.data;
-      flow.debug("analyzeLine", "Analysis Keys" + Object.keys(data));
-      if (data.status === "error") throw new Error(data.message);
-      // flow.debug("windowClick", "Keys received from Rust:" + JSON.stringify(data, null, 1));
-      const analysis = new OwnershipAnalysis(data.analysis);
-      if (!analysis) return;
-      flow.debug("analyzeLine", data.click.line);
-      this.current = analysis;
-      this.app.decorator.refresh(editor, this.currentActivity);
-      flow.info("analyzeLine", "analyzeLine end");
+      this.buildAnalysis(editor, data);
     } catch (error) {
-      this.tracer.error("error", error);
+      this.tracer.error("Error: Analysis", error);
+      console.error("Error: Analysis", error);
       if (error instanceof Error) {
         if (error.message.includes("parse error")) {
           // vscode.window.showWarningMessage(`Subject unresolved: ${error.message}`);
@@ -92,9 +74,34 @@ export class AnalysisStore {
         }
       } else {
         // vscode.window.showWarningMessage(`Analysis failed. LSP on? `);
-        this.tracer.error("error", error);
       }
     }
+  }
+  private buildItem(activity: EditorActivity) {
+    const { snapshot, scope } = activity;
+    this.currentActivity = activity;
+    const item = {
+      file: snapshot.fileName,
+      column: snapshot.column.toString(),
+      line: (snapshot.line + 1).toString(),
+      text: snapshot.lineText,
+      scope,
+    };
+    this.flow.debug("analyzeLine", item);
+    return item;
+  }
+  private buildAnalysis(editor: vscode.TextEditor, data: any) {
+    this.flow.debug("analyzeLine", "Analysis Keys" + Object.keys(data));
+    if (data.status === "error") throw new Error(data.message);
+    // this.flow?.debug("windowClick", "Keys received from Rust:" + JSON.stringify(data, null, 1));
+    const analysis = new OwnershipAnalysis(data.analysis);
+    if (!analysis) return;
+    this.flow.debug("analyzeLine", data.click.line);
+    this.current = analysis;
+    if (this.currentActivity) {
+      this.app.decorator.refresh(editor, this.currentActivity);
+    }
+    this.flow.info("analyzeLine", "analyzeLine end");
   }
   // printExtClick(item: any) {
   //   console.log("[-- 2 -- Analysis].file", item.file);
@@ -103,6 +110,9 @@ export class AnalysisStore {
   //   console.log("[-- 2 -- Analysis].scope", item.scope);
   //   console.log("[-- 2 -- Analysis].text", item.text);
   // }
+  public getFormattedOutput(): string | undefined {
+    return this.formattedAnalysis;
+  }
   printformatted() {
     let output = this.getFormattedOutput();
     if (output) {
@@ -117,12 +127,6 @@ export class AnalysisStore {
   getActivity(): AppActivity | undefined {
     return this.currentActivity;
   }
-  getRelatedLines(): any[] {
-    return this.currentRelatedLines;
-  }
-  public getFormattedOutput(): string | undefined {
-    return this.currentFormattedOutput;
-  }
   subscribe(fn: () => void) {
     this.listeners.add(fn);
     return () => {
@@ -134,7 +138,7 @@ export class AnalysisStore {
     if (!target) return;
     this.current = undefined;
     this.currentActivity = undefined;
-    this.app.decorator.refresh(target, this.currentActivity);
+    this.app.decorator.clear(target);
   }
 }
 export type RelationKind =
@@ -196,59 +200,57 @@ export class OwnershipAnalysisResult {
   }
   findSymbolAt(location: SourceLocation): SymNode | undefined {
     return this.nodes.find(
-      (n) =>
-        n.location.file === location.file &&
-        n.location.line === location.line &&
-        n.location.column === location.column,
+      ({ location: { file, line, column } }) =>
+        file === location.file && line === location.line && column === location.column,
     );
   }
   private findNode(id: string): SymNode | undefined {
     return this.nodes.find((n) => n.id === id);
   }
 }
-export function printFormattedOutput(outputChannel: vscode.OutputChannel, formattedOutput: string) {
+export function printFormattedOutput(channel: vscode.OutputChannel, formattedOutput: string) {
   // outputChannel.show(true);
-  outputChannel.appendLine(formattedOutput);
+  channel.appendLine(formattedOutput);
 }
 export function logAnalysis(
-  outputChannel: vscode.OutputChannel,
+  channel: vscode.OutputChannel,
   filePath: string,
   lineNumber: string,
   result: any,
 ) {
   const timestamp = new Date().toLocaleTimeString();
   const fileName = filePath.split("/").pop() || filePath;
-  outputChannel.appendLine(`[⚡ FLOWIFY] ${timestamp} — Analysis Complete`);
-  outputChannel.appendLine(`  💡 File   : ${fileName}`);
-  outputChannel.appendLine(`  📂 Path   : ${filePath}`);
-  outputChannel.appendLine(`  📍 Line   : ${lineNumber}`);
-  outputChannel.appendLine(``);
-  outputChannel.appendLine(`  📊 RELATED LINES:`);
+  channel.appendLine(`[⚡ FLOWIFY] ${timestamp} — Analysis Complete`);
+  channel.appendLine(`  💡 File   : ${fileName}`);
+  channel.appendLine(`  📂 Path   : ${filePath}`);
+  channel.appendLine(`  📍 Line   : ${lineNumber}`);
+  channel.appendLine(``);
+  channel.appendLine(`  📊 RELATED LINES:`);
   if (result.related_lines?.length) {
     for (const line of result.related_lines) {
-      outputChannel.appendLine(`     ├── line ${line.line} : ${line.relations.join(", ")}`);
+      channel.appendLine(`     ├── line ${line.line} : ${line.relations.join(", ")}`);
     }
   } else {
-    outputChannel.appendLine(`     └── none`);
+    channel.appendLine(`     └── none`);
   }
-  outputChannel.appendLine(``);
-  outputChannel.appendLine(`  🧠 SUBJECT:`);
+  channel.appendLine(``);
+  channel.appendLine(`  🧠 SUBJECT:`);
   if (result.subject) {
-    outputChannel.appendLine(`     ├── ${result.subject.name} (${result.subject.role})`);
-    outputChannel.appendLine(`     └── ${JSON.stringify(result.subject.location)}`);
+    channel.appendLine(`     ├── ${result.subject.name} (${result.subject.role})`);
+    channel.appendLine(`     └── ${JSON.stringify(result.subject.location)}`);
   } else {
-    outputChannel.appendLine(`     └── none`);
+    channel.appendLine(`     └── none`);
   }
-  outputChannel.appendLine(``);
-  outputChannel.appendLine(`  🔗 RELATIONS:`);
+  channel.appendLine(``);
+  channel.appendLine(`  🔗 RELATIONS:`);
   if (result.relations?.length) {
     for (const relation of result.relations) {
-      outputChannel.appendLine(`     ├── ${relation.from} --${relation.kind}--> ${relation.to}`);
+      channel.appendLine(`     ├── ${relation.from} --${relation.kind}--> ${relation.to}`);
     }
   } else {
-    outputChannel.appendLine(`     └── none`);
+    channel.appendLine(`     └── none`);
   }
-  outputChannel.appendLine(``);
+  channel.appendLine(``);
 }
 export interface Span {
   start_line: number;

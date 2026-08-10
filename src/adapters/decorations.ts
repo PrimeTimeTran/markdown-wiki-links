@@ -73,6 +73,9 @@ export class WikiDecorations {
   });
   private label: vscode.TextEditorDecorationType;
   private styles: OwnershipDecorationStyles;
+  clear(editor: vscode.TextEditor) {
+    editor.setDecorations(this.anchorDecoration, []);
+  }
   refresh(editor: vscode.TextEditor, activity: AppActivity) {
     for (const provider of this.providers) {
       const results = provider.provide(editor, activity);
@@ -170,7 +173,6 @@ export class WikiDecorations {
       this.decorations.set(icon, decoration);
     }
   }
-
   register(ctx: vscode.ExtensionContext): void {
     ctx.subscriptions.push(
       this.resolved,
