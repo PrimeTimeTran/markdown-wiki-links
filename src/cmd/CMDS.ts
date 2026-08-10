@@ -178,7 +178,7 @@ export const COMMANDS: CommandDefinition[] = [
   {
     title: "Estate: View settings",
     id: "estate.settings.read",
-    icon: "$(view)",
+    icon: "$(preview)",
     menus: [
       {
         menu: "editor/title",
@@ -224,7 +224,7 @@ export const COMMANDS: CommandDefinition[] = [
   {
     title: "Estate: View series",
     id: "estate.series.read",
-    icon: "$(view)",
+    icon: "$(preview)",
     menus: [
       {
         menu: "view/item/context",

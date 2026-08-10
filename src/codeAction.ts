@@ -92,7 +92,7 @@ export class CodeLensAdapter implements vscode.CodeLensProvider {
       this.actions.provide(document, diagnostic.range, diagnostic).map(
         (action) =>
           new vscode.CodeLens(diagnostic.range, {
-            title: `${action.title}`,
+            title: `$(bookmark) ${action.title}`,
             command: action.command,
             arguments: action.arguments,
           }),

@@ -2,15 +2,17 @@
   "contributes": {
     "commands": [
       {
-        "command": "estate.ui.cmdPalette",
+        "command": "estate.cmdPalette.show",
         "title": "Estate: Open Command Palette",
-        "shortTitle": "Quick Pick from the command palette",
+        "shortTitle": "Find commands easily using the cmd palette",
+        "category": "cmd",
         "icon": "$(zap)"
       },
       {
-        "command": "estate.ownership.show",
-        "title": "Estate: Show Rust Ownership Analysis",
-        "icon": "$(filter)"
+        "command": "estate.ui.quickPick",
+        "title": "Estate: Open Quick Pick",
+        "shortTitle": "Open quick picker",
+        "icon": "$(zap)"
       },
       {
         "command": "estate.explore.options",
@@ -25,7 +27,7 @@
       {
         "command": "estate.bookmark.read",
         "title": "Estate: View bookmark",
-        "icon": "$(view)"
+        "icon": "$(preview)"
       },
       {
         "command": "estate.bookmark.update",
@@ -131,7 +133,7 @@
         "command": "estate.ownership.show",
         "title": "Estate: Show Rust Ownership Analysis",
         "shortTitle": "Visualize ownership relationships and affected code regions",
-        "category": "Analysis",
+        "category": "ownership",
         "icon": "$(references)",
         "enablement": "estate.rustAnalyzerReady"
       }

@@ -270,11 +270,11 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
       const line = src.startLine;
       if (line >= doc.lineCount) continue;
       // vscode.window.showQuickPick([
-      //         `🧩 Inline ${anchor.label}`,
-      //         `🕸 Graph ${anchor.label}`,
-      //         `♻️ Replace ${anchor.label}`,
-      //         `💾 Save ${anchor.label}`,
-      //       ]);
+      //   `🧩 Inline ${anchor.label}`,
+      //   `🕸 Graph ${anchor.label}`,
+      //   `♻️ Replace ${anchor.label}`,
+      //   `💾 Save ${anchor.label}`,
+      // ]);
       lenses.push(
         new vscode.CodeLens(new vscode.Range(line, 0, line, 0), {
           title: `$(bookmark) ${anchor.label ?? "Open Anchor"}`,

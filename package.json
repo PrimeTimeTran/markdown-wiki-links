@@ -2,7 +2,7 @@
   "name": "markdown-wiki-links",
   "displayName": "Markdown Wiki Links",
   "publisher": "ltvan",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "description": "Obsidian-style [[wiki-links]] between Markdown files in the workspace.",
   "license": "MIT",
   "repository": {
@@ -222,6 +222,13 @@
     },
     "commands": [
       {
+        "command": "estate.cmdPalette.show",
+        "title": "Estate: Open Command Palette",
+        "shortTitle": "Find commands easily using the cmd palette",
+        "category": "cmd",
+        "icon": "$(zap)"
+      },
+      {
         "group": "pipeline",
         "category": "pipeline",
         "command": "estate.start",
@@ -403,7 +410,7 @@
       },
       {
         "command": "estate.ui.cmdPalette",
-        "title": "Estate: Open Command Palette",
+        "title": "Estate: Open Quick Pick",
         "shortTitle": "Quick Pick from the command palette",
         "icon": "$(zap)"
       },

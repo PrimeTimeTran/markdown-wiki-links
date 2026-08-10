@@ -2,11 +2,11 @@
 
 export const CMD = {
   estate: {
-    cmdPalette: {
-      show: "estate.cmdPalette.show",
-    },
     ui: {
       cmdPalette: "estate.ui.cmdPalette",
+    },
+    cmdPalette: {
+      show: "estate.cmdPalette.show",
     },
     ownership: {
       show: "estate.ownership.show",
@@ -51,5 +51,3 @@ export const CMD = {
     analyzeLine: "flowify.analyzeLine",
   },
 } as const;
-
-export const CMDs = CMD;

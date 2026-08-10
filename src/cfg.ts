@@ -10,12 +10,32 @@ export const registryPath = path.join(estateDirRootPath, registryName);
 export const cratePath = "/Users/future/KB/project/crates/estate-engine";
 export const binaryPath = "/Users/future/KB/project/target/debug/estate-engine";
 
+export const PATHS = {
+  root: () => estateDirRootPath,
+  assets: () => path.join(estateDirRootPath, "assets"),
+  asset: (filename: string) => path.join(estateDirRootPath, "assets", filename),
+  anchors: () => cfg.registryPath,
+};
+
+export const cfg = {
+  appName: "Flowify",
+  estateDirName,
+  registryName,
+  estateDirRootPath,
+  registryPath,
+  debugActivity: true,
+  debugAnalysis: true,
+  cratePath,
+  binaryPath,
+} as const;
+
 export const Level = {
   debug: 1,
   info: 2,
   warn: 3,
   error: 4,
 } as const;
+
 export interface TraceLocation {
   file: string;
   line: number;
@@ -39,7 +59,6 @@ const ansi = {
 };
 export class Tracer {
   private static nextFlowId = 1;
-
   private color(level: TraceLevel): string {
     switch (level) {
       case Level.debug:
@@ -52,7 +71,6 @@ export class Tracer {
         return ansi.error;
     }
   }
-
   constructor(
     private readonly level: TraceLevel = Level.debug,
     private readonly channel = cfg.appName,
@@ -88,56 +106,6 @@ export class Tracer {
     });
   }
 
-  // private getCaller(): string | undefined {
-  //   const stack = new Error().stack;
-
-  //   if (!stack) return;
-
-  //   const lines = stack.split("\n");
-
-  //   for (const line of lines.slice(1)) {
-  //     // Skip Tracer / TraceFlow internals.
-  //     if (line.includes("Tracer.") || line.includes("TraceFlow.")) {
-  //       continue;
-  //     }
-
-  //     const caller = this.parseCaller(line);
-
-  //     if (caller) {
-  //       return caller;
-  //     }
-  //   }
-
-  //   return;
-  // }
-
-  // private parseCaller(line: string): string | undefined {
-  //   // Node/V8:
-  //   // at foo (/path/file.ts:12:34)
-  //   // at /path/file.ts:12:34
-  //   const match = line.match(/(?:\()?(.*:\d+:\d+)\)?$/);
-
-  //   return match?.[1];
-  // }
-  // trace(event: string, data?: unknown, level: TraceLevel = Level.debug): void {
-  //   if (level < this.level) return;
-  //   if (!this.isNamespaceEnabled()) return;
-
-  //   const caller = this.getCaller();
-
-  //   const tag = this.prefix ? `[${this.prefix}.${event}]` : `[${event}]`;
-  //   // const tag = this.prefix
-  //   //   ? `[${this.channel}] [${this.prefix}.${event}]`
-  //   //   : `[${this.channel}] [${event}]`;
-
-  //   const message = `${this.color(level)}${tag}${ansi.reset}`;
-
-  //   console.log(message, data ?? "");
-
-  //   if (caller) {
-  //     console.log(`${ansi.caller}${caller}${ansi.reset}`);
-  //   }
-  // }
   trace(event: string, data?: unknown, level: TraceLevel = Level.debug): void {
     if (level < this.level) return;
     if (!this.isNamespaceEnabled()) return;
@@ -245,22 +213,3 @@ export class TraceFlow {
     this.trace(event, data, Level.error);
   }
 }
-
-export const PATHS = {
-  root: () => estateDirRootPath,
-  assets: () => path.join(estateDirRootPath, "assets"),
-  asset: (filename: string) => path.join(estateDirRootPath, "assets", filename),
-  anchors: () => cfg.registryPath,
-};
-
-export const cfg = {
-  appName: "Flowify",
-  estateDirName,
-  registryName,
-  estateDirRootPath,
-  registryPath,
-  debugActivity: true,
-  debugAnalysis: true,
-  cratePath,
-  binaryPath,
-} as const;

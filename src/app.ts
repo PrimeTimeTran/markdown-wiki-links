@@ -116,9 +116,6 @@ export class AppStore {
             providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
           },
         ),
-      );
-
-      context.subscriptions.push(
         vscode.languages.registerCodeLensProvider(
           entry.languageId,
           new CodeLensAdapter(entry.provider),
@@ -160,7 +157,7 @@ export class AppStore {
   }
 
   getTargetPaths(doc: vscode.TextDocument, fileName: string) {
-    const estate = path.join(process.env.HOME ?? "", ".estate", fileName);
+    const estate = path.join(process.env.HOME ?? "", cfg.estateDirName, fileName);
     const workspaceFolder = vscode.workspace.getWorkspaceFolder(doc.uri);
     const workspace = workspaceFolder ? path.join(workspaceFolder.uri.fsPath, fileName) : undefined;
     const sibling = path.join(path.dirname(doc.uri.fsPath), fileName);

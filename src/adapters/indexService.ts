@@ -3,32 +3,14 @@ import * as path from "path";
 
 import * as vscode from "vscode";
 
+import { Anchor } from "../anchor";
 import { cfg } from "../cfg";
 import { buildExcludeGlob } from "../core/pathFilter";
 import { IndexSnapshot, createSnapshot } from "../core/resolver/resolveTarget";
 import { ParsedRef } from "../core/types";
+import { DEFAULT_EXCLUDED_FOLDERS, DEFAULT_INDEX_MAX_FILES, GLOB, INDEXABLE_RE } from "../data";
 import { EmbedResolved } from "../markdownItPlugin/wikiRule";
 import { IMAGE_RE } from "./hoverProvider";
-
-const GLOB = "**/*.{md,markdown,png,jpg,jpeg,gif,webp,svg,rs,ts,js,py}";
-// The same extension set as GLOB. add() must enforce it directly: rename events are not
-// filtered by the watcher glob, so without this a renamed folder (or a .md renamed to .txt)
-// would be inserted into the index as a link target.
-const INDEXABLE_RE = /\.(rs|js|ts|py|md|markdown|png|jpe?g|gif|webp|svg)$/i;
-
-const DEFAULT_EXCLUDED_FOLDERS = [
-  ".git",
-  "node_modules",
-  "target",
-  ".hg",
-  ".svn",
-  ".bzr",
-  "bower_components",
-];
-
-// Soft cap on indexed files. Each entry is three short strings plus object/Map overhead —
-// roughly 350-450 bytes — so the 50,000 default costs on the order of 20 MB of heap.
-const DEFAULT_INDEX_MAX_FILES = 50000;
 
 export class IndexService {
   public root: string;
@@ -247,31 +229,15 @@ class WorkspaceEntry implements EstateEntry {
 export class EstateAnchorEntry implements EstateEntry {
   readonly kind: EstateKind = "bookmark";
   readonly aliases: string[];
-  constructor(
-    readonly anchor: {
-      id: string;
-      label: string;
-      description?: string;
-      uri?: string;
-      tags?: string[];
-      code?: string;
-      src?: {
-        uri: string;
-        startLine: number;
-        endLine: number;
-        startCharacter: number;
-        endCharacter: number;
-        languageId: string;
-      };
-    },
-  ) {
-    this.aliases = [anchor.label, anchor.id];
+  constructor(readonly anchor: Anchor) {
+    this.aliases = [anchor?.label || "", anchor.id];
   }
   get id() {
     return this.anchor.id;
   }
+
   get label() {
-    return this.anchor.label;
+    return this.anchor.label || "";
   }
 
   get uri(): vscode.Uri {
@@ -307,7 +273,7 @@ class EstateRegistry implements WikiRegistry {
   async refresh(): Promise<void> {
     this.items.clear();
     const { items } = JSON.parse(await fs.promises.readFile(this.anchorsPath, "utf8"));
-    for (const anchor of Object.values(items)) {
+    for (const anchor of Object.values(items) as Anchor[]) {
       if (!anchor.tags?.includes("wiki")) continue;
       const entry = new EstateAnchorEntry(anchor);
       this.items.set(entry.id, entry);
