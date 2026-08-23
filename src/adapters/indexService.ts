@@ -54,21 +54,21 @@ export class IndexService {
       }),
     );
   }
-  private async scan(): Promise<void> {
-    const exclude = buildExcludeGlob(excludedFolders());
-    const cap = indexMaxFiles();
-    const found = await vscode.workspace.findFiles(GLOB, exclude);
-    let added = false;
-    for (const uri of found.slice(0, cap)) {
-      if (this.workspaceRegistry.add(uri)) {
-        added = true;
-      }
-    }
-    if (added) {
-      this.generation++;
-      this.snapCache.clear();
-    }
-  }
+  // private async scan(): Promise<void> {
+  //   const exclude = buildExcludeGlob(excludedFolders());
+  //   const cap = indexMaxFiles();
+  //   const found = await vscode.workspace.findFiles(GLOB, exclude);
+  //   let added = false;
+  //   for (const uri of found.slice(0, cap)) {
+  //     if (this.workspaceRegistry.add(uri)) {
+  //       added = true;
+  //     }
+  //   }
+  //   if (added) {
+  //     this.generation++;
+  //     this.snapCache.clear();
+  //   }
+  // }
   snapshotFor(fromFsPath: string): IndexSnapshot {
     const cached = this.snapCache.get(this.root);
     if (cached && cached.generation === this.generation) {
@@ -322,7 +322,6 @@ class WorkspaceRegistry implements WikiRegistry {
     this.items.clear();
   }
 }
-
 export class EstateResolver {
   constructor(
     public readonly root: string,
@@ -420,11 +419,9 @@ export class EstateResolver {
     return IMAGE_RE.test(entry.uri.fsPath);
   }
 }
-
 function _stripExtension(name: string): string {
   return name.replace(/\.[^.]+$/, "");
 }
-
 function stripMdExt(name: string): string {
   return name.replace(/\.md$/i, "");
 }

@@ -4,10 +4,9 @@
 // import { stripFrontmatter } from "../core/frontmatter";
 // import { resolveTarget, relSuffixMatches, IndexSnapshot } from "../core/resolver/resolveTarget";
 import * as path from "path";
+// import * as vscode from "vscode";
 
-import * as vscode from "vscode";
-
-import { IndexSnapshot } from "../core/resolver/resolveTarget";
+// import { IndexSnapshot } from "../core/resolver/resolveTarget";
 import { EmbedResolved } from "../markdownItPlugin/wikiRule";
 import { EstateEntry, EstateResolver } from "./indexService";
 import { IndexService } from "./indexService";
@@ -53,10 +52,13 @@ function resolveImage(entry: EstateEntry, workspaceRoot: string): EmbedResolved 
   };
 }
 
-function snapshotFrom(idx: IndexService, fromFsPath: string): IndexSnapshot {
+function resolveMarkdownEmbed(idx: IndexService, fromFsPath: string): IndexSnapshot {
   return idx.snapshotFor(fromFsPath || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "");
 }
+// function snapshotFrom(idx: IndexService, fromFsPath: string): IndexSnapshot {
+//   return idx.snapshotFor(fromFsPath || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || "");
+// }
 
-function basePath(fromFsPath: string, snap: IndexSnapshot): string {
-  return fromFsPath || path.join(snap.workspaceRoot, "_.md");
-}
+// function basePath(fromFsPath: string, snap: IndexSnapshot): string {
+//   return fromFsPath || path.join(snap.workspaceRoot, "_.md");
+// }
