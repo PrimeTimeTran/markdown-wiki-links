@@ -31,15 +31,9 @@ type WikiLinksApi = { extendMarkdownIt(md: any): any };
 
 export async function activate(context: vscode.ExtensionContext): Promise<WikiLinksApi> {
   context.subscriptions.push(
-    vscode.commands.registerCommand("estate.commentToggle.line", toggleLineComments),
-    vscode.commands.registerCommand("estate.commentToggle.doc", toggleDocComments),
     vscode.commands.registerCommand("estate.commentToggle.innerDoc", toggleInnerDocComments),
+    vscode.commands.registerCommand("estate.commentToggle.doc", toggleDocComments),
     vscode.commands.registerCommand("estate.commentToggle.block", toggleBlockComments),
-    // vscode.commands.registerCommand("estate.commentToggle.line", toggleLineComments),
-    // vscode.commands.registerCommand("estate.commentToggle.doc", toggleDocComments),
-    // vscode.commands.registerCommand("estate.commentToggle.innerDoc", toggleInnerDocComments),
-    // vscode.commands.registerCommand("estate.commentToggle.outerDoc", toggleBlockComments),
-    // vscode.commands.registerCommand("estate.commentToggle.block", toggleBlockComments),
   );
   const app = new AppStore(context);
   app.init(context);

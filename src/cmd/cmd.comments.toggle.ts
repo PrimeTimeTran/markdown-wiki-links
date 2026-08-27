@@ -141,7 +141,10 @@ function hasExactCommentPrefix(text: string, prefix: string): boolean {
   return true;
 }
 
-function toggleSmartLineComments(editor: vscode.TextEditor, comments: LanguageComments): void {
+async function toggleSmartLineComments(
+  editor: vscode.TextEditor,
+  comments: LanguageComments,
+): Promise<void> {
   const { document, selection } = editor;
 
   const lines = getSelectedLines(document, selection);
@@ -157,8 +160,17 @@ function toggleSmartLineComments(editor: vscode.TextEditor, comments: LanguageCo
 
   const shouldRemove = lines.every(isCommented);
 
-  editor.edit((edit) => {
+  await editor.edit((edit) => {
     for (const line of lines) {
+      console.log("ADDING", {
+        line: line.lineNumber,
+        text: line.text,
+        prefix: comments.line!.prefix,
+        range: {
+          start: line.range.start,
+          end: line.range.end,
+        },
+      });
       if (shouldRemove) {
         const prefix = prefixes.find((prefix) => hasExactCommentPrefix(line.text, prefix));
 
@@ -175,15 +187,26 @@ function getSelectedLines(
   document: vscode.TextDocument,
   selection: vscode.Selection,
 ): vscode.TextLine[] {
+  console.log("GET LINES DEBUG", {
+    text: document.getText(),
+    lineCount: document.lineCount,
+    start: selection.start.line,
+    end: selection.end.line,
+  });
+
   const lines: vscode.TextLine[] = [];
 
   for (let line = selection.start.line; line <= selection.end.line; line++) {
+    console.log("LINE", line, "OF", document.lineCount);
     lines.push(document.lineAt(line));
   }
 
   return lines;
 }
-function toggleBlockComment(editor: vscode.TextEditor, block: BlockCommentStyle): void {
+async function toggleBlockComment(
+  editor: vscode.TextEditor,
+  block: BlockCommentStyle,
+): Promise<void> {
   const { document, selection } = editor;
 
   const startLine = selection.start.line;
@@ -198,18 +221,18 @@ function toggleBlockComment(editor: vscode.TextEditor, block: BlockCommentStyle)
   const isBlockComment = firstText === block.start && lastText === block.end && startLine < endLine;
 
   if (isBlockComment) {
-    removeStarBlockComment(editor, block, startLine, endLine);
+    await removeStarBlockComment(editor, block, startLine, endLine);
     return;
   }
 
-  addStarBlockComment(editor, block, startLine, endLine);
+  await addStarBlockComment(editor, block, startLine, endLine);
 }
-function addStarBlockComment(
+async function addStarBlockComment(
   editor: vscode.TextEditor,
   block: BlockCommentStyle,
   startLine: number,
   endLine: number,
-): void {
+): Promise<void> {
   const { document } = editor;
 
   const firstLine = document.lineAt(startLine);
@@ -234,36 +257,26 @@ function addStarBlockComment(
     new vscode.Position(endLine, document.lineAt(endLine).text.length),
   );
 
-  editor.edit((edit) => {
+  await editor.edit((edit) => {
     edit.replace(range, content);
   });
 }
-function removeStarBlockComment(
+async function removeStarBlockComment(
   editor: vscode.TextEditor,
   block: BlockCommentStyle,
   startLine: number,
   endLine: number,
-): void {
+): Promise<void> {
   const { document } = editor;
 
   const lines: string[] = [];
 
   for (let line = startLine + 1; line < endLine; line++) {
     const text = document.lineAt(line).text;
-    const indentation = text.match(/^\s*/)?.[0] ?? "";
-    const body = text.slice(indentation.length);
 
-    if (body.startsWith("*")) {
-      const afterStar = body.slice(1);
+    const body = text.replace(/^\s*\*\s?/, "");
 
-      lines.push(
-        afterStar.startsWith(" ")
-          ? `${indentation}${afterStar.slice(1)}`
-          : `${indentation}${afterStar}`,
-      );
-    } else {
-      lines.push(text);
-    }
+    lines.push(body);
   }
 
   const lastLine = document.lineAt(endLine);
@@ -273,18 +286,21 @@ function removeStarBlockComment(
     new vscode.Position(endLine, lastLine.text.length),
   );
 
-  editor.edit((edit) => {
+  await editor.edit((edit) => {
     edit.replace(range, lines.join("\n"));
   });
 }
 
-function toggleLineCommentStyle(editor: vscode.TextEditor, style: LineCommentStyle): void {
+async function toggleLineCommentStyle(
+  editor: vscode.TextEditor,
+  style: LineCommentStyle,
+): Promise<void> {
   const { document, selection } = editor;
   const lines = getSelectedLines(document, selection);
 
   const shouldRemove = lines.every((line) => hasExactCommentPrefix(line.text, style.prefix));
 
-  editor.edit((edit) => {
+  await editor.edit((edit) => {
     for (const line of lines) {
       if (shouldRemove) {
         removeCommentPrefix(edit, line, style.prefix);
@@ -330,7 +346,7 @@ function removeCommentPrefix(
   );
 }
 
-export function toggleLineComments(): void {
+export async function toggleLineComments(): Promise<void> {
   const editor = vscode.window.activeTextEditor;
 
   if (!editor) {
@@ -343,10 +359,10 @@ export function toggleLineComments(): void {
     return;
   }
 
-  toggleSmartLineComments(editor, comments);
+  await toggleSmartLineComments(editor, comments);
 }
 
-export function toggleDocComments(): void {
+export async function toggleDocComments(): Promise<void> {
   const editor = vscode.window.activeTextEditor;
 
   if (!editor) {
@@ -361,13 +377,12 @@ export function toggleDocComments(): void {
   }
 
   if (style.kind === "line") {
-    toggleLineCommentStyle(editor, style);
+    await toggleLineCommentStyle(editor, style);
   } else {
-    toggleBlockComment(editor, style);
+    await toggleBlockComment(editor, style);
   }
 }
-
-export function toggleInnerDocComments(): void {
+export async function toggleInnerDocComments(): Promise<void> {
   const editor = vscode.window.activeTextEditor;
 
   if (!editor) {
@@ -381,10 +396,10 @@ export function toggleInnerDocComments(): void {
     return;
   }
 
-  toggleLineCommentStyle(editor, style);
+  await toggleLineCommentStyle(editor, style);
 }
 
-export function toggleBlockComments(): void {
+export async function toggleBlockComments(): Promise<void> {
   const editor = vscode.window.activeTextEditor;
 
   if (!editor) {
@@ -397,5 +412,5 @@ export function toggleBlockComments(): void {
     return;
   }
 
-  toggleBlockComment(editor, comments.block);
+  await toggleBlockComment(editor, comments.block);
 }
