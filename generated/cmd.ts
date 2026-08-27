@@ -1,15 +1,20 @@
 // GENERATED FILE
 
-export const CMD = {
+export const CMD = 
+{
   estate: {
-    ui: {
-      cmdPalette: "estate.ui.cmdPalette",
+    commentToggle: {
+      line: "estate.commentToggle.line",
+      innerDoc: "estate.commentToggle.innerDoc",
+      outerDoc: "estate.commentToggle.outerDoc",
+      doc: "estate.commentToggle.doc",
+      block: "estate.commentToggle.block",
     },
     cmdPalette: {
       show: "estate.cmdPalette.show",
     },
-    ownership: {
-      show: "estate.ownership.show",
+    ui: {
+      quickPick: "estate.ui.quickPick",
     },
     explore: {
       options: "estate.explore.options",
@@ -42,6 +47,9 @@ export const CMD = {
       read: "estate.snippet.read",
       update: "estate.snippet.update",
       delete: "estate.snippet.delete",
+    },
+    ownership: {
+      show: "estate.ownership.show",
     },
   },
   ui: {

@@ -8,6 +8,12 @@ import { newEditorGroupTabContent } from "./adapters/htmlAnchor";
 import { IndexService } from "./adapters/indexService";
 import { RenameHandler } from "./adapters/renameHandler";
 import { AppStore, registerCustomCommandPalette } from "./app";
+import {
+  toggleLineComments,
+  toggleDocComments,
+  toggleInnerDocComments,
+  toggleBlockComments,
+} from "./cmd/cmd.comments.toggle";
 import { EstateActionProvider } from "./codeAction";
 import { longLangs, supportedLanguages } from "./consts";
 import { OwnershipContentProvider, OwnershipEngine, showOwnershipView } from "./diff";
@@ -24,6 +30,17 @@ export let indexService: IndexService | undefined;
 type WikiLinksApi = { extendMarkdownIt(md: any): any };
 
 export async function activate(context: vscode.ExtensionContext): Promise<WikiLinksApi> {
+  context.subscriptions.push(
+    vscode.commands.registerCommand("estate.commentToggle.line", toggleLineComments),
+    vscode.commands.registerCommand("estate.commentToggle.doc", toggleDocComments),
+    vscode.commands.registerCommand("estate.commentToggle.innerDoc", toggleInnerDocComments),
+    vscode.commands.registerCommand("estate.commentToggle.block", toggleBlockComments),
+    // vscode.commands.registerCommand("estate.commentToggle.line", toggleLineComments),
+    // vscode.commands.registerCommand("estate.commentToggle.doc", toggleDocComments),
+    // vscode.commands.registerCommand("estate.commentToggle.innerDoc", toggleInnerDocComments),
+    // vscode.commands.registerCommand("estate.commentToggle.outerDoc", toggleBlockComments),
+    // vscode.commands.registerCommand("estate.commentToggle.block", toggleBlockComments),
+  );
   const app = new AppStore(context);
   app.init(context);
   // app.logger.debug("[activate.app.logger]");

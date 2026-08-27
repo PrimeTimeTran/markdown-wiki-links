@@ -1,4 +1,119 @@
 
+# Estate: Toggle Line Comment (`//`)
+
+Command:
+
+`estate.commentToggle.line`
+
+Toggle `//` line comments.
+
+Category:
+cmd
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+
+
+---
+
+
+# Estate: Toggle Rust Inner Doc Comment (`//!`)
+
+Command:
+
+`estate.commentToggle.innerDoc`
+
+Toggle `//!` inner doc comments.
+
+Category:
+cmd
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+
+
+---
+
+
+# Estate: Toggle Rust Outer Doc Comment (`///`)
+
+Command:
+
+`estate.commentToggle.outerDoc`
+
+Toggle `///` outer doc comments.
+
+Category:
+cmd
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+
+
+---
+
+
+# Estate: Toggle JavaScript Doc Comment (`/** */`)
+
+Command:
+
+`estate.commentToggle.doc`
+
+Toggle `/** */` doc comments.
+
+Category:
+cmd
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+
+
+---
+
+
+# Estate: Toggle JavaScript Block Comment (`/* */`)
+
+Command:
+
+`estate.commentToggle.block`
+
+Toggle `/* */` block comments.
+
+Category:
+cmd
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+
+
+---
+
+
 # Estate: Open Command Palette
 
 Command:

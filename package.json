@@ -1,5 +1,5 @@
 {
-  "name": "markdown-wiki-links",
+  "name": "a-markdown-wiki-links",
   "displayName": "Markdown Wiki Links",
   "publisher": "ltvan",
   "version": "0.3.9",
@@ -43,6 +43,7 @@
     "test:unit": "mocha --config .mocharc.unit.cjs",
     "test:e2e": "vscode-test",
     "package": "vsce package --no-dependencies",
+    "loi-test": "pnpm test:e2e && pnpm test",
     "publish": "vsce publish --no-dependencies"
   },
   "activationEvents": [
@@ -75,6 +76,31 @@
       ]
     },
     "keybindings": [
+      {
+        "command": "estate.commentToggle.line",
+        "key": "cmd+/",
+        "when": "editorTextFocus && !editorReadonly && (editorLangId == rust || editorLangId == javascript || editorLangId == typescript)"
+      },
+      {
+        "command": "estate.commentToggle.innerDoc",
+        "key": "f13 f13 cmd+/",
+        "when": "editorLangId == rust && editorTextFocus && !editorReadonly"
+      },
+      {
+        "command": "estate.commentToggle.outerDoc",
+        "key": "f13 cmd+/",
+        "when": "editorLangId == rust && editorTextFocus && !editorReadonly"
+      },
+      {
+        "command": "estate.commentToggle.doc",
+        "key": "f13 cmd+/",
+        "when": "(editorLangId == javascript || editorLangId == typescript) && editorTextFocus && !editorReadonly"
+      },
+      {
+        "command": "estate.commentToggle.block",
+        "key": "f13 f13 cmd+/",
+        "when": "(editorLangId == javascript || editorLangId == typescript) && editorTextFocus && !editorReadonly"
+      },
       {
         "command": "estate.anchor.pipeline",
         "key": "ctrl+alt+a",
@@ -221,6 +247,41 @@
       ]
     },
     "commands": [
+      {
+        "command": "estate.commentToggle.line",
+        "title": "Estate: Toggle Line Comment (`//`)",
+        "shortTitle": "Toggle `//` line comments.",
+        "category": "cmd",
+        "icon": "$(comment)"
+      },
+      {
+        "command": "estate.commentToggle.innerDoc",
+        "title": "Estate: Toggle Rust Inner Doc Comment (`//!`)",
+        "shortTitle": "Toggle `//!` inner doc comments.",
+        "category": "cmd",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "estate.commentToggle.outerDoc",
+        "title": "Estate: Toggle Rust Outer Doc Comment (`///`)",
+        "shortTitle": "Toggle `///` outer doc comments.",
+        "category": "cmd",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "estate.commentToggle.doc",
+        "title": "Estate: Toggle JavaScript Doc Comment (`/** */`)",
+        "shortTitle": "Toggle `/** */` doc comments.",
+        "category": "cmd",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "estate.commentToggle.block",
+        "title": "Estate: Toggle JavaScript Block Comment (`/* */`)",
+        "shortTitle": "Toggle `/* */` block comments.",
+        "category": "cmd",
+        "icon": "$(comment-discussion)"
+      },
       {
         "command": "estate.cmdPalette.show",
         "title": "Estate: Open Command Palette",
@@ -685,15 +746,15 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "^25.9.1",
     "@types/vscode": "^1.125.0",
-    "@vscode/test-cli": "^0.0.12",
-    "@vscode/test-electron": "^2.5.2",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^3.9.1",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "esbuild": "^0.28.0",
     "eslint": "^10.8.0",
     "eslint-plugin-import": "^2.32.0",
     "markdown-it": "^14.1.1",
-    "mocha": "^11.7.5",
+    "mocha": "^11.8.0",
     "prettier": "^3.8.3",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.4"

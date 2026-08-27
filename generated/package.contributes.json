@@ -2,6 +2,41 @@
   "contributes": {
     "commands": [
       {
+        "command": "estate.commentToggle.line",
+        "title": "Estate: Toggle Line Comment (`//`)",
+        "shortTitle": "Toggle `//` line comments.",
+        "category": "cmd",
+        "icon": "$(comment)"
+      },
+      {
+        "command": "estate.commentToggle.innerDoc",
+        "title": "Estate: Toggle Rust Inner Doc Comment (`//!`)",
+        "shortTitle": "Toggle `//!` inner doc comments.",
+        "category": "cmd",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "estate.commentToggle.outerDoc",
+        "title": "Estate: Toggle Rust Outer Doc Comment (`///`)",
+        "shortTitle": "Toggle `///` outer doc comments.",
+        "category": "cmd",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "estate.commentToggle.doc",
+        "title": "Estate: Toggle JavaScript Doc Comment (`/** */`)",
+        "shortTitle": "Toggle `/** */` doc comments.",
+        "category": "cmd",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "estate.commentToggle.block",
+        "title": "Estate: Toggle JavaScript Block Comment (`/* */`)",
+        "shortTitle": "Toggle `/* */` block comments.",
+        "category": "cmd",
+        "icon": "$(comment-discussion)"
+      },
+      {
         "command": "estate.cmdPalette.show",
         "title": "Estate: Open Command Palette",
         "shortTitle": "Find commands easily using the cmd palette",
@@ -52,7 +87,7 @@
       {
         "command": "estate.settings.read",
         "title": "Estate: View settings",
-        "icon": "$(view)"
+        "icon": "$(preview)"
       },
       {
         "command": "estate.settings.update",
@@ -72,7 +107,7 @@
       {
         "command": "estate.series.read",
         "title": "Estate: View series",
-        "icon": "$(view)"
+        "icon": "$(preview)"
       },
       {
         "command": "estate.series.update",
@@ -270,6 +305,31 @@
       ]
     },
     "keybindings": [
+      {
+        "command": "estate.commentToggle.line",
+        "key": "cmd+/",
+        "when": "editorTextFocus && !editorReadonly && (editorLangId == rust || editorLangId == javascript || editorLangId == typescript)"
+      },
+      {
+        "command": "estate.commentToggle.innerDoc",
+        "key": "f13 f13 cmd+/",
+        "when": "editorLangId == rust && editorTextFocus && !editorReadonly"
+      },
+      {
+        "command": "estate.commentToggle.outerDoc",
+        "key": "f13 cmd+/",
+        "when": "editorLangId == rust && editorTextFocus && !editorReadonly"
+      },
+      {
+        "command": "estate.commentToggle.doc",
+        "key": "f13 cmd+/",
+        "when": "(editorLangId == javascript || editorLangId == typescript) && editorTextFocus && !editorReadonly"
+      },
+      {
+        "command": "estate.commentToggle.block",
+        "key": "f13 f13 cmd+/",
+        "when": "(editorLangId == javascript || editorLangId == typescript) && editorTextFocus && !editorReadonly"
+      },
       {
         "command": "estate.anchor.pipeline",
         "key": "ctrl+alt+a",

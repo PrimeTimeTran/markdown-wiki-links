@@ -16,11 +16,78 @@ const newCmd: CommandDefinition = {
 
 // TODO:
 // Menu icons aren't behaving consistently in sidebar click of file explorer
-// Tab switchhotkey)
+// Tab switch hotkey)
 export const COMMANDS: CommandDefinition[] = [
-  // - Search anchors
-  // - Search state commands. Switch filters quick an easily.
-  //
+  {
+    title: "Estate: Toggle Line Comment (`//`)",
+    id: "estate.commentToggle.line",
+    shortTitle: "Toggle `//` line comments.",
+    icon: "$(comment)",
+    category: "cmd",
+    menus: [],
+    keybindings: [
+      {
+        key: "cmd+/",
+        when: "editorTextFocus && !editorReadonly && (editorLangId == rust || editorLangId == javascript || editorLangId == typescript)",
+      },
+    ],
+  },
+  {
+    title: "Estate: Toggle Rust Inner Doc Comment (`//!`)",
+    id: "estate.commentToggle.innerDoc",
+    shortTitle: "Toggle `//!` inner doc comments.",
+    icon: "$(comment-discussion)",
+    category: "cmd",
+    menus: [],
+    keybindings: [
+      {
+        key: "f13 f13 cmd+/",
+        when: "editorLangId == rust && editorTextFocus && !editorReadonly",
+      },
+    ],
+  },
+  {
+    title: "Estate: Toggle Rust Outer Doc Comment (`///`)",
+    id: "estate.commentToggle.outerDoc",
+    shortTitle: "Toggle `///` outer doc comments.",
+    icon: "$(comment-discussion)",
+    category: "cmd",
+    menus: [],
+    keybindings: [
+      {
+        key: "f13 cmd+/",
+        when: "editorLangId == rust && editorTextFocus && !editorReadonly",
+      },
+    ],
+  },
+  {
+    title: "Estate: Toggle JavaScript Doc Comment (`/** */`)",
+    id: "estate.commentToggle.doc",
+    shortTitle: "Toggle `/** */` doc comments.",
+    icon: "$(comment-discussion)",
+    category: "cmd",
+    menus: [],
+    keybindings: [
+      {
+        key: "f13 cmd+/",
+        when: "(editorLangId == javascript || editorLangId == typescript) && editorTextFocus && !editorReadonly",
+      },
+    ],
+  },
+  {
+    title: "Estate: Toggle JavaScript Block Comment (`/* */`)",
+    id: "estate.commentToggle.block",
+    shortTitle: "Toggle `/* */` block comments.",
+    icon: "$(comment-discussion)",
+    category: "cmd",
+    menus: [],
+    keybindings: [
+      {
+        key: "f13 f13 cmd+/",
+        when: "(editorLangId == javascript || editorLangId == typescript) && editorTextFocus && !editorReadonly",
+      },
+    ],
+  },
   {
     title: "Estate: Open Command Palette",
     id: "estate.cmdPalette.show",

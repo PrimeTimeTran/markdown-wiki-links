@@ -4,6 +4,17 @@ const launchArgs = ["--disable-workspace-trust"];
 
 export default defineConfig([
   {
+    label: "comments",
+    files: "out/test/unit/cmd.comments.toggle.js",
+    workspaceFolder: "test/fixtures/comments",
+    launchArgs,
+    mocha: {
+      ui: "tdd",
+      timeout: 20000,
+    },
+  },
+
+  {
     label: "unique",
     files:
       "out/test/e2e/{smoke,documentLinks,hover,contribution,completion,excludeFolders}.test.js",
