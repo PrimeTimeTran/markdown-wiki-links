@@ -52,7 +52,7 @@ export interface Presenter<T> {
 export class Global {
   constructor() {}
   snippetMaker(_ctx: vscode.ExtensionContext) {
-    vscode.commands.registerCommand("estate.snippet-maker", async () => {
+    vscode.commands.registerCommand("estate.snippet.create", async () => {
       const language = await this.pickSnippetLanguage();
       if (!language) {
         return;

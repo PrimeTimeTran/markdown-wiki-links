@@ -18,6 +18,7 @@ export const PATHS = {
 };
 
 export const cfg = {
+  silenced: true,
   appName: "Flowify",
   estateDirName,
   registryName,
@@ -59,6 +60,7 @@ const ansi = {
 };
 export class Tracer {
   private static nextFlowId = 1;
+
   private color(level: TraceLevel): string {
     switch (level) {
       case Level.debug:
@@ -107,6 +109,7 @@ export class Tracer {
   }
 
   trace(event: string, data?: unknown, level: TraceLevel = Level.debug): void {
+    if (cfg.silenced) return;
     if (level < this.level) return;
     if (!this.isNamespaceEnabled()) return;
 
@@ -193,6 +196,7 @@ export class TraceFlow {
     private readonly name: string,
   ) {}
   trace(event: string, data?: unknown, level: TraceLevel = Level.debug): void {
+    if (cfg.silenced) return;
     this.count++;
 
     this.tracer.trace(`[${this.name}#${this.id}:${this.count}] ${event}`, data, level);

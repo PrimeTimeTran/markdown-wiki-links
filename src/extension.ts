@@ -23,7 +23,7 @@ import {
   setResolver,
   resetResolver,
 } from "./markdownItPlugin/index";
-import { OwnershipCodeActionProvider, OwnershipInlayProvider } from "./ownership";
+import { OwnershipCodeActionProvider } from "./ownership";
 
 export let indexService: IndexService | undefined;
 
@@ -31,6 +31,7 @@ type WikiLinksApi = { extendMarkdownIt(md: any): any };
 
 export async function activate(context: vscode.ExtensionContext): Promise<WikiLinksApi> {
   context.subscriptions.push(
+    vscode.commands.registerCommand("estate.commentToggle.line", toggleLineComments),
     vscode.commands.registerCommand("estate.commentToggle.innerDoc", toggleInnerDocComments),
     vscode.commands.registerCommand("estate.commentToggle.doc", toggleDocComments),
     vscode.commands.registerCommand("estate.commentToggle.block", toggleBlockComments),

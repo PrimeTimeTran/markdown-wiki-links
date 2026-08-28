@@ -19,11 +19,11 @@ const newCmd: CommandDefinition = {
 // Tab switch hotkey)
 export const COMMANDS: CommandDefinition[] = [
   {
-    title: "Estate: Toggle Line Comment (`//`)",
+    title: "Estate: Toggle Line Comment '//'",
     id: "estate.commentToggle.line",
     shortTitle: "Toggle `//` line comments.",
     icon: "$(comment)",
-    category: "cmd",
+    category: "comment",
     menus: [],
     keybindings: [
       {
@@ -33,11 +33,11 @@ export const COMMANDS: CommandDefinition[] = [
     ],
   },
   {
-    title: "Estate: Toggle Rust Inner Doc Comment (`//!`)",
+    title: "Estate: Toggle Rust Inner Doc Comment '//!'",
     id: "estate.commentToggle.innerDoc",
     shortTitle: "Toggle `//!` inner doc comments.",
     icon: "$(comment-discussion)",
-    category: "cmd",
+    category: "comment",
     menus: [],
     keybindings: [
       {
@@ -47,11 +47,11 @@ export const COMMANDS: CommandDefinition[] = [
     ],
   },
   {
-    title: "Estate: Toggle Rust Outer Doc Comment (`///`)",
+    title: "Estate: Toggle Rust Outer Doc Comment '///'",
     id: "estate.commentToggle.outerDoc",
     shortTitle: "Toggle `///` outer doc comments.",
     icon: "$(comment-discussion)",
-    category: "cmd",
+    category: "comment",
     menus: [],
     keybindings: [
       {
@@ -61,11 +61,11 @@ export const COMMANDS: CommandDefinition[] = [
     ],
   },
   {
-    title: "Estate: Toggle JavaScript Doc Comment (`/** */`)",
+    title: "Estate: Toggle JavaScript Doc Comment '/** */'",
     id: "estate.commentToggle.doc",
     shortTitle: "Toggle `/** */` doc comments.",
     icon: "$(comment-discussion)",
-    category: "cmd",
+    category: "comment",
     menus: [],
     keybindings: [
       {
@@ -75,11 +75,11 @@ export const COMMANDS: CommandDefinition[] = [
     ],
   },
   {
-    title: "Estate: Toggle JavaScript Block Comment (`/* */`)",
+    title: "Estate: Toggle JavaScript Block Comment '/* */'",
     id: "estate.commentToggle.block",
     shortTitle: "Toggle `/* */` block comments.",
     icon: "$(comment-discussion)",
-    category: "cmd",
+    category: "comment",
     menus: [],
     keybindings: [
       {

@@ -1,5 +1,5 @@
 
-# Estate: Toggle Line Comment (`//`)
+# Estate: Toggle Line Comment '//'
 
 Command:
 
@@ -22,7 +22,7 @@ Menus:
 ---
 
 
-# Estate: Toggle Rust Inner Doc Comment (`//!`)
+# Estate: Toggle Rust Inner Doc Comment '//!'
 
 Command:
 
@@ -45,7 +45,7 @@ Menus:
 ---
 
 
-# Estate: Toggle Rust Outer Doc Comment (`///`)
+# Estate: Toggle Rust Outer Doc Comment '///'
 
 Command:
 
@@ -68,7 +68,7 @@ Menus:
 ---
 
 
-# Estate: Toggle JavaScript Doc Comment (`/** */`)
+# Estate: Toggle JavaScript Doc Comment '/** */'
 
 Command:
 
@@ -91,7 +91,7 @@ Menus:
 ---
 
 
-# Estate: Toggle JavaScript Block Comment (`/* */`)
+# Estate: Toggle JavaScript Block Comment '/* */'
 
 Command:
 

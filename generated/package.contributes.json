@@ -3,35 +3,35 @@
     "commands": [
       {
         "command": "estate.commentToggle.line",
-        "title": "Estate: Toggle Line Comment (`//`)",
+        "title": "Estate: Toggle Line Comment '//'",
         "shortTitle": "Toggle `//` line comments.",
         "category": "cmd",
         "icon": "$(comment)"
       },
       {
         "command": "estate.commentToggle.innerDoc",
-        "title": "Estate: Toggle Rust Inner Doc Comment (`//!`)",
+        "title": "Estate: Toggle Rust Inner Doc Comment '//!'",
         "shortTitle": "Toggle `//!` inner doc comments.",
         "category": "cmd",
         "icon": "$(comment-discussion)"
       },
       {
         "command": "estate.commentToggle.outerDoc",
-        "title": "Estate: Toggle Rust Outer Doc Comment (`///`)",
+        "title": "Estate: Toggle Rust Outer Doc Comment '///'",
         "shortTitle": "Toggle `///` outer doc comments.",
         "category": "cmd",
         "icon": "$(comment-discussion)"
       },
       {
         "command": "estate.commentToggle.doc",
-        "title": "Estate: Toggle JavaScript Doc Comment (`/** */`)",
+        "title": "Estate: Toggle JavaScript Doc Comment '/** */'",
         "shortTitle": "Toggle `/** */` doc comments.",
         "category": "cmd",
         "icon": "$(comment-discussion)"
       },
       {
         "command": "estate.commentToggle.block",
-        "title": "Estate: Toggle JavaScript Block Comment (`/* */`)",
+        "title": "Estate: Toggle JavaScript Block Comment '/* */'",
         "shortTitle": "Toggle `/* */` block comments.",
         "category": "cmd",
         "icon": "$(comment-discussion)"

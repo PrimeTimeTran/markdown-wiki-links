@@ -11,13 +11,6 @@ type BlockCommentStyle = {
   end: string;
 };
 
-// type LanguageComments = {
-//   line?: LineCommentStyle;
-//   doc?: LineCommentStyle;
-//   innerDoc?: LineCommentStyle;
-//   block?: BlockCommentStyle;
-// };
-
 type LanguageComments = {
   line?: LineCommentStyle;
   doc?: LineCommentStyle | BlockCommentStyle;
@@ -183,6 +176,7 @@ async function toggleSmartLineComments(
     }
   });
 }
+
 function getSelectedLines(
   document: vscode.TextDocument,
   selection: vscode.Selection,
@@ -382,6 +376,7 @@ export async function toggleDocComments(): Promise<void> {
     await toggleBlockComment(editor, style);
   }
 }
+
 export async function toggleInnerDocComments(): Promise<void> {
   const editor = vscode.window.activeTextEditor;
 
