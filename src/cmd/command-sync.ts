@@ -10,6 +10,7 @@ interface CommandDefinition {
   shortTitle?: string;
   icon?: string;
   category?: string;
+  group?: string;
   docs?: {
     path: string;
     anchors?: string[];
@@ -24,7 +25,11 @@ interface CommandDefinition {
 }
 interface MenuContribution {
   menu:
-    "view/title" | "view/item/context" | "editor/context" | "editor/title" | "editor/title/context";
+    | "view/title"
+    | "view/item/context"
+    | "editor/context"
+    | "editor/title"
+    | "editor/title/context";
 
   when?: string;
   group?: string;
@@ -35,6 +40,7 @@ interface PackageContributes {
     command: string;
     title: string;
     category?: string;
+    group?: string;
     icon?: string;
     enablement?: string;
   }>;
@@ -67,6 +73,10 @@ export function generatePackageContributes(commands: CommandDefinition[]) {
 
       ...(cmd.category && {
         category: cmd.category,
+      }),
+
+      ...(cmd.group && {
+        group: cmd.group,
       }),
 
       ...(cmd.icon && {
@@ -118,6 +128,7 @@ function generatePackageJson(commands: typeof COMMANDS) {
         command: cmd.id,
         title: cmd.title,
         category: cmd.category,
+        group: cmd.group,
         icon: cmd.icon,
       })),
 
@@ -200,6 +211,9 @@ ${cmd.shortTitle ?? ""}
 Category:
 ${cmd.category ?? ""}
 
+Group:
+${cmd.group ?? ""}
+
 Documentation:
 ${cmd.docs?.path ?? "none"}
 
@@ -254,3 +268,61 @@ export function syncCommands() {
 }
 
 syncCommands();
+
+// New commands
+
+const PACKAGE_JSON_PATH = path.resolve("./package.json");
+const PACKAGE_CONTRIBUTES_PATH = path.resolve("./generated/package.contributes.json");
+
+interface PackageJson {
+  contributes?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+interface GeneratedPackageContributes {
+  contributes: {
+    commands: PackageCommand[];
+    menus: Record<string, PackageMenu[]>;
+    keybindings: PackageKeybinding[];
+  };
+}
+
+interface PackageCommand {
+  command: string;
+  title: string;
+  shortTitle?: string;
+  category?: string;
+  group?: string;
+  icon?: string;
+  enablement?: string;
+}
+
+interface PackageMenu {
+  command: string;
+  when?: string;
+  group?: string;
+}
+
+interface PackageKeybinding {
+  command: string;
+  key: string;
+  when?: string;
+}
+
+function syncPackageJson(): void {
+  const generatedRaw = fs.readFileSync(PACKAGE_CONTRIBUTES_PATH, "utf8");
+
+  const generated = JSON.parse(generatedRaw) as GeneratedPackageContributes;
+
+  const packageRaw = fs.readFileSync(PACKAGE_JSON_PATH, "utf8");
+
+  const packageJson = JSON.parse(packageRaw) as PackageJson;
+
+  packageJson.contributes = {
+    ...(packageJson.contributes ?? {}),
+    ...generated.contributes,
+  };
+
+  fs.writeFileSync(PACKAGE_JSON_PATH, `${JSON.stringify(packageJson, null, 2)}\n`, "utf8");
+}
+syncPackageJson();

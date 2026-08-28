@@ -18,6 +18,20 @@ const newCmd: CommandDefinition = {
 // Menu icons aren't behaving consistently in sidebar click of file explorer
 // Tab switch hotkey)
 export const COMMANDS: CommandDefinition[] = [
+  // {
+  //   title: "Estate: Trace Flow through app",
+  //   id: "estate.flow.create",
+  //   shortTitle: "Toggle `//` line comments.",
+  //   icon: "$(comment)",
+  //   category: "comment",
+  //   menus: [],
+  //   keybindings: [
+  //     {
+  //       key: "cmd+/",
+  //       when: "editorTextFocus && !editorReadonly && (editorLangId == rust || editorLangId == javascript || editorLangId == typescript)",
+  //     },
+  //   ],
+  // },
   {
     title: "Estate: Toggle Line Comment '//'",
     id: "estate.commentToggle.line",
@@ -63,7 +77,7 @@ export const COMMANDS: CommandDefinition[] = [
   {
     title: "Estate: Toggle JavaScript Doc Comment '/** */'",
     id: "estate.commentToggle.doc",
-    shortTitle: "Toggle `/** */` doc comments.",
+    shortTitle: "Toggle `/** **/` doc comments.",
     icon: "$(comment-discussion)",
     category: "comment",
     menus: [],
@@ -97,27 +111,145 @@ export const COMMANDS: CommandDefinition[] = [
     menus: [],
   },
   {
-    title: "Estate: Open Quick Pick",
-    id: "estate.ui.quickPick",
-    shortTitle: "Open quick picker",
-    icon: "$(zap)",
-    menus: [
-      // {
-      //   menu: "view/title",
-      //   group: "navigation",
-      //   when: "view == estateExplorer",
-      // },
-    ],
-  },
-  {
-    title: "Estate: View Options",
-    id: "estate.explore.options",
-    icon: "$(filter)",
+    title: "Estate: Development Start",
+    id: "estate.pipeline.start",
+    shortTitle: "Start pipeline",
+    icon: "$(debug-start)",
+    group: "pipeline",
+    category: "pipeline",
     menus: [
       {
         menu: "view/title",
         group: "navigation",
-        when: "view == estateExplorer",
+        when: "view == estateExplorer && !estate.leader || estate.leader == 0",
+      },
+    ],
+  },
+  {
+    title: "Estate: Development Stop",
+    id: "estate.pipeline.stop",
+    shortTitle: "Stop pipeline",
+    icon: "$(debug-stop)",
+    group: "pipeline",
+    category: "pipeline",
+    menus: [
+      {
+        menu: "view/title",
+        group: "navigation",
+        when: "view == estateExplorer && estate.leader == 1",
+      },
+    ],
+  },
+  {
+    title: "Estate: Development Clear",
+    id: "estate.pipeline.clear",
+    shortTitle: "Clear pipeline",
+    icon: "$(debug-console-clear-all)",
+    group: "pipeline",
+    category: "pipeline",
+    menus: [
+      {
+        menu: "view/title",
+        group: "navigation",
+        when: "view == estateExplorer && estate.leader == 2",
+      },
+    ],
+  },
+  {
+    title: "Estate: Create settings",
+    id: "estate.settings.create",
+    menus: [
+      {
+        menu: "editor/title",
+        group: "navigation",
+        when: "estate.hasAnchor && estateExplorer.visible",
+      },
+      {
+        menu: "editor/context",
+        group: "navigation",
+        when: "estate.hasAnchor",
+      },
+    ],
+    icon: "$(add)",
+  },
+  {
+    title: "Estate: View settings",
+    id: "estate.settings.read",
+    icon: "$(gear)",
+    enablement: "estateExplorer.visible",
+    menus: [
+      {
+        menu: "editor/title",
+        group: "navigation",
+        when: "estate.hasAnchor",
+      },
+    ],
+  },
+  {
+    title: "Estate: Edit settings",
+    id: "estate.settings.update",
+    icon: "$(edit)",
+    menus: [
+      {
+        menu: "editor/title",
+        group: "navigation",
+        when: "estate.hasAnchor",
+      },
+    ],
+  },
+  {
+    title: "Estate: Delete settings",
+    id: "estate.settings.delete",
+    icon: "$(trash)",
+    menus: [
+      {
+        menu: "editor/context",
+        group: "navigation",
+        when: "estate.hasAnchor",
+      },
+    ],
+  },
+  {
+    title: "Estate: Create series",
+    id: "estate.series.create",
+    icon: "$(add)",
+    menus: [
+      {
+        menu: "view/item/context",
+        group: "navigation",
+      },
+    ],
+  },
+  {
+    title: "Estate: View series",
+    id: "estate.series.read",
+    icon: "$(view)",
+    menus: [
+      {
+        menu: "view/item/context",
+        group: "navigation",
+      },
+    ],
+  },
+  {
+    title: "Estate: Edit series",
+    id: "estate.series.update",
+    icon: "$(edit)",
+    menus: [
+      {
+        menu: "view/item/context",
+        group: "navigation",
+      },
+    ],
+  },
+  {
+    title: "Estate: Delete series",
+    id: "estate.series.delete",
+    icon: "$(trash)",
+    menus: [
+      {
+        menu: "view/item/context",
+        group: "navigation",
       },
     ],
   },
@@ -125,6 +257,7 @@ export const COMMANDS: CommandDefinition[] = [
     title: "Estate: Create bookmark",
     id: "estate.bookmark.create",
     icon: "$(add)",
+    group: "bookmarks@1",
     menus: [
       {
         // File Exploer right click
@@ -156,6 +289,7 @@ export const COMMANDS: CommandDefinition[] = [
     title: "Estate: View bookmark",
     id: "estate.bookmark.read",
     icon: "$(preview)",
+    group: "bookmarks@2",
     menus: [
       {
         menu: "editor/title",
@@ -174,6 +308,7 @@ export const COMMANDS: CommandDefinition[] = [
     title: "Estate: Edit bookmark",
     id: "estate.bookmark.update",
     icon: "$(preferences-open-settings)",
+    group: "bookmarks@3",
     menus: [
       {
         menu: "view/item/context",
@@ -186,6 +321,7 @@ export const COMMANDS: CommandDefinition[] = [
     title: "Estate: Delete bookmark",
     id: "estate.bookmark.delete",
     icon: "$(trash)",
+    group: "bookmarks@4",
     menus: [
       // Show an option to delete this bookmark item in the editor title
       // when estate explorer is visible
@@ -198,6 +334,79 @@ export const COMMANDS: CommandDefinition[] = [
         menu: "view/item/context",
         group: "inline@3",
         when: "estate.hasAnchor",
+      },
+      {
+        menu: "editor/context",
+        group: "navigation",
+        when: "estate.hasAnchor",
+      },
+    ],
+  },
+  {
+    id: "ui.toggleMDPreview",
+    title: "Wiki Links: Preview Mode (Toggle)",
+  },
+  {
+    id: "flowify.analyzeLine",
+    title: "Estate: Analyze Subject",
+  },
+  {
+    id: "estate.snippet.create",
+    title: "Estate: Create snippet",
+    icon: "$(add)",
+    shortTitle: "Open a scratch pad for brainstorming ideas out quick and easy.",
+  },
+  {
+    id: "estate.snippet.read",
+    title: "Estate: Read snippet",
+    icon: "$(view)",
+    shortTitle: "View snippets",
+  },
+  {
+    id: "estate.snippet.update",
+    title: "Estate: Update snippet",
+    icon: "$(edit)",
+    shortTitle: "Update snippets",
+  },
+  {
+    id: "estate.snippet.delete",
+    title: "Estate: Delete snippet",
+    icon: "$(trash)",
+    shortTitle: "Delete snippet",
+  },
+  {
+    id: "estate.anchor.pipeline",
+    title: "Estate: Anchor a pipeline's flow",
+    shortTitle:
+      "Understand your code by noting steps through configuration files, branches, and variants",
+
+    icon: "$(type-hierarchy-sub)",
+
+    category: "Estate",
+
+    enablement: "estate.input",
+
+    docs: {
+      path: "docs/commands/anchor-pipeline.md",
+      description: "Creates pipeline anchors from configuration and code flow.",
+    },
+
+    implementation: {
+      file: "src/commands/anchorPipeline.ts",
+      symbol: "anchorPipeline",
+    },
+
+    menus: [
+      {
+        menu: "view/item/context",
+        when: "view == estateTree",
+        group: "estate@1",
+      },
+    ],
+    keybindings: [
+      {
+        key: "ctrl+alt+a",
+        when: "editorTextFocus",
       },
     ],
   },
@@ -231,168 +440,28 @@ export const COMMANDS: CommandDefinition[] = [
     ],
   },
   {
-    title: "Estate: Create settings",
-    id: "estate.settings.create",
-    menus: [
-      {
-        menu: "editor/title",
-        group: "navigation",
-        when: "estate.hasAnchor && estateExplorer.visible",
-      },
-    ],
-    icon: "$(add)",
-  },
-  {
-    title: "Estate: View settings",
-    id: "estate.settings.read",
-    icon: "$(preview)",
-    menus: [
-      {
-        menu: "editor/title",
-        group: "navigation",
-        when: "estate.hasAnchor",
-      },
-    ],
-  },
-  {
-    title: "Estate: Edit settings",
-    id: "estate.settings.update",
-    icon: "$(edit)",
-    menus: [
-      {
-        menu: "editor/title",
-        group: "navigation",
-        when: "estate.hasAnchor",
-      },
-    ],
-  },
-  {
-    title: "Estate: Delete settings",
-    id: "estate.settings.delete",
-    icon: "$(trash)",
-    menus: [
-      {
-        menu: "editor/title",
-        group: "navigation",
-      },
-    ],
-  },
-  {
-    title: "Estate: Create series",
-    id: "estate.series.create",
-    icon: "$(add)",
-    menus: [
-      {
-        menu: "view/item/context",
-        group: "navigation",
-      },
-    ],
-  },
-  {
-    title: "Estate: View series",
-    id: "estate.series.read",
-    icon: "$(preview)",
-    menus: [
-      {
-        menu: "view/item/context",
-        group: "navigation",
-      },
-    ],
-  },
-  {
-    title: "Estate: Edit series",
-    id: "estate.series.update",
-    icon: "$(edit)",
-    menus: [
-      {
-        menu: "view/item/context",
-        group: "navigation",
-      },
-    ],
-  },
-  {
-    title: "Estate: Delete series",
-    id: "estate.series.delete",
-    icon: "$(trash)",
-    menus: [
-      {
-        menu: "view/item/context",
-        group: "navigation",
-      },
-    ],
-  },
-  newCmd,
-  {
-    id: "ui.toggleMDPreview",
-    title: "Wiki Links: Preview Mode (Toggle)",
-  },
-  {
-    id: "flowify.analyzeLine",
-    title: "Estate: Analyze Subject",
-  },
-  {
-    id: "estate.snippet.create",
-    title: "Estate: Create snippet",
+    title: "Estate: View Options",
+    id: "estate.explore.options",
     icon: "$(filter)",
-    shortTitle: "Create a snippet in any language quick and easy.",
-  },
-  {
-    id: "estate.snippet.read",
-    title: "Estate: Read snippet",
-    icon: "$(filter)",
-    shortTitle: "View snippets",
-  },
-  {
-    id: "estate.snippet.update",
-    title: "Estate: Update snippet",
-    icon: "$(filter)",
-    shortTitle: "Update snippts",
-  },
-  {
-    id: "estate.snippet.delete",
-    title: "Estate: Delete snippet",
-    icon: "$(filter)",
-    shortTitle: "Delete snippet",
-  },
-  {
-    id: "estate.anchor.pipeline",
-    title: "Estate: Anchor a pipeline's flow",
-    shortTitle:
-      "Understand your code by noting steps through configuration files, branches, and variants",
-
-    icon: "$(type-hierarchy-sub)",
-
-    category: "Estate",
-
-    enablement: "estate.input",
-
-    docs: {
-      path: "docs/commands/anchor-pipeline.md",
-      description: "Creates pipeline anchors from configuration and code flow.",
-    },
-
-    implementation: {
-      file: "src/commands/anchorPipeline.ts",
-      symbol: "anchorPipeline",
-    },
-
     menus: [
       {
-        menu: "editor/context",
-        when: "editorLangId == rust",
-        group: "estate@1",
-      },
-      {
-        menu: "view/item/context",
-        when: "view == estateTree",
-        group: "estate@1",
+        menu: "view/title",
+        group: "navigation",
+        when: "view == estateExplorer",
       },
     ],
-    keybindings: [
-      {
-        key: "ctrl+alt+a",
-        when: "editorTextFocus",
-      },
+  },
+  {
+    title: "Estate: Open Quick Pick",
+    id: "estate.ui.quickPick",
+    shortTitle: "Quick Pick from the command palette",
+    icon: "$(zap)",
+    menus: [
+      // {
+      //   menu: "view/title",
+      //   group: "navigation",
+      //   when: "view == estateExplorer",
+      // },
     ],
   },
   {
@@ -412,10 +481,17 @@ export const COMMANDS: CommandDefinition[] = [
     },
 
     menus: [
+      //{
+      //menu: "editor/title",
+      // when: "editorLangId == rust",
+      //group: "estate",
+      // },
+
       {
+        // Editor top tabs menu
         menu: "editor/title",
-        when: "editorLangId == rust",
-        group: "estate",
+        group: "navigation",
+        when: "!estate.hasAnchor && editorLangId == rust",
       },
     ],
     keybindings: [

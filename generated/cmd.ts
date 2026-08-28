@@ -13,18 +13,10 @@ export const CMD =
     cmdPalette: {
       show: "estate.cmdPalette.show",
     },
-    ui: {
-      quickPick: "estate.ui.quickPick",
-    },
-    explore: {
-      options: "estate.explore.options",
-    },
-    bookmark: {
-      create: "estate.bookmark.create",
-      read: "estate.bookmark.read",
-      update: "estate.bookmark.update",
-      delete: "estate.bookmark.delete",
-      filter: "estate.bookmark.filter",
+    pipeline: {
+      start: "estate.pipeline.start",
+      stop: "estate.pipeline.stop",
+      clear: "estate.pipeline.clear",
     },
     settings: {
       create: "estate.settings.create",
@@ -38,15 +30,27 @@ export const CMD =
       update: "estate.series.update",
       delete: "estate.series.delete",
     },
-    anchor: {
-      view: "estate.anchor.view",
-      pipeline: "estate.anchor.pipeline",
+    bookmark: {
+      create: "estate.bookmark.create",
+      read: "estate.bookmark.read",
+      update: "estate.bookmark.update",
+      delete: "estate.bookmark.delete",
+      filter: "estate.bookmark.filter",
     },
     snippet: {
       create: "estate.snippet.create",
       read: "estate.snippet.read",
       update: "estate.snippet.update",
       delete: "estate.snippet.delete",
+    },
+    anchor: {
+      pipeline: "estate.anchor.pipeline",
+    },
+    explore: {
+      options: "estate.explore.options",
+    },
+    ui: {
+      quickPick: "estate.ui.quickPick",
     },
     ownership: {
       show: "estate.ownership.show",

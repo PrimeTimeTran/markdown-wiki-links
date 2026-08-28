@@ -10,7 +10,7 @@ import { RenameHandler } from "./adapters/renameHandler";
 import { AppStore, registerCustomCommandPalette } from "./app";
 import {
   toggleLineComments,
-  toggleDocComments,
+  toggleOuterDocComments,
   toggleInnerDocComments,
   toggleBlockComments,
 } from "./cmd/cmd.comments.toggle";
@@ -31,26 +31,28 @@ type WikiLinksApi = { extendMarkdownIt(md: any): any };
 
 export async function activate(context: vscode.ExtensionContext): Promise<WikiLinksApi> {
   context.subscriptions.push(
-    vscode.commands.registerCommand("estate.commentToggle.line", toggleLineComments),
-    vscode.commands.registerCommand("estate.commentToggle.innerDoc", toggleInnerDocComments),
-    vscode.commands.registerCommand("estate.commentToggle.doc", toggleDocComments),
-    vscode.commands.registerCommand("estate.commentToggle.block", toggleBlockComments),
+    vscode.commands.registerCommand(CMD.estate.commentToggle.line, toggleLineComments),
+    vscode.commands.registerCommand(CMD.estate.commentToggle.innerDoc, toggleInnerDocComments),
+    vscode.commands.registerCommand(CMD.estate.commentToggle.doc, toggleOuterDocComments),
+    vscode.commands.registerCommand(CMD.estate.commentToggle.block, toggleBlockComments),
+
+    vscode.commands.registerCommand(CMD.estate.commentToggle.outerDoc, toggleOuterDocComments),
   );
   const app = new AppStore(context);
   app.init(context);
   // app.logger.debug("[activate.app.logger]");
-
+  
   // VSCode UI
   context.subscriptions.push(
-    vscode.commands.registerCommand("estate.start", async () => {
+    vscode.commands.registerCommand(CMD.estate.pipeline.start, async () => {
       await app.bumpLeader();
       await vscode.commands.executeCommand("setContext", "estate.leader", app.state.leader);
     }),
-    vscode.commands.registerCommand("estate.stop", async () => {
+    vscode.commands.registerCommand(CMD.estate.pipeline.stop, async () => {
       await app.bumpLeader();
       await vscode.commands.executeCommand("setContext", "estate.leader", app.state.leader);
     }),
-    vscode.commands.registerCommand("estate.clear", async () => {
+    vscode.commands.registerCommand(CMD.estate.pipeline.clear, async () => {
       await app.bumpLeader();
       await vscode.commands.executeCommand("setContext", "estate.leader", app.state.leader);
     }),

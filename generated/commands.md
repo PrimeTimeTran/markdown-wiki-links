@@ -8,7 +8,10 @@ Command:
 Toggle `//` line comments.
 
 Category:
-cmd
+comment
+
+Group:
+
 
 Documentation:
 none
@@ -31,7 +34,10 @@ Command:
 Toggle `//!` inner doc comments.
 
 Category:
-cmd
+comment
+
+Group:
+
 
 Documentation:
 none
@@ -54,7 +60,10 @@ Command:
 Toggle `///` outer doc comments.
 
 Category:
-cmd
+comment
+
+Group:
+
 
 Documentation:
 none
@@ -77,7 +86,10 @@ Command:
 Toggle `/** */` doc comments.
 
 Category:
-cmd
+comment
+
+Group:
+
 
 Documentation:
 none
@@ -100,7 +112,10 @@ Command:
 Toggle `/* */` block comments.
 
 Category:
-cmd
+comment
+
+Group:
+
 
 Documentation:
 none
@@ -125,27 +140,7 @@ Find commands easily using the cmd palette
 Category:
 cmd
 
-Documentation:
-none
-
-Implementation:
-none
-
-Menus:
-
-
----
-
-
-# Estate: Open Quick Pick
-
-Command:
-
-`estate.ui.quickPick`
-
-Open quick picker
-
-Category:
+Group:
 
 
 Documentation:
@@ -160,16 +155,19 @@ Menus:
 ---
 
 
-# Estate: View Options
+# Estate: Development Start
 
 Command:
 
-`estate.explore.options`
+`estate.pipeline.start`
 
-
+Start pipeline
 
 Category:
+pipeline
 
+Group:
+pipeline
 
 Documentation:
 none
@@ -179,6 +177,267 @@ none
 
 Menus:
 - view/title
+
+---
+
+
+# Estate: Development Stop
+
+Command:
+
+`estate.pipeline.stop`
+
+Stop pipeline
+
+Category:
+pipeline
+
+Group:
+pipeline
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- view/title
+
+---
+
+
+# Estate: Development Clear
+
+Command:
+
+`estate.pipeline.clear`
+
+Clear pipeline
+
+Category:
+pipeline
+
+Group:
+pipeline
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- view/title
+
+---
+
+
+# Estate: Create settings
+
+Command:
+
+`estate.settings.create`
+
+
+
+Category:
+
+
+Group:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- editor/title
+- editor/context
+
+---
+
+
+# Estate: View settings
+
+Command:
+
+`estate.settings.read`
+
+
+
+Category:
+
+
+Group:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- editor/title
+
+---
+
+
+# Estate: Edit settings
+
+Command:
+
+`estate.settings.update`
+
+
+
+Category:
+
+
+Group:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- editor/title
+
+---
+
+
+# Estate: Delete settings
+
+Command:
+
+`estate.settings.delete`
+
+
+
+Category:
+
+
+Group:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- editor/context
+
+---
+
+
+# Estate: Create series
+
+Command:
+
+`estate.series.create`
+
+
+
+Category:
+
+
+Group:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- view/item/context
+
+---
+
+
+# Estate: View series
+
+Command:
+
+`estate.series.read`
+
+
+
+Category:
+
+
+Group:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- view/item/context
+
+---
+
+
+# Estate: Edit series
+
+Command:
+
+`estate.series.update`
+
+
+
+Category:
+
+
+Group:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- view/item/context
+
+---
+
+
+# Estate: Delete series
+
+Command:
+
+`estate.series.delete`
+
+
+
+Category:
+
+
+Group:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- view/item/context
 
 ---
 
@@ -193,6 +452,9 @@ Command:
 
 Category:
 
+
+Group:
+bookmarks@1
 
 Documentation:
 none
@@ -220,6 +482,9 @@ Command:
 Category:
 
 
+Group:
+bookmarks@2
+
 Documentation:
 none
 
@@ -244,6 +509,9 @@ Command:
 Category:
 
 
+Group:
+bookmarks@3
+
 Documentation:
 none
 
@@ -267,29 +535,8 @@ Command:
 Category:
 
 
-Documentation:
-none
-
-Implementation:
-none
-
-Menus:
-- editor/title
-- view/item/context
-
----
-
-
-# Estate: Filter bookmarks
-
-Command:
-
-`estate.bookmark.filter`
-
-
-
-Category:
-
+Group:
+bookmarks@4
 
 Documentation:
 none
@@ -300,214 +547,7 @@ none
 Menus:
 - editor/title
 - view/item/context
-- editor/title/context
-
----
-
-
-# Estate: Create settings
-
-Command:
-
-`estate.settings.create`
-
-
-
-Category:
-
-
-Documentation:
-none
-
-Implementation:
-none
-
-Menus:
-- editor/title
-
----
-
-
-# Estate: View settings
-
-Command:
-
-`estate.settings.read`
-
-
-
-Category:
-
-
-Documentation:
-none
-
-Implementation:
-none
-
-Menus:
-- editor/title
-
----
-
-
-# Estate: Edit settings
-
-Command:
-
-`estate.settings.update`
-
-
-
-Category:
-
-
-Documentation:
-none
-
-Implementation:
-none
-
-Menus:
-- editor/title
-
----
-
-
-# Estate: Delete settings
-
-Command:
-
-`estate.settings.delete`
-
-
-
-Category:
-
-
-Documentation:
-none
-
-Implementation:
-none
-
-Menus:
-- editor/title
-
----
-
-
-# Estate: Create series
-
-Command:
-
-`estate.series.create`
-
-
-
-Category:
-
-
-Documentation:
-none
-
-Implementation:
-none
-
-Menus:
-- view/item/context
-
----
-
-
-# Estate: View series
-
-Command:
-
-`estate.series.read`
-
-
-
-Category:
-
-
-Documentation:
-none
-
-Implementation:
-none
-
-Menus:
-- view/item/context
-
----
-
-
-# Estate: Edit series
-
-Command:
-
-`estate.series.update`
-
-
-
-Category:
-
-
-Documentation:
-none
-
-Implementation:
-none
-
-Menus:
-- view/item/context
-
----
-
-
-# Estate: Delete series
-
-Command:
-
-`estate.series.delete`
-
-
-
-Category:
-
-
-Documentation:
-none
-
-Implementation:
-none
-
-Menus:
-- view/item/context
-
----
-
-
-# Estate: View anchor
-
-Command:
-
-`estate.anchor.view`
-
-
-
-Category:
-
-
-Documentation:
-none
-
-Implementation:
-none
-
-Menus:
-- editor/title/context
+- editor/context
 
 ---
 
@@ -521,6 +561,9 @@ Command:
 
 
 Category:
+
+
+Group:
 
 
 Documentation:
@@ -546,6 +589,9 @@ Command:
 Category:
 
 
+Group:
+
+
 Documentation:
 none
 
@@ -564,9 +610,12 @@ Command:
 
 `estate.snippet.create`
 
-Create a snippet in any language quick and easy.
+Open a scratch pad for brainstorming ideas out quick and easy.
 
 Category:
+
+
+Group:
 
 
 Documentation:
@@ -592,6 +641,9 @@ View snippets
 Category:
 
 
+Group:
+
+
 Documentation:
 none
 
@@ -610,9 +662,12 @@ Command:
 
 `estate.snippet.update`
 
-Update snippts
+Update snippets
 
 Category:
+
+
+Group:
 
 
 Documentation:
@@ -638,6 +693,9 @@ Delete snippet
 Category:
 
 
+Group:
+
+
 Documentation:
 none
 
@@ -661,6 +719,9 @@ Understand your code by noting steps through configuration files, branches, and 
 Category:
 Estate
 
+Group:
+
+
 Documentation:
 docs/commands/anchor-pipeline.md
 
@@ -668,8 +729,87 @@ Implementation:
 src/commands/anchorPipeline.ts
 
 Menus:
-- editor/context
 - view/item/context
+
+---
+
+
+# Estate: Filter bookmarks
+
+Command:
+
+`estate.bookmark.filter`
+
+
+
+Category:
+
+
+Group:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- editor/title
+- view/item/context
+- editor/title/context
+
+---
+
+
+# Estate: View Options
+
+Command:
+
+`estate.explore.options`
+
+
+
+Category:
+
+
+Group:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+- view/title
+
+---
+
+
+# Estate: Open Quick Pick
+
+Command:
+
+`estate.ui.quickPick`
+
+Quick Pick from the command palette
+
+Category:
+
+
+Group:
+
+
+Documentation:
+none
+
+Implementation:
+none
+
+Menus:
+
 
 ---
 
@@ -684,6 +824,9 @@ Visualize ownership relationships and affected code regions
 
 Category:
 ownership
+
+Group:
+
 
 Documentation:
 docs/commands/show-ownership.md

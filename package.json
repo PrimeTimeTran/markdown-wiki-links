@@ -78,19 +78,29 @@
     },
     "keybindings": [
       {
+        "command": "estate.commentToggle.line",
+        "key": "cmd+/",
+        "when": "editorTextFocus && !editorReadonly && (editorLangId == rust || editorLangId == javascript || editorLangId == typescript)"
+      },
+      {
         "command": "estate.commentToggle.innerDoc",
         "key": "f13 f13 cmd+/",
-        "when": "editorTextFocus && !editorReadonly && editorLangId == rust"
+        "when": "editorLangId == rust && editorTextFocus && !editorReadonly"
+      },
+      {
+        "command": "estate.commentToggle.outerDoc",
+        "key": "f13 cmd+/",
+        "when": "editorLangId == rust && editorTextFocus && !editorReadonly"
       },
       {
         "command": "estate.commentToggle.doc",
         "key": "f13 cmd+/",
-        "when": "editorTextFocus && !editorReadonly && (editorLangId == rust || editorLangId == javascript || editorLangId == typescript)"
+        "when": "(editorLangId == javascript || editorLangId == typescript) && editorTextFocus && !editorReadonly"
       },
       {
         "command": "estate.commentToggle.block",
         "key": "f13 f13 cmd+/",
-        "when": "editorTextFocus && !editorReadonly && (editorLangId == javascript || editorLangId == typescript)"
+        "when": "(editorLangId == javascript || editorLangId == typescript) && editorTextFocus && !editorReadonly"
       },
       {
         "command": "estate.anchor.pipeline",
@@ -104,40 +114,49 @@
       }
     ],
     "menus": {
-      "extension/context": [
+      "view/title": [
         {
-          "command": "estate.bookmark.delete",
-          "group": "inline"
-        }
-      ],
-      "explorer/context": [
+          "command": "estate.pipeline.start",
+          "when": "view == estateExplorer && !estate.leader || estate.leader == 0",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.pipeline.stop",
+          "when": "view == estateExplorer && estate.leader == 1",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.pipeline.clear",
+          "when": "view == estateExplorer && estate.leader == 2",
+          "group": "navigation"
+        },
         {
           "command": "estate.bookmark.create",
-          "group": "inline"
+          "when": "view == estateExplorer",
+          "group": "navigation"
         },
         {
-          "command": "estate.bookmark.delete",
-          "group": "inline"
-        }
-      ],
-      "editor/context": [
-        {
-          "command": "estate.settings.create",
-          "group": "navigation",
-          "when": "estate.hasAnchor"
-        },
-        {
-          "command": "estate.settings.delete",
-          "group": "navigation",
-          "when": "estate.hasAnchor"
-        },
-        {
-          "command": "estate.bookmark.delete",
-          "group": "navigation",
-          "when": "editorTextFocus"
+          "command": "estate.explore.options",
+          "when": "view == estateExplorer",
+          "group": "navigation"
         }
       ],
       "editor/title": [
+        {
+          "command": "estate.settings.create",
+          "when": "estate.hasAnchor && estateExplorer.visible",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.settings.read",
+          "when": "estate.hasAnchor",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.settings.update",
+          "when": "estate.hasAnchor",
+          "group": "navigation"
+        },
         {
           "command": "estate.bookmark.create",
           "when": "!estate.hasAnchor",
@@ -145,76 +164,59 @@
         },
         {
           "command": "estate.bookmark.read",
-          "when": "!estateExplorer.visible && estate.hasAnchor",
-          "group": "navigation"
-        },
-        {
-          "command": "estate.bookmark.filter",
-          "when": "estateExplorer.visible && estate.hasAnchor",
+          "when": "estate.hasAnchor && !estateExplorer.visible",
           "group": "navigation"
         },
         {
           "command": "estate.bookmark.delete",
           "when": "estate.hasAnchor",
-          "group": "inline"
-        },
-        {
-          "command": "estate.settings.create",
-          "group": "navigation",
-          "when": "estate.hasAnchor && estateExplorer.visible",
-          "enablement": "estate.hasAnchor"
-        },
-        {
-          "command": "estate.settings.read",
-          "group": "navigation",
-          "when": "estate.hasAnchor"
-        },
-        {
-          "command": "estate.settings.update",
-          "group": "navigation",
-          "when": "estate.hasAnchor"
-        }
-      ],
-      "editor/title/context": [
-        {
-          "command": "estate.flow.next",
-          "group": "navigation",
-          "when": "estateExplorer.visible"
+          "group": "navigation"
         },
         {
           "command": "estate.bookmark.filter",
-          "when": "estateExplorer.active",
+          "when": "estate.hasAnchor && estateExplorer.visible",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.ownership.show",
+          "when": "!estate.hasAnchor && editorLangId == rust",
           "group": "navigation"
         }
       ],
-      "view/title": [
+      "editor/context": [
         {
-          "command": "estate.explore.options",
-          "when": "view == estateExplorer",
+          "command": "estate.settings.create",
+          "when": "estate.hasAnchor",
           "group": "navigation"
         },
         {
-          "command": "estate.bookmark.create",
-          "when": "view == estateExplorer",
+          "command": "estate.settings.delete",
+          "when": "estate.hasAnchor",
           "group": "navigation"
         },
         {
-          "command": "estate.start",
-          "when": "view == estateExplorer && !estate.leader || estate.leader == 0",
-          "group": "navigation"
-        },
-        {
-          "command": "estate.stop",
-          "when": "view == estateExplorer && estate.leader == 1",
-          "group": "navigation"
-        },
-        {
-          "command": "estate.clear",
-          "when": "view == estateExplorer && estate.leader == 2",
+          "command": "estate.bookmark.delete",
+          "when": "estate.hasAnchor",
           "group": "navigation"
         }
       ],
       "view/item/context": [
+        {
+          "command": "estate.series.create",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.series.read",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.series.update",
+          "group": "navigation"
+        },
+        {
+          "command": "estate.series.delete",
+          "group": "navigation"
+        },
         {
           "command": "estate.bookmark.create",
           "when": "viewItem == folder",
@@ -222,18 +224,40 @@
         },
         {
           "command": "estate.bookmark.read",
-          "when": "viewItem == anchor",
-          "group": "inline@2"
+          "when": "estate.hasAnchor",
+          "group": "navigation"
         },
         {
           "command": "estate.bookmark.update",
-          "when": "view == estateExplorer",
-          "group": "inline@3"
+          "when": "viewItem == folder",
+          "group": "inline@2"
         },
         {
           "command": "estate.bookmark.delete",
-          "when": "view == estateExplorer",
-          "group": "inline@4"
+          "when": "estate.hasAnchor",
+          "group": "inline@3"
+        },
+        {
+          "command": "estate.anchor.pipeline",
+          "when": "view == estateTree",
+          "group": "estate@1"
+        },
+        {
+          "command": "estate.bookmark.filter",
+          "when": "estate.hasAnchor",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "estate.bookmark.create",
+          "group": "navigation"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "estate.bookmark.filter",
+          "group": "navigation"
         }
       ]
     },
@@ -242,35 +266,35 @@
         "command": "estate.commentToggle.line",
         "title": "Estate: Toggle Line Comment '//'",
         "shortTitle": "Toggle `//` line comments.",
-        "category": "cmd",
+        "category": "comment",
         "icon": "$(comment)"
       },
       {
         "command": "estate.commentToggle.innerDoc",
         "title": "Estate: Toggle Rust Inner Doc Comment '//!'",
         "shortTitle": "Toggle `//!` inner doc comments.",
-        "category": "cmd",
+        "category": "comment",
         "icon": "$(comment-discussion)"
       },
       {
         "command": "estate.commentToggle.outerDoc",
         "title": "Estate: Toggle Rust Outer Doc Comment '///'",
         "shortTitle": "Toggle `///` outer doc comments.",
-        "category": "cmd",
+        "category": "comment",
         "icon": "$(comment-discussion)"
       },
       {
         "command": "estate.commentToggle.doc",
         "title": "Estate: Toggle JavaScript Doc Comment '/** */'",
         "shortTitle": "Toggle `/** */` doc comments.",
-        "category": "cmd",
+        "category": "comment",
         "icon": "$(comment-discussion)"
       },
       {
         "command": "estate.commentToggle.block",
         "title": "Estate: Toggle JavaScript Block Comment '/* */'",
         "shortTitle": "Toggle `/* */` block comments.",
-        "category": "cmd",
+        "category": "comment",
         "icon": "$(comment-discussion)"
       },
       {
@@ -281,24 +305,27 @@
         "icon": "$(zap)"
       },
       {
-        "group": "pipeline",
-        "category": "pipeline",
-        "command": "estate.start",
+        "command": "estate.pipeline.start",
         "title": "Estate: Development Start",
+        "shortTitle": "Start pipeline",
+        "category": "pipeline",
+        "group": "pipeline",
         "icon": "$(debug-start)"
       },
       {
-        "group": "pipeline",
-        "category": "pipeline",
-        "command": "estate.stop",
+        "command": "estate.pipeline.stop",
         "title": "Estate: Development Stop",
+        "shortTitle": "Stop pipeline",
+        "category": "pipeline",
+        "group": "pipeline",
         "icon": "$(debug-stop)"
       },
       {
-        "group": "pipeline",
-        "category": "pipeline",
-        "command": "estate.clear",
+        "command": "estate.pipeline.clear",
         "title": "Estate: Development Clear",
+        "shortTitle": "Clear pipeline",
+        "category": "pipeline",
+        "group": "pipeline",
         "icon": "$(debug-console-clear-all)"
       },
       {
@@ -345,33 +372,26 @@
       {
         "command": "estate.bookmark.create",
         "title": "Estate: Create bookmark",
+        "group": "bookmarks@1",
         "icon": "$(add)"
       },
       {
         "command": "estate.bookmark.read",
         "title": "Estate: View bookmark",
+        "group": "bookmarks@2",
         "icon": "$(preview)"
-      },
-      {
-        "command": "estate.bookmark.filter",
-        "title": "Estate: Filter bookmarks",
-        "group": "navigation",
-        "icon": "$(filter)"
       },
       {
         "command": "estate.bookmark.update",
         "title": "Estate: Edit bookmark",
+        "group": "bookmarks@3",
         "icon": "$(preferences-open-settings)"
       },
       {
         "command": "estate.bookmark.delete",
         "title": "Estate: Delete bookmark",
+        "group": "bookmarks@4",
         "icon": "$(trash)"
-      },
-      {
-        "command": "estate.anchor.view",
-        "title": "Estate: View anchor",
-        "icon": "$(preview)"
       },
       {
         "command": "ui.toggleMDPreview",
@@ -396,7 +416,7 @@
       {
         "command": "estate.snippet.update",
         "title": "Estate: Update snippet",
-        "shortTitle": "Update snippts",
+        "shortTitle": "Update snippets",
         "icon": "$(edit)"
       },
       {
@@ -414,57 +434,14 @@
         "enablement": "estate.input"
       },
       {
-        "key": "f24",
-        "title": "Estate: Flow Next",
-        "icon": "$(symbol-interface)",
-        "command": "estate.flow.next"
+        "command": "estate.bookmark.filter",
+        "title": "Estate: Filter bookmarks",
+        "icon": "$(filter)"
       },
       {
         "command": "estate.explore.options",
         "title": "Estate: View Options",
-        "icon": "$(filter)",
-        "shortTitle": "Explore Options"
-      },
-      {
-        "command": "wikiLinks.rebuildIndex",
-        "title": "Wiki Links: Rebuild Index"
-      },
-      {
-        "command": "bookmark.open",
-        "title": "Estate: Open Bookmark"
-      },
-      {
-        "command": "estate.estate.snippet-maker.create",
-        "title": "Estate: Snippet Maker"
-      },
-      {
-        "command": "refPanel.open",
-        "title": "Estate: Open Reference Panel"
-      },
-      {
-        "command": "refPanel.register",
-        "title": "Estate: Register Reference Panel"
-      },
-      {
-        "command": "refPanel.test",
-        "title": "Estate: Test Reference Panel"
-      },
-      {
-        "command": "bookmark.edit",
-        "title": "Estate: Edit Bookmark"
-      },
-      {
-        "command": "estate.settings.configure",
-        "title": "Open Settings",
-        "shortTitle": "Configure behavior",
-        "icon": "$(gear)",
-        "category": "Settings"
-      },
-      {
-        "command": "estate.ui.cmdPalette",
-        "title": "Estate: Open Quick Pick",
-        "shortTitle": "Quick Pick from the command palette",
-        "icon": "$(zap)"
+        "icon": "$(filter)"
       },
       {
         "command": "estate.ui.quickPick",
@@ -475,8 +452,10 @@
       {
         "command": "estate.ownership.show",
         "title": "Estate: Show Rust Ownership Analysis",
-        "icon": "$(filter)",
-        "category": "ownership"
+        "shortTitle": "Visualize ownership relationships and affected code regions",
+        "category": "ownership",
+        "icon": "$(references)",
+        "enablement": "estate.rustAnalyzerReady"
       }
     ],
     "configuration": {

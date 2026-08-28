@@ -25,6 +25,7 @@ export interface CommandDefinition {
 
   icon?: string;
   category?: string;
+  group?: string;
 
   docs?: {
     path: string;

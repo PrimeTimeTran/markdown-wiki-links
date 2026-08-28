@@ -356,7 +356,7 @@ export async function toggleLineComments(): Promise<void> {
   await toggleSmartLineComments(editor, comments);
 }
 
-export async function toggleDocComments(): Promise<void> {
+export async function toggleOuterDocComments(): Promise<void> {
   const editor = vscode.window.activeTextEditor;
 
   if (!editor) {
