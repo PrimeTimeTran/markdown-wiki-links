@@ -64,13 +64,13 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
         const range = new vscode.Range(line, match.start, line, match.end);
         const anchor = this.app.anchors.get(match.id);
         if (anchor) {
-          lenses.push(
-            new vscode.CodeLens(range, {
-              title: `🏠 Open ${anchor?.label ?? match.id}`,
-              command: CMD.estate.anchor.view,
-              arguments: [this.makeCtx(doc, match, range)],
-            }),
-          );
+          // lenses.push(
+            // new vscode.CodeLens(range, {
+              // title: `🏠 Open ${anchor?.label ?? match.id}`,
+              // command: CMD.estate.anchor.view,
+              // arguments: [this.makeCtx(doc, match, range)],
+            // }),
+          // );
           new vscode.CodeLens(range, {
             title: "🔖 Anchor",
             command: "anchor.edit",

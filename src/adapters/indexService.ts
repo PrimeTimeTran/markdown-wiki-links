@@ -54,21 +54,7 @@ export class IndexService {
       }),
     );
   }
-  // private async scan(): Promise<void> {
-  //   const exclude = buildExcludeGlob(excludedFolders());
-  //   const cap = indexMaxFiles();
-  //   const found = await vscode.workspace.findFiles(GLOB, exclude);
-  //   let added = false;
-  //   for (const uri of found.slice(0, cap)) {
-  //     if (this.workspaceRegistry.add(uri)) {
-  //       added = true;
-  //     }
-  //   }
-  //   if (added) {
-  //     this.generation++;
-  //     this.snapCache.clear();
-  //   }
-  // }
+
   snapshotFor(fromFsPath: string): IndexSnapshot {
     const cached = this.snapCache.get(this.root);
     if (cached && cached.generation === this.generation) {
@@ -200,7 +186,11 @@ export interface EstateEntry {
   kind: EstateKind;
   linkUri(): vscode.Uri | undefined;
 }
-class WorkspaceEntry implements EstateEntry {
+export function makeEstateEntry(url: string) {
+  let placeholder = new WorkspaceEntry(url, "", "", "", "file");
+  return placeholder;
+}
+export class WorkspaceEntry implements EstateEntry {
   readonly id: string;
   readonly aliases: string[];
   constructor(
@@ -325,7 +315,7 @@ class WorkspaceRegistry implements WikiRegistry {
 export class EstateResolver {
   constructor(
     public readonly root: string,
-    private readonly sources: WikiRegistry[],
+    readonly sources: WikiRegistry[],
   ) {
     this.sources.sort((a, b) => b.priority - a.priority);
   }
@@ -384,7 +374,7 @@ export class EstateResolver {
   resolveLink(
     ref: Pick<ParsedRef, "target" | "fragment">,
     fromFsPath: string,
-  ): EstateEntry | undefined {
+  ): EstateEntry | undefined | null {
     const target = ref.target.split("#")[0].trim();
     const direct = this.resolve(target);
     if (direct) {
@@ -415,7 +405,7 @@ export class EstateResolver {
   fileHref(_entry: EstateEntry, _fragment: string | undefined): string {
     throw new Error("Method not implemented fileHref.");
   }
-  private isImage(entry: EstateEntry): boolean {
+  isImage(entry: EstateEntry): boolean {
     return IMAGE_RE.test(entry.uri.fsPath);
   }
 }

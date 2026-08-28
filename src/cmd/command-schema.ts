@@ -1,12 +1,11 @@
 export type MenuId =
-  | "commandPalette"
-  | "view/title"
-  | "view/item/context"
   | "editor/context"
   | "editor/title"
-  | "explorer/context"
   | "editor/title/context"
-  | "commandPalette";
+  | "explorer/context"
+  | "view/item/context"
+  | "view/title"
+  
 export interface Keybinding {
   key: string;
   when?: string;

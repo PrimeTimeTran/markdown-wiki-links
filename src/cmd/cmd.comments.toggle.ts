@@ -155,15 +155,6 @@ async function toggleSmartLineComments(
 
   await editor.edit((edit) => {
     for (const line of lines) {
-      console.log("ADDING", {
-        line: line.lineNumber,
-        text: line.text,
-        prefix: comments.line!.prefix,
-        range: {
-          start: line.range.start,
-          end: line.range.end,
-        },
-      });
       if (shouldRemove) {
         const prefix = prefixes.find((prefix) => hasExactCommentPrefix(line.text, prefix));
 
@@ -181,17 +172,10 @@ function getSelectedLines(
   document: vscode.TextDocument,
   selection: vscode.Selection,
 ): vscode.TextLine[] {
-  console.log("GET LINES DEBUG", {
-    text: document.getText(),
-    lineCount: document.lineCount,
-    start: selection.start.line,
-    end: selection.end.line,
-  });
-
+ 
   const lines: vscode.TextLine[] = [];
 
   for (let line = selection.start.line; line <= selection.end.line; line++) {
-    console.log("LINE", line, "OF", document.lineCount);
     lines.push(document.lineAt(line));
   }
 

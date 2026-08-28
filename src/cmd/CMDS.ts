@@ -414,12 +414,6 @@ export const COMMANDS: CommandDefinition[] = [
     title: "Estate: Filter bookmarks",
     id: "estate.bookmark.filter",
     icon: "$(filter)",
-    // Adding to the maain contributes.commands reveals in editor group right click reveal panel
-    // {
-    //     "command": "estate.bookmark.filter",
-    //     "title": "Estate: Filter bookmarks",
-    //     "icon": "$(filter)"
-    //   },
     menus: [
       {
         menu: "editor/title",
@@ -431,8 +425,6 @@ export const COMMANDS: CommandDefinition[] = [
         group: "navigation",
         when: "estate.hasAnchor",
       },
-      // Editor group right click context.
-      // The pop up panel when user right clicks
       {
         menu: "editor/title/context",
         group: "navigation",

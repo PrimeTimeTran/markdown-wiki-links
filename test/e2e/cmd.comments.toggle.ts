@@ -1,7 +1,6 @@
 import * as assert from "node:assert/strict";
-import path from "node:path";
 
-import { describe, test } from "mocha";
+import { test } from "mocha";
 import * as vscode from "vscode";
 
 async function createRustEditor(content: string): Promise<vscode.TextEditor> {

@@ -123,7 +123,7 @@ export class AppStore {
       );
     }
     this.activity.subscribe((_activity) => {
-      this.click.info("AppStore");
+      // this.click.info("AppStore");
     });
   }
 

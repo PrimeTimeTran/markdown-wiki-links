@@ -67,8 +67,10 @@ export class CodeActionAdapter implements vscode.CodeActionProvider {
   ): vscode.CodeAction[] {
     return context.diagnostics.flatMap((diagnostic) =>
       this.actions.provide(doc, range, diagnostic).map((action: ActionDefinition) => {
+        let cmd =
+          Object.prototype.hasOwnProperty.call(action?.arguments?.[1] ?? {}, ".estate") || "";
         const result = new vscode.CodeAction(
-          `$(trash) ${action.title}: ${action?.arguments[1].estate}`,
+          `$(trash) ${action.title}: ${cmd}`,
           vscode.CodeActionKind.QuickFix,
         );
         result.command = {

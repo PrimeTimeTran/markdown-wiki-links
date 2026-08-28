@@ -168,7 +168,7 @@ export class VFSDecorator implements vscode.FileDecorationProvider {
   ) {
     app.activity.subscribe((_a) => {
       this.app.clickFlow.info("VFSDecorator");
-      this._onDidChangeFileDecorations.fire();
+      this._onDidChangeFileDecorations.fire(undefined);
     });
   }
 
@@ -207,7 +207,7 @@ export class EstateProvider implements vscode.TreeDataProvider<EstateNode> {
   readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
   refresh(): void {
     console.log("[EstateProvider].refresh");
-    this.onDidChangeTreeDataEmitter.fire();
+    this.onDidChangeTreeDataEmitter.fire(undefined);
   }
   getTreeItem(node: EstateNode): any {
     return node;

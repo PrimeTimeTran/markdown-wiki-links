@@ -25,11 +25,12 @@ interface CommandDefinition {
 }
 interface MenuContribution {
   menu:
-    | "view/title"
-    | "view/item/context"
     | "editor/context"
     | "editor/title"
-    | "editor/title/context";
+    | "editor/title/context"
+    | "explorer/context"
+    | "view/item/context"
+    | "view/title";
 
   when?: string;
   group?: string;

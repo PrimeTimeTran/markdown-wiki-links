@@ -3,13 +3,21 @@ import path from "node:path";
 import type MarkdownIt from "markdown-it";
 import * as vscode from "vscode";
 
-import { EstateResolver } from "../adapters/indexService";
+import { EstateResolver, WorkspaceEntry } from "../adapters/indexService";
 import { slugify } from "../core/blocks/headingExtractor";
 import { wikiPlugin } from "./wikiRule";
 
 const NULL_RESOLVER: EstateResolver = {
+  root: "",
+  sources: [],
+  fileHref: () => "",
+  isImage: () => true,
+  resolve: () => new WorkspaceEntry("", "", "", "symbol", "symbol"),
   resolveEmbed: () => null,
+  resolveRelative: () => undefined,
   resolveLink: () => null,
+  registries: () => [],
+  all: function* () {},
 };
 
 let activeResolver: EstateResolver = NULL_RESOLVER;

@@ -20,6 +20,7 @@
     "package": "vsce package --no-dependencies",
     "loi-test2": "pnpm test:e2e && pnpm test",
     "loi-test": "pnpm build && pnpm exec vscode-test --label comments",
+    "loi-clear-test-cache-run-again": "pnpm compile:tests && pnpm build && pnpm exec vscode-test --label comments",
     "publish": "vsce publish --no-dependencies"
   },
   "repository": {

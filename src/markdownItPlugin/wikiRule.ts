@@ -132,7 +132,8 @@ function expandEmbeds(
   return src.replace(EMBED_RE, (_full, target, fragment, sizeHint, offset: number) => {
     if (isMasked(mask, offset)) return _full;
     const key = fragment ? `${target}#${fragment}` : target;
-    const r = resolver.resolveEmbed(fromFsPath, key, sizeHint);
+    const r = resolver.resolveEmbed(fromFsPath, key);
+    // const r = resolver.resolveEmbed(fromFsPath, key, sizeHint);
     if (!r) return `*Unresolved embed: ${mdEscape(target)}*`;
     if (r.kind === "image") {
       // Emit a markdown image token (not raw <img>) so VSCode's preview rewrites the src to a
@@ -160,7 +161,13 @@ function rewriteLinks(
     const t = (target as string).trim();
     const frag = (fragment as string | undefined)?.trim();
     const label = (display as string | undefined)?.trim() ?? labelFor(t, frag);
-    const href = resolver.resolveLink(fromFsPath, t, frag);
+    const href = resolver.resolveLink(
+      {
+        fragment,
+        target,
+      },
+      t,
+    );
     if (!href) return mdEscape(label); // unresolved → plain text, no link
     return `[${mdEscape(label)}](<${href}>)`;
   });

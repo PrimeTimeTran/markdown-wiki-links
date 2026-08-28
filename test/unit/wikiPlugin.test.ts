@@ -2,7 +2,7 @@ import * as assert from "assert";
 
 import MarkdownIt from "markdown-it";
 
-import { EstateResolver } from "../../src/adapters/indexService";
+import { EstateResolver, makeEstateEntry } from "../../src/adapters/indexService";
 import { wikiPlugin } from "../../src/markdownItPlugin/wikiRule";
 
 // A resolver where embeds resolve a small fixed set and links resolve to "<target>.md".
@@ -20,10 +20,15 @@ function resolver(over: Partial<EstateResolver> = {}): EstateResolver {
       if (key === "diagram.png") return { kind: "image", src: "media/diagram.png" };
       return null;
     },
-    resolveLink: (_from, target) => (target === "ghost" ? null : `${target}.md`),
+    resolveLink: (_from, target) =>
+      target === "ghost"
+        ? null
+        : makeEstateEntry(`${target}.md`),
     ...over,
   };
 }
+
+// const key = fragment ? `${target}#${fragment}` : target;
 
 // Preview-shaped env (mirrors what VSCode's preview path passes). Non-preview render calls
 // omit these fields so the wikiPlugin must no-op for them.
@@ -66,7 +71,7 @@ suite("wikiPlugin — embeds", () => {
   test("image embed with a width x height hint sets both dimensions", () => {
     const res = resolver({
       resolveEmbed: (_f, key) =>
-        key.startsWith("diagram.png") ? { kind: "image", src: "media/diagram.png" } : null,
+        key?.startsWith("diagram.png") ? { kind: "image", src: "media/diagram.png" } : null,
     });
     const out = mk(res).render("![[diagram.png|300x150]]");
     assert.ok(/width="300"/.test(out) && /height="150"/.test(out), `got: ${out}`);
@@ -78,7 +83,7 @@ suite("wikiPlugin — embeds", () => {
   test("depth cap stops recursion at the configured limit", () => {
     const res: EstateResolver = {
       resolveEmbed: (_f, key) => {
-        const next = String.fromCharCode(key.charCodeAt(0) + 1);
+        const next = String.fromCharCode(key?.charCodeAt(0) ? key?.charCodeAt(0) + 1 : 0);
         return {
           kind: "markdown",
           text: `level-${key}. ![[${next}]]`,
@@ -229,7 +234,7 @@ suite("wikiPlugin — links", () => {
         key === "note"
           ? { kind: "markdown", text: "Note links to [[other]].", sourcePath: "/abs/note.md" }
           : null,
-      resolveLink: (_f, target) => `${target}.md`,
+      resolveLink: (_f, target) => makeEstateEntry(`${target}.md`),
     };
     const out = mk(res).render("![[note]]");
     assert.ok(/<a [^>]*href="other\.md"/.test(out), `got: ${out}`);
@@ -249,7 +254,7 @@ suite("wikiPlugin — links", () => {
     const res: EstateResolver = {
       resolveEmbed: (_f, key) =>
         key === "note" ? { kind: "markdown", text: noteBody, sourcePath: "/abs/note.md" } : null,
-      resolveLink: (_f, target) => `${target}.md`,
+      resolveLink: (_f, target) => makeEstateEntry(`${target}.md`),
     };
     const src = "![[note]]\n[[Link]]\n" + ".".repeat(80) + "`code`";
     const out = mk(res).render(src);
