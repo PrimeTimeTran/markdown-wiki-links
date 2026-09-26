@@ -1,0 +1,9 @@
+name: Pipeline
+description: Notes I am editing # optional
+filter:
+  and:
+    - tag: "#wip"
+    - not:
+        tag: "#archive"
+sort: title ASC
+limit: 50

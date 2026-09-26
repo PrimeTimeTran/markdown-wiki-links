@@ -3,6 +3,8 @@ import * as assert from "node:assert/strict";
 import { test } from "mocha";
 import * as vscode from "vscode";
 
+import { CMD } from "../../generated/cmd";
+
 async function createRustEditor(content: string): Promise<vscode.TextEditor> {
   const document = await vscode.workspace.openTextDocument({
     language: "rust",
@@ -24,13 +26,13 @@ async function createRustEditor(content: string): Promise<vscode.TextEditor> {
 suite("Estate Rust comment commands", () => {
   test("adds // line comments", async () => {
     const editor = await createRustEditor("foo;\nbar;");
-    await vscode.commands.executeCommand("estate.commentToggle.line");
+    await vscode.commands.executeCommand(CMD.estate.commentToggle.line);
     assert.strictEqual(editor.document.getText(), "// foo;\n// bar;");
   });
 
   test("removes // line comments", async () => {
     const editor = await createRustEditor("// foo;\n// bar;");
-    await vscode.commands.executeCommand("estate.commentToggle.line");
+    await vscode.commands.executeCommand(CMD.estate.commentToggle.line);
     assert.strictEqual(editor.document.getText(), "foo;\nbar;");
   });
 
@@ -42,7 +44,7 @@ suite("Estate Rust comment commands", () => {
 
   test("removes /// doc comments", async () => {
     const editor = await createRustEditor("/// foo;\n/// bar;");
-    await vscode.commands.executeCommand("estate.commentToggle.doc");
+    await vscode.commands.executeCommand(CMD.estate.commentToggle.doc);
     assert.strictEqual(editor.document.getText(), "foo;\nbar;");
   });
 
@@ -57,7 +59,7 @@ suite("Estate Rust comment commands", () => {
   test("removes //! inner doc comments", async () => {
     const editor = await createRustEditor("//! foo;\n//! bar;");
 
-    await vscode.commands.executeCommand("estate.commentToggle.innerDoc");
+    await vscode.commands.executeCommand(CMD.estate.commentToggle.innerDoc);
 
     assert.strictEqual(editor.document.getText(), "foo;\nbar;");
   });
@@ -83,7 +85,7 @@ suite("Estate JavaScript comment commands", () => {
   test("adds // line comments", async () => {
     const editor = await createEditor("javascript", "foo();\nbar();");
 
-    await vscode.commands.executeCommand("estate.commentToggle.line");
+    await vscode.commands.executeCommand(CMD.estate.commentToggle.line);
 
     assert.strictEqual(editor.document.getText(), "// foo();\n// bar();");
   });
@@ -91,7 +93,7 @@ suite("Estate JavaScript comment commands", () => {
   test("removes // line comments", async () => {
     const editor = await createEditor("javascript", "// foo();\n// bar();");
 
-    await vscode.commands.executeCommand("estate.commentToggle.line");
+    await vscode.commands.executeCommand(CMD.estate.commentToggle.line);
 
     assert.strictEqual(editor.document.getText(), "foo();\nbar();");
   });

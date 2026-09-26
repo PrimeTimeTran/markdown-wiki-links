@@ -18,20 +18,6 @@ const newCmd: CommandDefinition = {
 // Menu icons aren't behaving consistently in sidebar click of file explorer
 // Tab switch hotkey)
 export const COMMANDS: CommandDefinition[] = [
-  // {
-  //   title: "Estate: Trace Flow through app",
-  //   id: "estate.flow.create",
-  //   shortTitle: "Toggle `//` line comments.",
-  //   icon: "$(comment)",
-  //   category: "comment",
-  //   menus: [],
-  //   keybindings: [
-  //     {
-  //       key: "cmd+/",
-  //       when: "editorTextFocus && !editorReadonly && (editorLangId == rust || editorLangId == javascript || editorLangId == typescript)",
-  //     },
-  //   ],
-  // },
   {
     title: "Estate: Toggle Line Comment '//'",
     id: "estate.commentToggle.line",

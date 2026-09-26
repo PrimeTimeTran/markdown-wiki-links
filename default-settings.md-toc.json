@@ -1,0 +1,46 @@
+{
+	"markdown.toc": true,
+	"markdown.truncate": true, // add ellipse if heading too large instead of making the outline scrollable on x axis.
+	"markdown.toc.scrollspy": true, // TOC mimics doc scroll focus/position
+	"markdown.toc.styles": {
+		"floating": false,
+		"nestedIndent": true,
+		"position": "left",
+		"showHierarchy": true,
+		"fontFamily": "JetBrains Mono",
+		"fontSize": "16px",
+		"fontWeight": "400",
+		"indentSize": "14px",
+		"lineHeight": "1.6",
+		"seen": {
+			"opacity": 0.72
+		},
+		"unseen": {
+			"opacity": 0.72
+		},
+		"guide": {
+			"enabled": true,
+			"color": "#44475A",
+			"width": "1px"
+		},
+		"active": {
+			"color": "#F8F8F2",
+			"background": "#44475A",
+			"fontWeight": "600",
+			"borderRadius": "4px",
+			"indicator": {
+				"enabled": true,
+				"color": "#BD93F9",
+				"width": "2px"
+			}
+		},
+		"color": {
+			"h1": "#FF79C6", // Pink
+			"h2": "#BD93F9", // Purple
+			"h3": "#8BE9FD", // Cyan
+			"h4": "#50FA7B", // Green
+			"h5": "#FFB86C", // Orange
+			"h6": "#F1FA8C" // Yellow
+		}
+	}
+}

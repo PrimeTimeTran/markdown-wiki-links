@@ -84,7 +84,7 @@ export class AppStore {
         longLangs,
         new WikiDocumentLinkProvider(this, this.wiki),
       ),
-      vscode.commands.registerCommand("estate.ui.quickPick", (anchor: Anchor) => {
+      vscode.commands.registerCommand(CMD.estate.ui.quickPick, (anchor: Anchor) => {
         if (!anchor) return;
         vscode.window.showQuickPick([
           `🧩 Create label ${anchor.label}`,

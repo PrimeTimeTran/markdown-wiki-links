@@ -65,11 +65,11 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
         const anchor = this.app.anchors.get(match.id);
         if (anchor) {
           // lenses.push(
-            // new vscode.CodeLens(range, {
-              // title: `🏠 Open ${anchor?.label ?? match.id}`,
-              // command: CMD.estate.anchor.view,
-              // arguments: [this.makeCtx(doc, match, range)],
-            // }),
+          // new vscode.CodeLens(range, {
+          // title: `🏠 Open ${anchor?.label ?? match.id}`,
+          // command: CMD.estate.anchor.view,
+          // arguments: [this.makeCtx(doc, match, range)],
+          // }),
           // );
           new vscode.CodeLens(range, {
             title: "🔖 Anchor",
@@ -200,61 +200,6 @@ export class WikiCodeLensProvider implements vscode.CodeLensProvider {
             }),
           );
         }
-        //   let ctx = this.makeCtx(doc, match, range);
-        //   const scope = ctx.scope
-        //     ? `${ctx.scope.kind} ${ctx.scope.startLine}-${ctx.scope.endLine}`
-        //     : 'none';
-        //   lenses.push(
-        //     new vscode.CodeLens(range, {
-        //       //   title: '🏁 Flag ' + data,
-        //       //   title: `🏁 ${ctx.selection.start.line}:${ctx.selection.start.character} → ${ctx.selection.end.line}:${ctx.selection.end.character}`,
-        //       title: `🏁 ${scope}`,
-        //       command: 'wiki.showGraph',
-        //       arguments: [this.makeCtx(doc, match, range)],
-        //     }),
-        //   );
-        // lenses.push(
-        //   new vscode.CodeLens(range, {
-        //     title: '📌 Pin Context', // Persist context as a visible notification/pinned state
-        //     command: 'estate.addPersistentNotification',
-        //     arguments: [this.makeCtx(doc, match, range)],
-        //   }),
-        // );
-        // lenses.push(
-        //   new vscode.CodeLens(range, {
-        //     title: '🔎 Reveal Panel', // Show searchable context/options for this estate item
-        //     command: 'estate.openTextAndIconPanel',
-        //     arguments: [this.makeCtx(doc, match, range)],
-        //   }),
-        // );
-        // lenses.push(
-        //   new vscode.CodeLens(range, {
-        //     title: '⚡ Actions', // Open available operations for this context
-        //     command: 'ui.openQuickpickDropdown',
-        //     arguments: [this.makeCtx(doc, match, range)],
-        //   }),
-        // );
-        // lenses.push(
-        //   new vscode.CodeLens(range, {
-        //     title: '💾 Save Anchor',
-        //     command: 'estate.contentSave',
-        //     arguments: [this.makeCtx(doc, match, range)],
-        //   }),
-        // );
-        // lenses.push(
-        //   new vscode.CodeLens(range, {
-        //     title: '🔄 Cycle Variants', // Move through saved anchor variations/options
-        //     command: 'estate.contentCycle',
-        //     arguments: [this.makeCtx(doc, match, range)],
-        //   }),
-        // );
-        // lenses.push(
-        //   new vscode.CodeLens(range, {
-        //     title: '♻️ Replace Content', // Apply captured anchor content into the current scope
-        //     command: 'estate.contentReplace',
-        //     arguments: [this.makeCtx(doc, match, range)],
-        //   }),
-        // );
       }
     }
     return lenses;

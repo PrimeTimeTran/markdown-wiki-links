@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 
+import { CMD } from "../generated/cmd";
 import { AnchorSeries } from "./anchor";
 
 export interface Presenter<T> {
@@ -52,7 +53,7 @@ export interface Presenter<T> {
 export class Global {
   constructor() {}
   snippetMaker(_ctx: vscode.ExtensionContext) {
-    vscode.commands.registerCommand("estate.snippet.create", async () => {
+    vscode.commands.registerCommand(CMD.estate.snippet.create, async () => {
       const language = await this.pickSnippetLanguage();
       if (!language) {
         return;

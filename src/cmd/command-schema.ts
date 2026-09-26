@@ -16,21 +16,19 @@ export interface MenuContribution {
   group?: string;
 }
 export type CommandId = string;
+
 export interface CommandDefinition {
   id: CommandId;
-
   title: string;
   shortTitle?: string;
-
   icon?: string;
   category?: string;
   group?: string;
-
   docs?: {
     path: string;
     description?: string;
   };
-
+  configKey?: string; 
   implementation?: {
     file: string;
     symbol?: string;
